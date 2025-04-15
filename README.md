@@ -15,7 +15,9 @@ A simple, fast, and efficient Terminal User Interface (TUI) application for trac
 
 <!-- Placeholder for Screenshot -->
 <img width="991" alt="Screenshot 2025-04-15 at 5 38 35 PM" src="https://github.com/user-attachments/assets/2b6b8868-f3b9-43e1-a16b-531f1dbd75d4" style="border: 2px solid #ccc; margin: 20px;" />
+<br><br>
 <img width="989" alt="Screenshot 2025-04-15 at 5 30 03 PM" src="https://github.com/user-attachments/assets/1058185b-a0ad-4e42-afed-00c381156341" style="border: 2px solid #ccc; margin: 20px;" />
+<br><br>
 <img width="989" alt="Screenshot 2025-04-15 at 5 30 13 PM" src="https://github.com/user-attachments/assets/3b54216b-4812-48be-90fe-8046f6651cd0" style="border: 2px solid #ccc; margin: 20px;" />
 
 ## ✨ Features
