@@ -1,6 +1,8 @@
 # Budget Tracker TUI
 
-![Budget Tracker Logo](budget_tracker_icon.png)
+<p align="center">
+  <img src="budget_tracker_icon.png" alt="Budget Tracker Logo" width="150"/>
+</p>
 
 A simple, fast, and efficient Terminal User Interface (TUI) application for tracking your personal budget, built with Rust and Ratatui.
 
@@ -12,10 +14,9 @@ A simple, fast, and efficient Terminal User Interface (TUI) application for trac
 - [References](#references)
 
 <!-- Placeholder for Screenshot -->
-<img width="995" alt="Screenshot 2025-04-15 at 5 29 48 PM" src="https://github.com/user-attachments/assets/37d63217-aa48-4f32-b83e-8995774cdf13" />
-<img width="989" alt="Screenshot 2025-04-15 at 5 30 03 PM" src="https://github.com/user-attachments/assets/1058185b-a0ad-4e42-afed-00c381156341" />
-<img width="989" alt="Screenshot 2025-04-15 at 5 30 13 PM" src="https://github.com/user-attachments/assets/3b54216b-4812-48be-90fe-8046f6651cd0" />
-
+<img width="995" alt="Screenshot 2025-04-15 at 5 29 48 PM" src="https://github.com/user-attachments/assets/37d63217-aa48-4f32-b83e-8995774cdf13" style="border: 2px solid #ccc; margin: 10px;" />
+<img width="989" alt="Screenshot 2025-04-15 at 5 30 03 PM" src="https://github.com/user-attachments/assets/1058185b-a0ad-4e42-afed-00c381156341" style="border: 2px solid #ccc; margin: 10px;" />
+<img width="989" alt="Screenshot 2025-04-15 at 5 30 13 PM" src="https://github.com/user-attachments/assets/3b54216b-4812-48be-90fe-8046f6651cd0" style="border: 2px solid #ccc; margin: 10px;" />
 
 ## ✨ Features
 
