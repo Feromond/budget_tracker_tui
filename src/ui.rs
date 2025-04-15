@@ -502,7 +502,7 @@ fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             chart_data_styled.push(
                 Bar::default()
                     .label(month_name.into())
-                    .value(net_i64.abs() as u64)
+                    .value(net_i64.unsigned_abs())
                     .style(net_style),
             );
             max_abs_chart_value = max_abs_chart_value.max(net_i64.abs());
@@ -726,7 +726,7 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         current_max = current_max.max(net_i64.abs());
                         Bar::default()
                             .label(cat.chars().take(15).collect::<String>().into()) // Truncate label (increased length)
-                            .value(net_i64.abs() as u64)
+                            .value(net_i64.unsigned_abs())
                             .style(net_style)
                     })
                     .collect();

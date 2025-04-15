@@ -263,7 +263,7 @@ impl App {
             (_, _, Err(_)) => {
                 self.status_message = Some("Error: Invalid Amount (Must be a number)".to_string());
             }
-            (_, desc, _) if desc.is_empty() => {
+            (_, "", _) => {
                 self.status_message = Some("Error: Description cannot be empty".to_string());
             }
             (_, _, Ok(amount)) if amount <= 0.0 => {
@@ -363,7 +363,7 @@ impl App {
                     self.status_message =
                         Some("Error: Invalid Amount (Must be a number)".to_string());
                 }
-                (_, desc, _) if desc.is_empty() => {
+                (_, "", _) => {
                     self.status_message = Some("Error: Description cannot be empty".to_string());
                 }
                 (_, _, Ok(amount)) if amount <= 0.0 => {
@@ -913,7 +913,7 @@ impl App {
 }
 
 fn sort_transactions_impl(
-    transactions: &mut Vec<Transaction>,
+    transactions: &mut [Transaction],
     sort_by: SortColumn,
     sort_order: SortOrder,
 ) {
