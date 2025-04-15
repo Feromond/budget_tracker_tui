@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 
 pub const DATE_FORMAT: &str = "%Y-%m-%d";
 
@@ -23,7 +23,6 @@ impl TryFrom<&str> for TransactionType {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     #[serde(with = "date_format")]
@@ -43,7 +42,7 @@ fn default_category() -> String {
 
 pub mod date_format {
     use chrono::NaiveDate;
-    use serde::{self, Serializer, Deserializer, Deserialize};
+    use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = super::DATE_FORMAT;
 
@@ -91,4 +90,4 @@ pub struct CategoryInfo {
     pub transaction_type: TransactionType,
     pub category: String,
     pub subcategory: String,
-} 
+}

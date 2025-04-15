@@ -1,9 +1,9 @@
 use crate::model::*;
-use crate::persistence::{load_transactions, load_categories, save_transactions};
-use std::collections::{HashMap, HashSet};
+use crate::persistence::{load_categories, load_transactions, save_transactions};
+use chrono::{Datelike, NaiveDate};
+use ratatui::widgets::{ListState, TableState};
 use std::cmp::Ordering;
-use chrono::{NaiveDate, Datelike};
-use ratatui::widgets::{TableState, ListState};
+use std::collections::{HashMap, HashSet};
 
 // Define application modes
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -57,16 +57,16 @@ impl App {
             Err(e) => (vec![], Some(format!("Load TX Error: {}", e))),
         };
         let (categories, load_cat_error_msg) = match load_categories() {
-             Ok(cats) => (cats, None),
-             Err(e) => (vec![], Some(format!("Load Category Error: {}", e))),
-         };
+            Ok(cats) => (cats, None),
+            Err(e) => (vec![], Some(format!("Load Category Error: {}", e))),
+        };
 
-         let load_error_msg = match (load_tx_error_msg, load_cat_error_msg) {
-             (Some(tx_err), Some(cat_err)) => Some(format!("{} | {}", tx_err, cat_err)),
-             (Some(tx_err), None) => Some(tx_err),
-             (None, Some(cat_err)) => Some(cat_err),
-             (None, None) => None,
-         };
+        let load_error_msg = match (load_tx_error_msg, load_cat_error_msg) {
+            (Some(tx_err), Some(cat_err)) => Some(format!("{} | {}", tx_err, cat_err)),
+            (Some(tx_err), None) => Some(tx_err),
+            (None, Some(cat_err)) => Some(cat_err),
+            (None, None) => None,
+        };
 
         let initial_sort_by = SortColumn::Date;
         let initial_sort_order = SortOrder::Descending;
@@ -132,10 +132,16 @@ impl App {
             AppMode::CategorySummary => self.get_current_category_summary_list().len(),
             _ => 0,
         };
-        if list_len == 0 { return; }
+        if list_len == 0 {
+            return;
+        }
 
         let current_selection = self.table_state.selected().unwrap_or(0);
-        let next_selection = if current_selection >= list_len - 1 { 0 } else { current_selection + 1 };
+        let next_selection = if current_selection >= list_len - 1 {
+            0
+        } else {
+            current_selection + 1
+        };
 
         self.table_state.select(Some(next_selection));
     }
@@ -147,10 +153,16 @@ impl App {
             AppMode::CategorySummary => self.get_current_category_summary_list().len(),
             _ => 0,
         };
-        if list_len == 0 { return; }
+        if list_len == 0 {
+            return;
+        }
 
         let current_selection = self.table_state.selected().unwrap_or(0);
-        let prev_selection = if current_selection == 0 { list_len - 1 } else { current_selection - 1 };
+        let prev_selection = if current_selection == 0 {
+            list_len - 1
+        } else {
+            current_selection - 1
+        };
 
         self.table_state.select(Some(prev_selection));
     }
@@ -173,7 +185,12 @@ impl App {
     }
 
     // --- Validation Helper ---
-    fn validate_category(&self, transaction_type: TransactionType, category: &str, subcategory: &str) -> Result<(), String> {
+    fn validate_category(
+        &self,
+        transaction_type: TransactionType,
+        category: &str,
+        subcategory: &str,
+    ) -> Result<(), String> {
         // Allow "Uncategorized" or empty category
         if category.is_empty() || category.eq_ignore_ascii_case("Uncategorized") {
             return Ok(());
@@ -184,16 +201,19 @@ impl App {
 
         // Find matching category info
         let is_valid = self.categories.iter().any(|cat_info| {
-            cat_info.transaction_type == transaction_type &&
-
-            cat_info.category.to_lowercase() == category_lower &&
-            (cat_info.subcategory.to_lowercase() == subcategory_lower || cat_info.subcategory.is_empty())
+            cat_info.transaction_type == transaction_type
+                && cat_info.category.to_lowercase() == category_lower
+                && (cat_info.subcategory.to_lowercase() == subcategory_lower
+                    || cat_info.subcategory.is_empty())
         });
 
         if is_valid {
             Ok(())
         } else {
-            Err(format!("Invalid Category/Subcategory: '{}' / '{}' for {:?}", category, subcategory, transaction_type))
+            Err(format!(
+                "Invalid Category/Subcategory: '{}' / '{}' for {:?}",
+                category, subcategory, transaction_type
+            ))
         }
     }
 
@@ -212,8 +232,8 @@ impl App {
         };
 
         if let Err(cat_err) = self.validate_category(transaction_type, category, subcategory) {
-             self.status_message = Some(format!("Error: {}", cat_err));
-             return;
+            self.status_message = Some(format!("Error: {}", cat_err));
+            return;
         }
 
         match (date_res, description, amount_res) {
@@ -235,7 +255,10 @@ impl App {
                 self.exit_adding();
             }
             (Err(_), _, _) => {
-                self.status_message = Some(format!("Error: Invalid Date Format (Expected {})", DATE_FORMAT));
+                self.status_message = Some(format!(
+                    "Error: Invalid Date Format (Expected {})",
+                    DATE_FORMAT
+                ));
             }
             (_, _, Err(_)) => {
                 self.status_message = Some("Error: Invalid Amount (Must be a number)".to_string());
@@ -244,7 +267,7 @@ impl App {
                 self.status_message = Some("Error: Description cannot be empty".to_string());
             }
             (_, _, Ok(amount)) if amount <= 0.0 => {
-                 self.status_message = Some("Error: Amount must be positive".to_string());
+                self.status_message = Some("Error: Amount must be positive".to_string());
             }
             _ => {
                 self.status_message = Some("Error: Could not add transaction".to_string());
@@ -255,8 +278,8 @@ impl App {
     // --- Editing Logic ---
     pub(crate) fn start_editing(&mut self) {
         if let Some(view_index) = self.table_state.selected() {
-             if let Some(original_index) = self.get_original_index(view_index) {
-                 let tx = &self.transactions[original_index];
+            if let Some(original_index) = self.get_original_index(view_index) {
+                let tx = &self.transactions[original_index];
                 self.mode = AppMode::Editing;
                 self.editing_index = Some(original_index);
                 self.current_add_edit_field = 0;
@@ -271,8 +294,9 @@ impl App {
                 ];
                 self.status_message = None;
             } else {
-                 self.status_message = Some("Error: Could not map view index to transaction".to_string());
-             }
+                self.status_message =
+                    Some("Error: Could not map view index to transaction".to_string());
+            }
         } else {
             self.status_message = Some("Select a transaction to edit first".to_string());
         }
@@ -326,41 +350,46 @@ impl App {
                         self.exit_editing();
                     } else {
                         self.status_message = Some("Error: Invalid index during edit".to_string());
-                         self.exit_editing();
+                        self.exit_editing();
                     }
                 }
-                 (Err(_), _, _) => {
-                    self.status_message = Some(format!("Error: Invalid Date Format (Expected {})", DATE_FORMAT));
+                (Err(_), _, _) => {
+                    self.status_message = Some(format!(
+                        "Error: Invalid Date Format (Expected {})",
+                        DATE_FORMAT
+                    ));
                 }
                 (_, _, Err(_)) => {
-                    self.status_message = Some("Error: Invalid Amount (Must be a number)".to_string());
+                    self.status_message =
+                        Some("Error: Invalid Amount (Must be a number)".to_string());
                 }
                 (_, desc, _) if desc.is_empty() => {
                     self.status_message = Some("Error: Description cannot be empty".to_string());
                 }
                 (_, _, Ok(amount)) if amount <= 0.0 => {
-                     self.status_message = Some("Error: Amount must be positive".to_string());
+                    self.status_message = Some("Error: Amount must be positive".to_string());
                 }
-                 _ => {
-                     self.status_message = Some("Error: Could not update transaction".to_string());
-                 }
+                _ => {
+                    self.status_message = Some("Error: Could not update transaction".to_string());
+                }
             }
         } else {
-             self.status_message = Some("Error: No transaction selected for editing".to_string());
-             self.exit_editing();
+            self.status_message = Some("Error: No transaction selected for editing".to_string());
+            self.exit_editing();
         }
     }
 
     // --- Deleting Logic ---
     pub(crate) fn prepare_for_delete(&mut self) {
         if let Some(view_index) = self.table_state.selected() {
-             if let Some(original_index) = self.get_original_index(view_index) {
+            if let Some(original_index) = self.get_original_index(view_index) {
                 self.delete_index = Some(original_index);
                 self.mode = AppMode::ConfirmDelete;
                 self.status_message = Some("Confirm Delete? (y/n)".to_string());
-             } else {
-                 self.status_message = Some("Error: Could not map view index to transaction".to_string());
-             }
+            } else {
+                self.status_message =
+                    Some("Error: Could not map view index to transaction".to_string());
+            }
         } else {
             self.status_message = Some("Select a transaction to delete first".to_string());
         }
@@ -372,16 +401,17 @@ impl App {
                 self.transactions.remove(index);
                 let _ = save_transactions(&self.transactions);
                 self.apply_filter();
-                 if self.transactions.is_empty() {
-                     self.table_state.select(None);
-                 } else if let Some(selected) = self.table_state.selected() {
-                      // Check against filtered length
-                     if selected >= self.filtered_indices.len() {
-                         self.table_state.select(Some(self.filtered_indices.len().saturating_sub(1)));
-                     }
-                 }
-                 self.calculate_monthly_summaries();
-                 self.status_message = Some("Transaction Deleted".to_string());
+                if self.transactions.is_empty() {
+                    self.table_state.select(None);
+                } else if let Some(selected) = self.table_state.selected() {
+                    // Check against filtered length
+                    if selected >= self.filtered_indices.len() {
+                        self.table_state
+                            .select(Some(self.filtered_indices.len().saturating_sub(1)));
+                    }
+                }
+                self.calculate_monthly_summaries();
+                self.status_message = Some("Transaction Deleted".to_string());
             }
         }
         self.cancel_delete();
@@ -427,7 +457,8 @@ impl App {
         sort_transactions_impl(&mut self.transactions, self.sort_by, self.sort_order);
 
         let query = self.input_field_content.to_lowercase();
-        self.filtered_indices = self.transactions
+        self.filtered_indices = self
+            .transactions
             .iter()
             .enumerate()
             .filter(|(_, tx)| {
@@ -441,14 +472,15 @@ impl App {
             .map(|(index, _)| index)
             .collect();
 
-         if self.filtered_indices.is_empty() {
-             self.table_state.select(None);
-         } else {
-             let current_selection = self.table_state.selected().unwrap_or(0);
-             self.table_state.select(Some(current_selection.min(self.filtered_indices.len() - 1)));
-         }
+        if self.filtered_indices.is_empty() {
+            self.table_state.select(None);
+        } else {
+            let current_selection = self.table_state.selected().unwrap_or(0);
+            self.table_state
+                .select(Some(current_selection.min(self.filtered_indices.len() - 1)));
+        }
 
-         self.calculate_category_summaries();
+        self.calculate_category_summaries();
     }
 
     // --- Input Handling ---
@@ -472,29 +504,29 @@ impl App {
             self.input_field_content.remove(self.input_field_cursor);
         }
     }
-     pub(crate) fn delete_char_after_cursor(&mut self) {
-         if self.input_field_cursor < self.input_field_content.len() {
-             self.input_field_content.remove(self.input_field_cursor);
-         }
-     }
-     pub(crate) fn insert_char_add_edit(&mut self, c: char) {
-         self.add_edit_fields[self.current_add_edit_field].push(c);
-     }
-      pub(crate) fn delete_char_add_edit(&mut self) {
-          self.add_edit_fields[self.current_add_edit_field].pop();
-      }
-       pub(crate) fn next_add_edit_field(&mut self) {
-           let next_field = (self.current_add_edit_field + 1) % self.add_edit_fields.len();
-           self.current_add_edit_field = next_field;
-       }
+    pub(crate) fn delete_char_after_cursor(&mut self) {
+        if self.input_field_cursor < self.input_field_content.len() {
+            self.input_field_content.remove(self.input_field_cursor);
+        }
+    }
+    pub(crate) fn insert_char_add_edit(&mut self, c: char) {
+        self.add_edit_fields[self.current_add_edit_field].push(c);
+    }
+    pub(crate) fn delete_char_add_edit(&mut self) {
+        self.add_edit_fields[self.current_add_edit_field].pop();
+    }
+    pub(crate) fn next_add_edit_field(&mut self) {
+        let next_field = (self.current_add_edit_field + 1) % self.add_edit_fields.len();
+        self.current_add_edit_field = next_field;
+    }
 
-       pub(crate) fn previous_add_edit_field(&mut self) {
-           if self.current_add_edit_field == 0 {
-               self.current_add_edit_field = self.add_edit_fields.len() - 1;
-           } else {
-               self.current_add_edit_field -= 1;
-           }
-       }
+    pub(crate) fn previous_add_edit_field(&mut self) {
+        if self.current_add_edit_field == 0 {
+            self.current_add_edit_field = self.add_edit_fields.len() - 1;
+        } else {
+            self.current_add_edit_field -= 1;
+        }
+    }
 
     // --- Summary Logic ---
     fn calculate_monthly_summaries(&mut self) {
@@ -516,12 +548,12 @@ impl App {
         self.summary_years = years;
 
         if !self.summary_years.is_empty() {
-             self.selected_summary_year_index = self.selected_summary_year_index.min(self.summary_years.len() - 1);
+            self.selected_summary_year_index = self
+                .selected_summary_year_index
+                .min(self.summary_years.len() - 1);
         } else {
-             self.selected_summary_year_index = 0;
+            self.selected_summary_year_index = 0;
         }
-
-        
     }
 
     pub(crate) fn enter_summary_mode(&mut self) {
@@ -534,7 +566,7 @@ impl App {
         self.status_message = None;
     }
 
-     pub(crate) fn exit_summary_mode(&mut self) {
+    pub(crate) fn exit_summary_mode(&mut self) {
         self.mode = AppMode::Normal;
         // Reset selection for main table if needed (depends on desired behavior)
         // self.table_state.select(Some(0));
@@ -543,7 +575,8 @@ impl App {
 
     pub(crate) fn next_summary_year(&mut self) {
         if !self.summary_years.is_empty() {
-            self.selected_summary_year_index = (self.selected_summary_year_index + 1) % self.summary_years.len();
+            self.selected_summary_year_index =
+                (self.selected_summary_year_index + 1) % self.summary_years.len();
             self.table_state.select(Some(0));
         }
     }
@@ -564,7 +597,11 @@ impl App {
         self.category_summaries.clear();
         let mut years = HashSet::new();
 
-        for tx in self.filtered_indices.iter().map(|&idx| &self.transactions[idx]) {
+        for tx in self
+            .filtered_indices
+            .iter()
+            .map(|&idx| &self.transactions[idx])
+        {
             let year = tx.date.year();
             let month = tx.date.month();
             years.insert(year);
@@ -572,10 +609,16 @@ impl App {
             let category_key = tx.category.trim();
             let subcategory_key = tx.subcategory.trim();
 
-            let final_category = if category_key.is_empty() { "Uncategorized" } else { category_key };
+            let final_category = if category_key.is_empty() {
+                "Uncategorized"
+            } else {
+                category_key
+            };
 
             let month_map = self.category_summaries.entry((year, month)).or_default();
-            let summary = month_map.entry((final_category.to_string(), subcategory_key.to_string())).or_default();
+            let summary = month_map
+                .entry((final_category.to_string(), subcategory_key.to_string()))
+                .or_default();
 
             match tx.transaction_type {
                 TransactionType::Income => summary.income += tx.amount,
@@ -587,7 +630,9 @@ impl App {
         self.category_summary_years.sort_unstable();
 
         if !self.category_summary_years.is_empty() {
-            self.category_summary_year_index = self.category_summary_year_index.min(self.category_summary_years.len() - 1);
+            self.category_summary_year_index = self
+                .category_summary_year_index
+                .min(self.category_summary_years.len() - 1);
         } else {
             self.category_summary_year_index = 0;
         }
@@ -599,13 +644,18 @@ impl App {
         } else {
             let current_selection = self.category_summary_table_state.selected().unwrap_or(0);
             let new_selection = current_selection.min(list_len - 1);
-            self.category_summary_table_state.select(Some(new_selection));
+            self.category_summary_table_state
+                .select(Some(new_selection));
         }
     }
 
     pub(crate) fn get_current_category_summary_list(&self) -> Vec<(u32, String, String)> {
         let mut list = Vec::new();
-        if let Some(year) = self.category_summary_years.get(self.category_summary_year_index).copied() {
+        if let Some(year) = self
+            .category_summary_years
+            .get(self.category_summary_year_index)
+            .copied()
+        {
             for month in 1..=12 {
                 if let Some(month_map) = self.category_summaries.get(&(year, month)) {
                     for (category, subcategory) in month_map.keys() {
@@ -614,9 +664,7 @@ impl App {
                 }
             }
             list.sort_unstable_by(|(m1, c1, s1), (m2, c2, s2)| {
-                m1.cmp(m2)
-                  .then_with(|| c1.cmp(c2))
-                  .then_with(|| s1.cmp(s2))
+                m1.cmp(m2).then_with(|| c1.cmp(c2)).then_with(|| s1.cmp(s2))
             });
         }
         list
@@ -630,9 +678,9 @@ impl App {
         }
         // Select first item safely
         if !self.get_current_category_summary_list().is_empty() {
-             self.category_summary_table_state.select(Some(0));
+            self.category_summary_table_state.select(Some(0));
         } else {
-             self.category_summary_table_state.select(None);
+            self.category_summary_table_state.select(None);
         }
         self.status_message = None;
     }
@@ -642,34 +690,51 @@ impl App {
         self.status_message = None;
     }
 
-     pub(crate) fn next_category_summary_item(&mut self) {
-         let list_len = self.get_current_category_summary_list().len();
-         if list_len == 0 { return; }
-         let i = match self.category_summary_table_state.selected() {
-             Some(i) => if i >= list_len - 1 { 0 } else { i + 1 },
-             None => 0,
-         };
-         self.category_summary_table_state.select(Some(i));
-     }
+    pub(crate) fn next_category_summary_item(&mut self) {
+        let list_len = self.get_current_category_summary_list().len();
+        if list_len == 0 {
+            return;
+        }
+        let i = match self.category_summary_table_state.selected() {
+            Some(i) => {
+                if i >= list_len - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.category_summary_table_state.select(Some(i));
+    }
 
-     pub(crate) fn previous_category_summary_item(&mut self) {
-         let list_len = self.get_current_category_summary_list().len();
-         if list_len == 0 { return; }
-         let i = match self.category_summary_table_state.selected() {
-             Some(i) => if i == 0 { list_len - 1 } else { i - 1 },
-             None => 0,
-         };
-         self.category_summary_table_state.select(Some(i));
-     }
+    pub(crate) fn previous_category_summary_item(&mut self) {
+        let list_len = self.get_current_category_summary_list().len();
+        if list_len == 0 {
+            return;
+        }
+        let i = match self.category_summary_table_state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    list_len - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.category_summary_table_state.select(Some(i));
+    }
 
-     pub(crate) fn next_category_summary_year(&mut self) {
+    pub(crate) fn next_category_summary_year(&mut self) {
         if !self.category_summary_years.is_empty() {
-            self.category_summary_year_index = (self.category_summary_year_index + 1) % self.category_summary_years.len();
+            self.category_summary_year_index =
+                (self.category_summary_year_index + 1) % self.category_summary_years.len();
             // Select first item safely
-             if !self.get_current_category_summary_list().is_empty() {
-                 self.category_summary_table_state.select(Some(0));
+            if !self.get_current_category_summary_list().is_empty() {
+                self.category_summary_table_state.select(Some(0));
             } else {
-                 self.category_summary_table_state.select(None);
+                self.category_summary_table_state.select(None);
             }
         }
     }
@@ -681,10 +746,10 @@ impl App {
             } else {
                 self.category_summary_year_index = self.category_summary_years.len() - 1;
             }
-             if !self.get_current_category_summary_list().is_empty() {
-                 self.category_summary_table_state.select(Some(0));
+            if !self.get_current_category_summary_list().is_empty() {
+                self.category_summary_table_state.select(Some(0));
             } else {
-                 self.category_summary_table_state.select(None);
+                self.category_summary_table_state.select(None);
             }
         }
     }
@@ -696,12 +761,19 @@ impl App {
 
         let current_type_str = self.add_edit_fields[3].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
-            self.status_message = Some("Error: Invalid transaction type for category lookup.".to_string());
-            self.mode = if self.editing_index.is_some() { AppMode::Editing } else { AppMode::Adding };
+            self.status_message =
+                Some("Error: Invalid transaction type for category lookup.".to_string());
+            self.mode = if self.editing_index.is_some() {
+                AppMode::Editing
+            } else {
+                AppMode::Adding
+            };
             return;
         };
 
-        let mut unique_categories: HashSet<String> = self.categories.iter()
+        let mut unique_categories: HashSet<String> = self
+            .categories
+            .iter()
             .filter(|cat_info| cat_info.transaction_type == current_type)
             .map(|cat_info| cat_info.category.clone())
             .collect();
@@ -712,7 +784,7 @@ impl App {
         self.current_selection_list = options;
         self.selection_list_state = ListState::default();
         if !self.current_selection_list.is_empty() {
-             self.selection_list_state.select(Some(0));
+            self.selection_list_state.select(Some(0));
         }
     }
 
@@ -724,20 +796,27 @@ impl App {
         let current_category = self.add_edit_fields[4].trim();
 
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
-             self.status_message = Some("Error: Invalid transaction type for subcategory lookup.".to_string());
-             self.mode = if self.editing_index.is_some() { AppMode::Editing } else { AppMode::Adding };
-             return;
-         };
+            self.status_message =
+                Some("Error: Invalid transaction type for subcategory lookup.".to_string());
+            self.mode = if self.editing_index.is_some() {
+                AppMode::Editing
+            } else {
+                AppMode::Adding
+            };
+            return;
+        };
 
         if current_category.is_empty() || current_category.eq_ignore_ascii_case("Uncategorized") {
             self.current_selection_list = vec!["(None)".to_string()];
         } else {
-            let mut unique_subcategories: HashSet<String> = self.categories.iter()
-                .filter(|cat_info|
-                    cat_info.transaction_type == current_type &&
-                    cat_info.category.eq_ignore_ascii_case(current_category) &&
-                    !cat_info.subcategory.is_empty()
-                 )
+            let mut unique_subcategories: HashSet<String> = self
+                .categories
+                .iter()
+                .filter(|cat_info| {
+                    cat_info.transaction_type == current_type
+                        && cat_info.category.eq_ignore_ascii_case(current_category)
+                        && !cat_info.subcategory.is_empty()
+                })
                 .map(|cat_info| cat_info.subcategory.clone())
                 .collect();
 
@@ -748,8 +827,8 @@ impl App {
         }
 
         self.selection_list_state = ListState::default();
-         if !self.current_selection_list.is_empty() {
-             self.selection_list_state.select(Some(0));
+        if !self.current_selection_list.is_empty() {
+            self.selection_list_state.select(Some(0));
         }
     }
 
@@ -764,24 +843,32 @@ impl App {
                     };
                     self.add_edit_fields[field_index] = value_to_set.to_string();
 
-                    if field_index == 4 { 
-                         self.current_add_edit_field = 5; 
-                         self.start_subcategory_selection();
-                         return; 
-                    } else if field_index == 5 { 
+                    if field_index == 4 {
+                        self.current_add_edit_field = 5;
+                        self.start_subcategory_selection();
+                        return;
+                    } else if field_index == 5 {
                         self.current_add_edit_field = 0;
                     }
                 }
             }
         }
-        self.mode = if self.editing_index.is_some() { AppMode::Editing } else { AppMode::Adding };
+        self.mode = if self.editing_index.is_some() {
+            AppMode::Editing
+        } else {
+            AppMode::Adding
+        };
         self.selecting_field_index = None;
         self.current_selection_list.clear();
     }
 
     pub(crate) fn cancel_selection(&mut self) {
-        self.mode = if self.editing_index.is_some() { AppMode::Editing } else { AppMode::Adding };
-         if let Some(field_index) = self.selecting_field_index {
+        self.mode = if self.editing_index.is_some() {
+            AppMode::Editing
+        } else {
+            AppMode::Adding
+        };
+        if let Some(field_index) = self.selecting_field_index {
             self.current_add_edit_field = field_index;
         }
         self.selecting_field_index = None;
@@ -790,9 +877,17 @@ impl App {
 
     pub(crate) fn select_next_list_item(&mut self) {
         let list_len = self.current_selection_list.len();
-        if list_len == 0 { return; }
+        if list_len == 0 {
+            return;
+        }
         let i = match self.selection_list_state.selected() {
-            Some(i) => if i >= list_len - 1 { 0 } else { i + 1 },
+            Some(i) => {
+                if i >= list_len - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
             None => 0,
         };
         self.selection_list_state.select(Some(i));
@@ -800,17 +895,28 @@ impl App {
 
     pub(crate) fn select_previous_list_item(&mut self) {
         let list_len = self.current_selection_list.len();
-        if list_len == 0 { return; }
+        if list_len == 0 {
+            return;
+        }
         let i = match self.selection_list_state.selected() {
-            Some(i) => if i == 0 { list_len - 1 } else { i - 1 },
+            Some(i) => {
+                if i == 0 {
+                    list_len - 1
+                } else {
+                    i - 1
+                }
+            }
             None => 0,
         };
         self.selection_list_state.select(Some(i));
     }
 }
 
-
-fn sort_transactions_impl(transactions: &mut Vec<Transaction>, sort_by: SortColumn, sort_order: SortOrder) {
+fn sort_transactions_impl(
+    transactions: &mut Vec<Transaction>,
+    sort_by: SortColumn,
+    sort_order: SortOrder,
+) {
     transactions.sort_by(|a, b| {
         let ordering = match sort_by {
             SortColumn::Date => a.date.cmp(&b.date),
@@ -826,4 +932,4 @@ fn sort_transactions_impl(transactions: &mut Vec<Transaction>, sort_by: SortColu
             ordering
         }
     });
-} 
+}

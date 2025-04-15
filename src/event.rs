@@ -4,8 +4,8 @@ use crate::ui::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::prelude::Backend;
 use ratatui::Terminal;
-use std::time::Duration;
 use std::result::Result as StdResult;
+use std::time::Duration;
 
 pub(crate) fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
@@ -16,9 +16,9 @@ pub(crate) fn run_app<B: Backend>(
 
         if event::poll(Duration::from_millis(250))? {
             if let Event::Key(key) = event::read()? {
-                if app.mode != AppMode::ConfirmDelete &&
-                   app.mode != AppMode::SelectingCategory &&
-                   app.mode != AppMode::SelectingSubcategory
+                if app.mode != AppMode::ConfirmDelete
+                    && app.mode != AppMode::SelectingCategory
+                    && app.mode != AppMode::SelectingSubcategory
                 {
                     app.status_message = None;
                 }
@@ -58,39 +58,48 @@ fn update(app: &mut App, key_event: KeyEvent) {
         AppMode::Adding | AppMode::Editing => {
             match key_code {
                 KeyCode::Esc => {
-                    if app.mode == AppMode::Adding { app.exit_adding(); }
-                    else { app.exit_editing(); }
-                },
-                KeyCode::Tab => { // Navigate fields, trigger popups
-                     match app.current_add_edit_field {
-                         // Tab from Type (3) -> Focus Category (4), open Category popup
-                         3 => {
-                             app.current_add_edit_field = 4;
-                             app.start_category_selection();
-                         },
-                         // Tab from Category (4) -> Focus Subcategory (5), open Subcategory popup
-                         4 => {
-                             app.current_add_edit_field = 5;
-                             app.start_subcategory_selection();
-                         },
-                         // Tab from Subcategory (5) wraps to Date (0)
-                         5 => app.current_add_edit_field = 0,
-                         // Tab from other fields moves to the next one
-                         _ => app.next_add_edit_field(),
-                     }
+                    if app.mode == AppMode::Adding {
+                        app.exit_adding();
+                    } else {
+                        app.exit_editing();
+                    }
                 }
-                KeyCode::BackTab => { // Shift+Tab for reverse navigation
-                     match app.current_add_edit_field {
-                         0 => app.current_add_edit_field = 5,
-                         4 => app.current_add_edit_field = 3,
-                         5 => app.current_add_edit_field = 4,
-                         _ => app.previous_add_edit_field(),
-                     }
-                 }
-                KeyCode::Enter => { // Save the transaction
-                    if app.mode == AppMode::Adding { app.add_transaction(); }
-                    else { app.update_transaction(); }
-                },
+                KeyCode::Tab => {
+                    // Navigate fields, trigger popups
+                    match app.current_add_edit_field {
+                        // Tab from Type (3) -> Focus Category (4), open Category popup
+                        3 => {
+                            app.current_add_edit_field = 4;
+                            app.start_category_selection();
+                        }
+                        // Tab from Category (4) -> Focus Subcategory (5), open Subcategory popup
+                        4 => {
+                            app.current_add_edit_field = 5;
+                            app.start_subcategory_selection();
+                        }
+                        // Tab from Subcategory (5) wraps to Date (0)
+                        5 => app.current_add_edit_field = 0,
+                        // Tab from other fields moves to the next one
+                        _ => app.next_add_edit_field(),
+                    }
+                }
+                KeyCode::BackTab => {
+                    // Shift+Tab for reverse navigation
+                    match app.current_add_edit_field {
+                        0 => app.current_add_edit_field = 5,
+                        4 => app.current_add_edit_field = 3,
+                        5 => app.current_add_edit_field = 4,
+                        _ => app.previous_add_edit_field(),
+                    }
+                }
+                KeyCode::Enter => {
+                    // Save the transaction
+                    if app.mode == AppMode::Adding {
+                        app.add_transaction();
+                    } else {
+                        app.update_transaction();
+                    }
+                }
                 // Use Arrow keys ONLY for field navigation in this mode
                 KeyCode::Up => app.previous_add_edit_field(),
                 KeyCode::Down => app.next_add_edit_field(),
@@ -99,13 +108,11 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 _ => {}
             }
         }
-        AppMode::ConfirmDelete => {
-            match key_code {
-                KeyCode::Char('y') | KeyCode::Char('Y') => app.confirm_delete(),
-                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => app.cancel_delete(),
-                _ => {}
-            }
-        }
+        AppMode::ConfirmDelete => match key_code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => app.confirm_delete(),
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => app.cancel_delete(),
+            _ => {}
+        },
         AppMode::Filtering => {
             match key_code {
                 KeyCode::Esc | KeyCode::Enter => app.exit_filtering(), // Exit on Esc or Enter
@@ -119,7 +126,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 }
                 KeyCode::Delete => {
                     app.delete_char_after_cursor();
-                     app.apply_filter();
+                    app.apply_filter();
                 }
                 KeyCode::Left => app.move_cursor_left(),
                 KeyCode::Right => app.move_cursor_right(),
@@ -129,31 +136,31 @@ fn update(app: &mut App, key_event: KeyEvent) {
         AppMode::Summary => {
             match key_code {
                 KeyCode::Char('q') | KeyCode::Esc => app.exit_summary_mode(),
-                KeyCode::Down | KeyCode::Char('j') => app.next_item(),      // Navigate months
-                KeyCode::Up | KeyCode::Char('k') => app.previous_item(),    // Navigate months
+                KeyCode::Down | KeyCode::Char('j') => app.next_item(), // Navigate months
+                KeyCode::Up | KeyCode::Char('k') => app.previous_item(), // Navigate months
                 KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_summary_year(),
                 KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => app.previous_summary_year(),
                 _ => {}
             }
         }
-        AppMode::SelectingCategory | AppMode::SelectingSubcategory => {
-            match key_code {
-                KeyCode::Esc => app.cancel_selection(),
-                KeyCode::Enter => app.confirm_selection(),
-                KeyCode::Down | KeyCode::Char('j') => app.select_next_list_item(),
-                KeyCode::Up | KeyCode::Char('k') => app.select_previous_list_item(),
-                _ => {}
+        AppMode::SelectingCategory | AppMode::SelectingSubcategory => match key_code {
+            KeyCode::Esc => app.cancel_selection(),
+            KeyCode::Enter => app.confirm_selection(),
+            KeyCode::Down | KeyCode::Char('j') => app.select_next_list_item(),
+            KeyCode::Up | KeyCode::Char('k') => app.select_previous_list_item(),
+            _ => {}
+        },
+        AppMode::CategorySummary => match key_code {
+            KeyCode::Char('q') | KeyCode::Esc => app.exit_category_summary_mode(),
+            KeyCode::Down | KeyCode::Char('j') => app.next_category_summary_item(),
+            KeyCode::Up | KeyCode::Char('k') => app.previous_category_summary_item(),
+            KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => {
+                app.next_category_summary_year()
             }
-        }
-        AppMode::CategorySummary => {
-             match key_code {
-                 KeyCode::Char('q') | KeyCode::Esc => app.exit_category_summary_mode(),
-                 KeyCode::Down | KeyCode::Char('j') => app.next_category_summary_item(),
-                 KeyCode::Up | KeyCode::Char('k') => app.previous_category_summary_item(),
-                 KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_category_summary_year(),
-                 KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => app.previous_category_summary_year(),
-                 _ => {}
-             }
-         }
+            KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => {
+                app.previous_category_summary_year()
+            }
+            _ => {}
+        },
     }
-} 
+}

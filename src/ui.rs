@@ -1,10 +1,9 @@
 use crate::app::{App, AppMode};
-use crate::model::{SortColumn, SortOrder, TransactionType, DATE_FORMAT, MonthlySummary};
+use crate::model::{MonthlySummary, SortColumn, SortOrder, TransactionType, DATE_FORMAT};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Position, Rect};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect, Position};
 use std::collections::HashMap;
-
 
 pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     let filter_bar_height = if app.mode == AppMode::Filtering { 3 } else { 0 };
@@ -65,40 +64,48 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
 
     render_help_bar(f, app, help_area);
 
-     if app.mode == AppMode::Filtering {
-        f.set_cursor_position(
-            Position::new(
-                filter_area.x + app.input_field_cursor as u16 + 1, 
-                filter_area.y + 1                               
-            )
-        )
+    if app.mode == AppMode::Filtering {
+        f.set_cursor_position(Position::new(
+            filter_area.x + app.input_field_cursor as u16 + 1,
+            filter_area.y + 1,
+        ))
     }
 }
 
 // Renders the main transaction table
 fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
-    let header_titles = ["Date", "Description", "Category", "Subcategory", "Type", "Amount"];
+    let header_titles = [
+        "Date",
+        "Description",
+        "Category",
+        "Subcategory",
+        "Type",
+        "Amount",
+    ];
     let sort_columns = [
         SortColumn::Date,
         SortColumn::Description,
         SortColumn::Category,
         SortColumn::Subcategory,
         SortColumn::Type,
-        SortColumn::Amount
+        SortColumn::Amount,
     ];
 
-    let header_cells = header_titles.iter().zip(sort_columns.iter()).map(|(title, column)| {
-        let style = Style::default().fg(Color::Cyan).bold();
-        let symbol = if app.sort_by == *column {
-            match app.sort_order {
-                SortOrder::Ascending => " ▲",
-                SortOrder::Descending => " ▼",
-            }
-        } else {
-            ""
-        };
-        Cell::from(format!("{}{}", title, symbol)).style(style)
-    });
+    let header_cells = header_titles
+        .iter()
+        .zip(sort_columns.iter())
+        .map(|(title, column)| {
+            let style = Style::default().fg(Color::Cyan).bold();
+            let symbol = if app.sort_by == *column {
+                match app.sort_order {
+                    SortOrder::Ascending => " ▲",
+                    SortOrder::Descending => " ▼",
+                }
+            } else {
+                ""
+            };
+            Cell::from(format!("{}{}", title, symbol)).style(style)
+        });
 
     let header = Row::new(header_cells)
         .style(Style::default().bg(Color::DarkGray))
@@ -108,7 +115,8 @@ fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
     let rows = app.filtered_indices.iter().map(|&original_index| {
         if original_index >= app.transactions.len() {
             return Row::new(vec![Cell::from("Error: Invalid Index").fg(Color::Red)])
-                       .height(1).bottom_margin(0);
+                .height(1)
+                .bottom_margin(0);
         }
         let tx = &app.transactions[original_index];
         let amount_style = match tx.transaction_type {
@@ -162,22 +170,39 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
         .split(area);
 
     let input_titles = [
-        "Date (YYYY-MM-DD)", "Description", "Amount", "Type (I/E)",
-        "Category (Tab to select)", "Subcategory (Tab to select)"
+        "Date (YYYY-MM-DD)",
+        "Description",
+        "Amount",
+        "Type (I/E)",
+        "Category (Tab to select)",
+        "Subcategory (Tab to select)",
     ];
-    let input_widgets: Vec<_> = app.add_edit_fields.iter().zip(input_titles.iter()).enumerate().map(|(i, (text, title))| {
-        let is_focused = app.current_add_edit_field == i;
-        let input = Paragraph::new(text.as_str())
-            .style(Style::default().fg(Color::White))
-            .block(Block::default().borders(Borders::ALL).title(*title).border_style(
-                if is_focused { Style::default().fg(Color::Yellow) } else { Style::default() }
-            ));
-        input
-    }).collect();
+    let input_widgets: Vec<_> = app
+        .add_edit_fields
+        .iter()
+        .zip(input_titles.iter())
+        .enumerate()
+        .map(|(i, (text, title))| {
+            let is_focused = app.current_add_edit_field == i;
+            let input = Paragraph::new(text.as_str())
+                .style(Style::default().fg(Color::White))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(*title)
+                        .border_style(if is_focused {
+                            Style::default().fg(Color::Yellow)
+                        } else {
+                            Style::default()
+                        }),
+                );
+            input
+        })
+        .collect();
 
     for i in 0..input_widgets.len() {
         if i < form_chunks.len() {
-             f.render_widget(input_widgets[i].clone(), form_chunks[i]);
+            f.render_widget(input_widgets[i].clone(), form_chunks[i]);
         }
     }
 
@@ -190,35 +215,33 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
     let form_block = Block::default().title(title).borders(Borders::ALL);
     f.render_widget(form_block, area);
 
-     if let Some(focused_area) = form_chunks.get(app.current_add_edit_field) {
-         let text_len = app.add_edit_fields[app.current_add_edit_field].len() as u16;
-         f.set_cursor_position(
-            Position::new(
-                 focused_area.x + text_len + 1, 
-                 focused_area.y + 1          
-            )
-         )
-     }
+    if let Some(focused_area) = form_chunks.get(app.current_add_edit_field) {
+        let text_len = app.add_edit_fields[app.current_add_edit_field].len() as u16;
+        f.set_cursor_position(Position::new(
+            focused_area.x + text_len + 1,
+            focused_area.y + 1,
+        ))
+    }
 }
 
 fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
-    let (total_income, total_expense) = app.filtered_indices.iter()
+    let (total_income, total_expense) = app
+        .filtered_indices
+        .iter()
         .filter_map(|&idx| app.transactions.get(idx))
-        .fold((0.0, 0.0), |(inc, exp), tx| {
-            match tx.transaction_type {
-                TransactionType::Income => (inc + tx.amount, exp),
-                TransactionType::Expense => (inc, exp + tx.amount),
-            }
+        .fold((0.0, 0.0), |(inc, exp), tx| match tx.transaction_type {
+            TransactionType::Income => (inc + tx.amount, exp),
+            TransactionType::Expense => (inc, exp + tx.amount),
         });
     let net_balance = total_income - total_expense;
 
     let income_span = Span::styled(
         format!("Income: {:.2}", total_income),
-        Style::default().fg(Color::LightGreen)
+        Style::default().fg(Color::LightGreen),
     );
     let expense_span = Span::styled(
         format!("Expenses: {:.2}", total_expense),
-         Style::default().fg(Color::LightRed)
+        Style::default().fg(Color::LightRed),
     );
     let net_style = if net_balance >= 0.0 {
         Style::default().fg(Color::LightGreen)
@@ -230,21 +253,22 @@ fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
     } else {
         format!("{:.2}", net_balance)
     };
-    let net_span = Span::styled(
-        format!("Net: {}", net_str),
-        net_style
-    );
+    let net_span = Span::styled(format!("Net: {}", net_str), net_style);
 
     let summary_line = Line::from(vec![
         income_span,
         Span::raw(" | "),
         expense_span,
         Span::raw(" | "),
-        net_span
-    ]).alignment(Alignment::Center);
+        net_span,
+    ])
+    .alignment(Alignment::Center);
 
-    let summary_paragraph = Paragraph::new(summary_line)
-        .block(Block::default().borders(Borders::ALL).title("Summary (Filtered)"));
+    let summary_paragraph = Paragraph::new(summary_line).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Summary (Filtered)"),
+    );
 
     f.render_widget(summary_paragraph, area);
 }
@@ -253,56 +277,82 @@ fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
 fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
     let help_spans = match app.mode {
         AppMode::Normal => vec![
-            Span::raw(" Nav: "), Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
+            Span::raw(" Nav: "),
+            Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
             Span::raw(" | Act: "),
-            Span::styled("a/e/d/f", Style::default().fg(Color::LightYellow)), Span::raw("(Add/Edit/Del/Filter) "),
-            Span::styled("s/c", Style::default().fg(Color::White)), Span::raw("(Month/Cat Summary) "),
+            Span::styled("a/e/d/f", Style::default().fg(Color::LightYellow)),
+            Span::raw("(Add/Edit/Del/Filter) "),
+            Span::styled("s/c", Style::default().fg(Color::White)),
+            Span::raw("(Month/Cat Summary) "),
             Span::raw("| Sort: "),
-            Span::styled("1-6", Style::default().fg(Color::LightBlue)), Span::raw("(D/Desc/Cat/Sub/T/Amt) "),
-            Span::raw("| "), Span::styled("q", Style::default().fg(Color::Magenta)), Span::raw("uit"),
+            Span::styled("1-6", Style::default().fg(Color::LightBlue)),
+            Span::raw("(D/Desc/Cat/Sub/T/Amt) "),
+            Span::raw("| "),
+            Span::styled("q", Style::default().fg(Color::Magenta)),
+            Span::raw("uit"),
         ],
         AppMode::Adding | AppMode::Editing => vec![
-             Span::raw(" Use "), Span::styled("↑/↓", Style::default().fg(Color::Cyan)), Span::raw(" or "), Span::styled("Tab", Style::default().fg(Color::Cyan)), Span::raw(" to switch fields. "),
-             Span::styled("Enter", Style::default().fg(Color::LightGreen)),
-             Span::raw(" to save, "),
-             Span::styled("Esc", Style::default().fg(Color::LightRed)),
-             Span::raw(" to cancel."),
-         ],
+            Span::raw(" Use "),
+            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
+            Span::raw(" or "),
+            Span::styled("Tab", Style::default().fg(Color::Cyan)),
+            Span::raw(" to switch fields. "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(" to save, "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" to cancel."),
+        ],
         AppMode::ConfirmDelete => vec![
-             Span::styled("Confirm Delete?", Style::default().fg(Color::LightRed).bold()),
-             Span::raw(" Press "),
-             Span::styled("y", Style::default().fg(Color::LightGreen)),
-             Span::raw("es or "),
-             Span::styled("n", Style::default().fg(Color::LightRed)),
-             Span::raw("o / "),
-             Span::styled("Esc", Style::default().fg(Color::LightRed)),
-             Span::raw("."),
-         ],
+            Span::styled(
+                "Confirm Delete?",
+                Style::default().fg(Color::LightRed).bold(),
+            ),
+            Span::raw(" Press "),
+            Span::styled("y", Style::default().fg(Color::LightGreen)),
+            Span::raw("es or "),
+            Span::styled("n", Style::default().fg(Color::LightRed)),
+            Span::raw("o / "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw("."),
+        ],
         AppMode::Filtering => vec![
             Span::styled("Filter:", Style::default().fg(Color::Yellow)),
-            Span::raw(" "), Span::styled("Esc/Enter", Style::default().fg(Color::LightRed)), Span::raw(" Exit | "),
-            Span::styled("←/→/Del/Bksp", Style::default().fg(Color::Cyan)), Span::raw(" Edit"),
+            Span::raw(" "),
+            Span::styled("Esc/Enter", Style::default().fg(Color::LightRed)),
+            Span::raw(" Exit | "),
+            Span::styled("←/→/Del/Bksp", Style::default().fg(Color::Cyan)),
+            Span::raw(" Edit"),
         ],
         AppMode::Summary => vec![
-             Span::styled("Summary:", Style::default().fg(Color::Yellow)),
-             Span::raw(" Month: "), Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
-             Span::raw(" | Year: "), Span::styled("[/] or PgUp/PgDn", Style::default().fg(Color::Cyan)),
-             Span::raw(" | "), Span::styled("q/Esc", Style::default().fg(Color::LightRed)), Span::raw(" Exit"),
-         ],
+            Span::styled("Summary:", Style::default().fg(Color::Yellow)),
+            Span::raw(" Month: "),
+            Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
+            Span::raw(" | Year: "),
+            Span::styled("[/] or PgUp/PgDn", Style::default().fg(Color::Cyan)),
+            Span::raw(" | "),
+            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Exit"),
+        ],
         AppMode::SelectingCategory | AppMode::SelectingSubcategory => vec![
             Span::styled("Select:", Style::default().fg(Color::Yellow)),
-            Span::raw(" "), Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" Nav | "), Span::styled("Enter", Style::default().fg(Color::LightGreen)),
-            Span::raw(" Select | "), Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" "),
+            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
+            Span::raw(" Nav | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Select | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
             Span::raw(" Cancel"),
         ],
         AppMode::CategorySummary => vec![
-             Span::styled("Category Summary:", Style::default().fg(Color::Yellow)),
-             Span::raw(" Cat/Month: "), Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
-             Span::raw(" | Year: "), Span::styled("[/] or PgUp/Dn", Style::default().fg(Color::Cyan)),
-             Span::raw(" | "), Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
-             Span::raw(" Exit"),
-         ],
+            Span::styled("Category Summary:", Style::default().fg(Color::Yellow)),
+            Span::raw(" Cat/Month: "),
+            Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
+            Span::raw(" | Year: "),
+            Span::styled("[/] or PgUp/Dn", Style::default().fg(Color::Cyan)),
+            Span::raw(" | "),
+            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Exit"),
+        ],
     };
 
     let help_paragraph = Paragraph::new(Line::from(help_spans))
@@ -370,7 +420,11 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 fn render_filter_input(f: &mut Frame, app: &App, area: Rect) {
     let input = Paragraph::new(app.input_field_content.as_str())
         .style(Style::default().fg(Color::LightYellow))
-        .block(Block::default().borders(Borders::ALL).title("Filter (Description)"));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Filter (Description)"),
+        );
     f.render_widget(input, area);
     // Cursor setting is handled in the main `ui` function
 }
@@ -379,18 +433,19 @@ fn render_filter_input(f: &mut Frame, app: &App, area: Rect) {
 fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let summary_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(60),
-            Constraint::Percentage(40),
-        ])
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
         .split(area);
 
     let table_area = summary_chunks[0];
     let chart_area = summary_chunks[1];
 
-    let current_year = app.summary_years.get(app.selected_summary_year_index).copied();
+    let current_year = app
+        .summary_years
+        .get(app.selected_summary_year_index)
+        .copied();
     let year_str = current_year.map_or_else(|| "N/A".to_string(), |y| y.to_string());
-    let year_progress = format!("({}/{})",
+    let year_progress = format!(
+        "({}/{})",
         app.selected_summary_year_index + 1,
         app.summary_years.len().max(1)
     );
@@ -398,8 +453,13 @@ fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     // Table
     let table_title = format!("Monthly Summary - {} {}", year_str, year_progress);
     let header_titles = ["Month", "Income", "Expense", "Net"];
-    let header_cells = header_titles.iter().map(|h| Cell::from(*h).style(Style::default().fg(Color::Cyan).bold()));
-    let header = Row::new(header_cells).style(Style::default().bg(Color::DarkGray)).height(1).bottom_margin(1);
+    let header_cells = header_titles
+        .iter()
+        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Cyan).bold()));
+    let header = Row::new(header_cells)
+        .style(Style::default().bg(Color::DarkGray))
+        .height(1)
+        .bottom_margin(1);
 
     let mut table_rows = Vec::new();
     let mut chart_data_styled: Vec<Bar> = Vec::with_capacity(12);
@@ -407,10 +467,18 @@ fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 
     if let Some(year) = current_year {
         for month in 1..=12 {
-            let summary = app.monthly_summaries.get(&(year, month)).cloned().unwrap_or_default();
+            let summary = app
+                .monthly_summaries
+                .get(&(year, month))
+                .cloned()
+                .unwrap_or_default();
             let net = summary.income - summary.expense;
             let net_i64 = net.round() as i64;
-            let net_style = if net >= 0.0 { Style::default().fg(Color::LightGreen) } else { Style::default().fg(Color::LightRed) };
+            let net_style = if net >= 0.0 {
+                Style::default().fg(Color::LightGreen)
+            } else {
+                Style::default().fg(Color::LightRed)
+            };
             let month_name = month_to_short_str(month);
             let net_str = if net >= 0.0 {
                 format!("+{:.2}", net)
@@ -418,26 +486,32 @@ fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 format!("{:.2}", net)
             };
 
-            table_rows.push(Row::new(vec![
-                Cell::from(month_name),
-                Cell::from(format!("{:.2}", summary.income)).style(Style::default().fg(Color::LightGreen)),
-                Cell::from(format!("{:.2}", summary.expense)).style(Style::default().fg(Color::LightRed)),
-                Cell::from(net_str).style(net_style),
-            ]).height(1).bottom_margin(0));
+            table_rows.push(
+                Row::new(vec![
+                    Cell::from(month_name),
+                    Cell::from(format!("{:.2}", summary.income))
+                        .style(Style::default().fg(Color::LightGreen)),
+                    Cell::from(format!("{:.2}", summary.expense))
+                        .style(Style::default().fg(Color::LightRed)),
+                    Cell::from(net_str).style(net_style),
+                ])
+                .height(1)
+                .bottom_margin(0),
+            );
 
             chart_data_styled.push(
-                 Bar::default()
+                Bar::default()
                     .label(month_name.into())
                     .value(net_i64.abs() as u64)
-                    .style(net_style)
-             );
+                    .style(net_style),
+            );
             max_abs_chart_value = max_abs_chart_value.max(net_i64.abs());
         }
     } else {
-         // Add a row indicating no data if no year is selected
-         table_rows.push(Row::new(vec![Cell::from("No Data")]).height(1)); // Simple row with one cell
-         chart_data_styled.push(Bar::default().label("N/A".into()).value(0));
-     }
+        // Add a row indicating no data if no year is selected
+        table_rows.push(Row::new(vec![Cell::from("No Data")]).height(1)); // Simple row with one cell
+        chart_data_styled.push(Bar::default().label("N/A".into()).value(0));
+    }
 
     let table = Table::new(
         table_rows,
@@ -460,9 +534,12 @@ fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let num_bars = 12u16;
     let usable_width = chart_area.width.saturating_sub(2);
     let width_per_bar_and_gap = (usable_width / num_bars.max(1)).max(1);
-    let bar_gap = if width_per_bar_and_gap > 1 { 1u16 } else { 0u16 };
+    let bar_gap = if width_per_bar_and_gap > 1 {
+        1u16
+    } else {
+        0u16
+    };
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
-
 
     let bar_chart = BarChart::default()
         .block(Block::default().title(chart_title).borders(Borders::ALL))
@@ -485,7 +562,8 @@ fn render_selection_popup(f: &mut Frame, app: &mut App, area: Rect) {
         _ => "Select Option",
     };
 
-    let items: Vec<ListItem> = app.current_selection_list
+    let items: Vec<ListItem> = app
+        .current_selection_list
         .iter()
         .map(|i| ListItem::new(i.as_str()).style(Style::default().fg(Color::White)))
         .collect();
@@ -505,56 +583,86 @@ fn render_selection_popup(f: &mut Frame, app: &mut App, area: Rect) {
 fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let summary_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(60),
-            Constraint::Percentage(40),
-        ])
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
         .split(area);
 
     let table_area = summary_chunks[0];
     let chart_area = summary_chunks[1];
 
     // Table Setup
-    let header_titles = ["Month", "Category", "Subcategory", "Income", "Expense", "Net"];
-    let header_cells = header_titles.iter().map(|h| Cell::from(*h).style(Style::default().fg(Color::Cyan).bold()));
+    let header_titles = [
+        "Month",
+        "Category",
+        "Subcategory",
+        "Income",
+        "Expense",
+        "Net",
+    ];
+    let header_cells = header_titles
+        .iter()
+        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Cyan).bold()));
     let header = Row::new(header_cells)
         .style(Style::default().bg(Color::DarkGray))
         .height(1)
         .bottom_margin(1);
 
     // Data for Table
-    let current_year = app.category_summary_years.get(app.category_summary_year_index).copied();
+    let current_year = app
+        .category_summary_years
+        .get(app.category_summary_year_index)
+        .copied();
     let year_str = current_year.map_or_else(|| "N/A".to_string(), |y| y.to_string());
     let month_category_subcategory_list = app.get_current_category_summary_list();
 
-    let rows = month_category_subcategory_list.iter().map(|(month, category_name, subcategory_name)| {
-        let summary = current_year.and_then(|year| {
-            app.category_summaries
-               .get(&(year, *month))
-               .and_then(|month_map| month_map.get(&(category_name.clone(), subcategory_name.clone())))
-        }).cloned().unwrap_or_default();
+    let rows =
+        month_category_subcategory_list
+            .iter()
+            .map(|(month, category_name, subcategory_name)| {
+                let summary = current_year
+                    .and_then(|year| {
+                        app.category_summaries
+                            .get(&(year, *month))
+                            .and_then(|month_map| {
+                                month_map.get(&(category_name.clone(), subcategory_name.clone()))
+                            })
+                    })
+                    .cloned()
+                    .unwrap_or_default();
 
-        let net = summary.income - summary.expense;
-        let net_style = if net >= 0.0 { Style::default().fg(Color::LightGreen) } else { Style::default().fg(Color::LightRed) };
-        let month_name = month_to_short_str(*month);
-        let subcat_display = if subcategory_name.is_empty() { "-".to_string() } else { subcategory_name.clone() };
-        let net_str = if net >= 0.0 {
-            format!("+{:.2}", net)
-        } else {
-            format!("{:.2}", net)
-        };
+                let net = summary.income - summary.expense;
+                let net_style = if net >= 0.0 {
+                    Style::default().fg(Color::LightGreen)
+                } else {
+                    Style::default().fg(Color::LightRed)
+                };
+                let month_name = month_to_short_str(*month);
+                let subcat_display = if subcategory_name.is_empty() {
+                    "-".to_string()
+                } else {
+                    subcategory_name.clone()
+                };
+                let net_str = if net >= 0.0 {
+                    format!("+{:.2}", net)
+                } else {
+                    format!("{:.2}", net)
+                };
 
-        Row::new(vec![
-            Cell::from(month_name),
-            Cell::from(category_name.as_str()),
-            Cell::from(subcat_display),
-            Cell::from(format!("{:.2}", summary.income)).style(Style::default().fg(Color::LightGreen)),
-            Cell::from(format!("{:.2}", summary.expense)).style(Style::default().fg(Color::LightRed)),
-            Cell::from(net_str).style(net_style),
-        ]).height(1).bottom_margin(0)
-    });
+                Row::new(vec![
+                    Cell::from(month_name),
+                    Cell::from(category_name.as_str()),
+                    Cell::from(subcat_display),
+                    Cell::from(format!("{:.2}", summary.income))
+                        .style(Style::default().fg(Color::LightGreen)),
+                    Cell::from(format!("{:.2}", summary.expense))
+                        .style(Style::default().fg(Color::LightRed)),
+                    Cell::from(net_str).style(net_style),
+                ])
+                .height(1)
+                .bottom_margin(0)
+            });
 
-    let table_title = format!("Category/Subcategory Summary - {} ({}/{})",
+    let table_title = format!(
+        "Category/Subcategory Summary - {} ({}/{})",
         year_str,
         app.category_summary_year_index + 1,
         app.category_summary_years.len().max(1)
@@ -604,32 +712,47 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 
                 category_data_for_chart.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
 
-                let mut current_max : i64 = 0;
-                bars = category_data_for_chart.iter().map(|(cat, net)| {
-                    let net_val = *net;
-                    let net_i64 = net_val.round() as i64;
-                    let net_style = if net_val >= 0.0 { Style::default().fg(Color::LightGreen) } else { Style::default().fg(Color::LightRed) };
-                    current_max = current_max.max(net_i64.abs());
-                    Bar::default()
-                        .label(cat.chars().take(15).collect::<String>().into()) // Truncate label (increased length)
-                        .value(net_i64.abs() as u64)
-                        .style(net_style)
-                }).collect();
+                let mut current_max: i64 = 0;
+                bars = category_data_for_chart
+                    .iter()
+                    .map(|(cat, net)| {
+                        let net_val = *net;
+                        let net_i64 = net_val.round() as i64;
+                        let net_style = if net_val >= 0.0 {
+                            Style::default().fg(Color::LightGreen)
+                        } else {
+                            Style::default().fg(Color::LightRed)
+                        };
+                        current_max = current_max.max(net_i64.abs());
+                        Bar::default()
+                            .label(cat.chars().take(15).collect::<String>().into()) // Truncate label (increased length)
+                            .value(net_i64.abs() as u64)
+                            .style(net_style)
+                    })
+                    .collect();
                 max_abs_chart_value = (current_max as u64).max(10); // Ensure max is at least 10
-                chart_title = format!("Category Net Balance - {} {}", month_to_short_str(*selected_month), year_str);
+                chart_title = format!(
+                    "Category Net Balance - {} {}",
+                    month_to_short_str(*selected_month),
+                    year_str
+                );
             }
         }
     }
 
     if bars.is_empty() {
-         bars.push(Bar::default().label("No Data".into()).value(0));
-         chart_title = format!("Category Net Balance - {} (Select Row)", year_str);
-     }
+        bars.push(Bar::default().label("No Data".into()).value(0));
+        chart_title = format!("Category Net Balance - {} (Select Row)", year_str);
+    }
 
     let num_bars = bars.len() as u16;
     let usable_width = chart_area.width.saturating_sub(2);
     let width_per_bar_and_gap = (usable_width / num_bars.max(1)).max(1);
-    let bar_gap = if width_per_bar_and_gap > 1 { 1u16 } else { 0u16 };
+    let bar_gap = if width_per_bar_and_gap > 1 {
+        1u16
+    } else {
+        0u16
+    };
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
 
     let bar_chart = BarChart::default()
@@ -647,8 +770,18 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 // Helper for month abbreviation
 fn month_to_short_str(month: u32) -> &'static str {
     match month {
-        1 => "Jan", 2 => "Feb", 3 => "Mar", 4 => "Apr", 5 => "May", 6 => "Jun",
-        7 => "Jul", 8 => "Aug", 9 => "Sep", 10 => "Oct", 11 => "Nov", 12 => "Dec",
+        1 => "Jan",
+        2 => "Feb",
+        3 => "Mar",
+        4 => "Apr",
+        5 => "May",
+        6 => "Jun",
+        7 => "Jul",
+        8 => "Aug",
+        9 => "Sep",
+        10 => "Oct",
+        11 => "Nov",
+        12 => "Dec",
         _ => "?",
     }
-} 
+}
