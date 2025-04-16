@@ -1212,6 +1212,12 @@ impl App {
             )),
         }
     }
+
+    // Helper to clear the generic input field
+    pub(crate) fn clear_input_field(&mut self) {
+        self.input_field_content.clear();
+        self.input_field_cursor = 0;
+    }
 }
 
 fn sort_transactions_impl(
