@@ -347,7 +347,7 @@ fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" Quit | "),
-            Span::styled(".", Style::default().fg(Color::Red)).add_modifier(Modifier::BOLD),
+            Span::styled("o", Style::default().fg(Color::Red)).add_modifier(Modifier::BOLD),
             Span::raw(" ⚙"),
         ],
         AppMode::Adding | AppMode::Editing => vec![
@@ -848,8 +848,15 @@ fn render_settings_popup(f: &mut Frame, app: &App, area: Rect) {
 
     let input_chunk = popup_chunks[1];
 
+    let input_width = input_chunk.width.saturating_sub(2); // Subtract 2 for borders
+    let cursor_col = app.input_field_content[..app.input_field_cursor]
+        .chars()
+        .count() as u16;
+    let scroll_offset = cursor_col.saturating_sub(input_width.saturating_sub(1)); // Scroll only when cursor nears the right edge
+
     let input = Paragraph::new(app.input_field_content.as_str())
         .style(Style::default().fg(Color::White))
+        .scroll((0, scroll_offset))
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -857,7 +864,7 @@ fn render_settings_popup(f: &mut Frame, app: &App, area: Rect) {
                 .border_style(Style::default().fg(Color::Yellow)),
         );
 
-    let instructions = Paragraph::new("Esc: Cancel, Enter: Save, r: Reset to Default")
+    let instructions = Paragraph::new("Esc: Cancel, Enter: Save, Ctrl+D: Reset, Ctrl+U: Clear")
         .alignment(Alignment::Center)
         .style(Style::default().fg(Color::DarkGray));
 
@@ -876,11 +883,9 @@ fn render_settings_popup(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(input, input_chunk);
     f.render_widget(instructions, popup_chunks[2]);
 
-    let cursor_x = app.input_field_content[..app.input_field_cursor]
-        .chars()
-        .count() as u16;
+    let visible_cursor_x = cursor_col.saturating_sub(scroll_offset);
     f.set_cursor_position(Position::new(
-        input_chunk.x + cursor_x + 1,
-        input_chunk.y + 1,
+        input_chunk.x + visible_cursor_x + 1, // Add 1 for left border
+        input_chunk.y + 1,                    // Add 1 for top border
     ));
 }
