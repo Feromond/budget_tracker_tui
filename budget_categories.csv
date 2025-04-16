@@ -32,7 +32,6 @@ Expense,Utilities,Gas
 Expense,Utilities,Internet
 Expense,Utilities,Phone / Cell Service
 Expense,Utilities,Garbage / Recycling
-Expense,Utilities,Streaming Services (TV/Movie)
 Expense,Food & Dining,Groceries
 Expense,Food & Dining,Restaurants
 Expense,Food & Dining,Takeout / Delivery
@@ -56,6 +55,7 @@ Expense,Family & Children,School Supplies
 Expense,Family & Children,Child Support
 Expense,Family & Children,Kids' Activities
 Expense,Family & Children,Clothing (Children)
+Expense,Family & Children,Family Support
 Expense,Health & Wellness,Health Insurance
 Expense,Health & Wellness,Medical Expenses
 Expense,Health & Wellness,Dental Expenses
@@ -65,6 +65,7 @@ Expense,Health & Wellness,Medications
 Expense,Health & Wellness,Vitamins & Supplements
 Expense,Health & Wellness,Eyecare
 Expense,Entertainment,Streaming Music
+Expense,Entertainment,Streaming Services (TV/Movies)
 Expense,Entertainment,Gaming Subscriptions/Purchases
 Expense,Entertainment,Concerts/Events
 Expense,Entertainment,Sporting Goods
