@@ -1,6 +1,6 @@
 use crate::model::*;
 use crate::persistence::{load_categories, load_transactions, save_transactions};
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -173,6 +173,13 @@ impl App {
         self.editing_index = None;
         self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
+
+        // Default Date to today
+        let today = Local::now().date_naive();
+        self.add_edit_fields[0] = today.format(DATE_FORMAT).to_string();
+
+        // Default Type to Expense
+        self.add_edit_fields[3] = "Expense".to_string();
         self.status_message = None;
     }
 
@@ -182,6 +189,37 @@ impl App {
         self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
         self.status_message = Some("Select a transaction to edit first".to_string());
+    }
+
+    // --- Date Adjustment Logic ---
+    fn adjust_date_field(&mut self, days: i64) {
+        if self.current_add_edit_field == 0 {
+            if let Ok(mut current_date) =
+                NaiveDate::parse_from_str(&self.add_edit_fields[0], DATE_FORMAT)
+            {
+                // Add or subtract days
+                current_date = if days > 0 {
+                    current_date + Duration::days(days)
+                } else {
+                    current_date - Duration::days(-days)
+                };
+                self.add_edit_fields[0] = current_date.format(DATE_FORMAT).to_string();
+                self.status_message = None; // Clear status on successful adjustment
+            } else {
+                self.status_message = Some(format!(
+                    "Error: Could not parse date '{}'. Use YYYY-MM-DD format.",
+                    self.add_edit_fields[0]
+                ));
+            }
+        }
+    }
+
+    pub(crate) fn increment_date(&mut self) {
+        self.adjust_date_field(1);
+    }
+
+    pub(crate) fn decrement_date(&mut self) {
+        self.adjust_date_field(-1);
     }
 
     // --- Validation Helper ---
@@ -288,7 +326,11 @@ impl App {
                     tx.date.format(DATE_FORMAT).to_string(),
                     tx.description.clone(),
                     format!("{:.2}", tx.amount),
-                    format!("{:?}", tx.transaction_type),
+                    if tx.transaction_type == TransactionType::Income {
+                        "Income".to_string()
+                    } else {
+                        "Expense".to_string()
+                    },
                     tx.category.clone(),
                     tx.subcategory.clone(),
                 ];
@@ -376,6 +418,20 @@ impl App {
         } else {
             self.status_message = Some("Error: No transaction selected for editing".to_string());
             self.exit_editing();
+        }
+    }
+
+    // --- Toggle Transaction Type ---
+    pub(crate) fn toggle_transaction_type(&mut self) {
+        if self.current_add_edit_field == 3 {
+            self.add_edit_fields[3] = if self.add_edit_fields[3].eq_ignore_ascii_case("income") {
+                "Expense".to_string()
+            } else {
+                "Income".to_string()
+            };
+            // Clear category/subcategory as they might be invalid for the new type
+            self.add_edit_fields[4] = String::new();
+            self.add_edit_fields[5] = String::new();
         }
     }
 

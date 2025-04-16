@@ -162,34 +162,48 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
             Constraint::Length(3), // Date
             Constraint::Length(3), // Description
             Constraint::Length(3), // Amount
-            Constraint::Length(3), // Type (I/E)
-            Constraint::Length(3), // Category
-            Constraint::Length(3), // Subcategory
+            Constraint::Length(3), // Type (Toggle)
+            Constraint::Length(3), // Category (Select)
+            Constraint::Length(3), // Subcategory (Select)
             Constraint::Min(0),
         ])
         .split(area);
 
-    let input_titles = [
-        "Date (YYYY-MM-DD)",
-        "Description",
-        "Amount",
-        "Type (I/E)",
-        "Category (Tab to select)",
-        "Subcategory (Tab to select)",
+    // Field titles and hints
+    let field_definitions = [
+        ("Date (YYYY-MM-DD)", "(+/- adjust or manually enter)"),
+        ("Description", ""),
+        ("Amount", ""),
+        ("Type", "(Enter to toggle)"),
+        ("Category", "(Enter to select)"),
+        ("Subcategory", "(Enter to select)"),
     ];
+
     let input_widgets: Vec<_> = app
         .add_edit_fields
         .iter()
-        .zip(input_titles.iter())
+        .zip(field_definitions.iter())
         .enumerate()
-        .map(|(i, (text, title))| {
+        .map(|(i, (text, (base_title, hint)))| {
             let is_focused = app.current_add_edit_field == i;
-            let input = Paragraph::new(text.as_str())
+            let title = format!("{} {}", base_title, hint).trim_end().to_string(); // Combine title and hint
+
+            let content = if i == 3 {
+                // Show as < Value >
+                Span::styled(
+                    format!(" < {} > ", text),
+                    Style::default().fg(Color::White).bold(),
+                )
+            } else {
+                Span::raw(text.as_str())
+            };
+
+            let input = Paragraph::new(content)
                 .style(Style::default().fg(Color::White))
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .title(*title)
+                        .title(title)
                         .border_style(if is_focused {
                             Style::default().fg(Color::Yellow)
                         } else {
@@ -206,21 +220,26 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
         }
     }
 
-    let title = if app.mode == AppMode::Editing {
-        "Edit Transaction (Arrows/Tab to switch, Enter to save, Esc to cancel)"
+    let form_title_text = if app.mode == AppMode::Editing {
+        "Edit Transaction"
     } else {
-        "Add New Transaction (Arrows/Tab to switch, Enter to save, Esc to cancel)"
+        "Add New Transaction"
     };
-
-    let form_block = Block::default().title(title).borders(Borders::ALL);
+    // Removed redundant key instructions from title - they are in the Help bar now
+    let form_block = Block::default()
+        .title(form_title_text)
+        .borders(Borders::ALL);
     f.render_widget(form_block, area);
 
-    if let Some(focused_area) = form_chunks.get(app.current_add_edit_field) {
-        let text_len = app.add_edit_fields[app.current_add_edit_field].len() as u16;
-        f.set_cursor_position(Position::new(
-            focused_area.x + text_len + 1,
-            focused_area.y + 1,
-        ))
+    // Set cursor only for editable text fields (not Type, Category, or Subcategory)
+    if ![3, 4, 5].contains(&app.current_add_edit_field) {
+        if let Some(focused_area) = form_chunks.get(app.current_add_edit_field) {
+            let text_len = app.add_edit_fields[app.current_add_edit_field].len() as u16;
+            f.set_cursor_position(Position::new(
+                focused_area.x + text_len + 1,
+                focused_area.y + 1,
+            ))
+        }
     }
 }
 
