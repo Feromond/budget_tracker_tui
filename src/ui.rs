@@ -162,20 +162,6 @@ fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
 
 // Renders the Add/Edit transaction form
 fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
-    let form_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(1)
-        .constraints([
-            Constraint::Length(3), // Date
-            Constraint::Length(3), // Description
-            Constraint::Length(3), // Amount
-            Constraint::Length(3), // Type (Toggle)
-            Constraint::Length(3), // Category (Select)
-            Constraint::Length(3), // Subcategory (Select)
-            Constraint::Min(0),
-        ])
-        .split(area);
-
     // Field titles and hints
     let field_definitions = [
         ("Date (YYYY-MM-DD)", "(◀/▶ or +/- adjust, Digits to enter)"),
@@ -185,7 +171,6 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
         ("Category", "(Enter to select)"),
         ("Subcategory", "(Enter to select)"),
     ];
-
     let input_widgets: Vec<_> = app
         .add_edit_fields
         .iter()
@@ -193,19 +178,13 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
         .enumerate()
         .map(|(i, (text, (base_title, hint)))| {
             let is_focused = app.current_add_edit_field == i;
-            let title = format!("{} {}", base_title, hint).trim_end().to_string(); // Combine title and hint
-
+            let title = format!("{} {}", base_title, hint).trim_end().to_string();
             let content = if i == 3 {
-                // Show as < Value >
-                Span::styled(
-                    format!(" < {} > ", text),
-                    Style::default().fg(Color::White).bold(),
-                )
+                Span::styled(format!(" < {} > ", text), Style::default().fg(Color::White).bold())
             } else {
                 Span::raw(text.as_str())
             };
-
-            let input = Paragraph::new(content)
+            Paragraph::new(content)
                 .style(Style::default().fg(Color::White))
                 .block(
                     Block::default()
@@ -216,15 +195,43 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
                         } else {
                             Style::default()
                         }),
-                );
-            input
+                )
         })
         .collect();
 
-    for i in 0..input_widgets.len() {
-        if i < form_chunks.len() {
-            f.render_widget(input_widgets[i].clone(), form_chunks[i]);
-        }
+    // Vertical scroll logic for small terminal heights
+    let margin = 1;
+    let field_height = 3;
+    let total_fields = input_widgets.len();
+    let available_height = area.height.saturating_sub(margin * 2);
+    let max_visible_fields = ((available_height / field_height) as usize)
+        .max(1)
+        .min(total_fields);
+    let scroll_offset = app
+        .current_add_edit_field
+        .saturating_sub(max_visible_fields - 1)
+        .min(total_fields - max_visible_fields);
+
+    let mut constraints = Vec::with_capacity(max_visible_fields + 1);
+    for _ in 0..max_visible_fields {
+        constraints.push(Constraint::Length(field_height));
+    }
+    constraints.push(Constraint::Min(0));
+    let form_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(margin)
+        .constraints(constraints)
+        .split(area);
+
+    // Render only the visible input widgets
+    for (idx, widget) in input_widgets
+        .iter()
+        .enumerate()
+        .skip(scroll_offset)
+        .take(max_visible_fields)
+    {
+        let chunk_index = idx - scroll_offset;
+        f.render_widget(widget.clone(), form_chunks[chunk_index]);
     }
 
     let form_title_text = if app.mode == AppMode::Editing {
@@ -238,14 +245,18 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL);
     f.render_widget(form_block, area);
 
-    // Set cursor only for editable text fields (not Type, Category, or Subcategory)
+    // Set cursor position for editable text fields, adjusting for scrolling
     if ![3, 4, 5].contains(&app.current_add_edit_field) {
-        if let Some(focused_area) = form_chunks.get(app.current_add_edit_field) {
-            let text_len = app.add_edit_fields[app.current_add_edit_field].len() as u16;
-            f.set_cursor_position(Position::new(
-                focused_area.x + text_len + 1,
-                focused_area.y + 1,
-            ))
+        let field_idx = app.current_add_edit_field;
+        let text_len = app.add_edit_fields[field_idx].len() as u16;
+        if field_idx >= scroll_offset && field_idx < scroll_offset + max_visible_fields {
+            let visible_idx = field_idx - scroll_offset;
+            if let Some(chunk) = form_chunks.get(visible_idx) {
+                f.set_cursor_position(Position::new(
+                    chunk.x + text_len + 1,
+                    chunk.y + 1,
+                ));
+            }
         }
     }
 }
