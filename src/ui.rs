@@ -830,7 +830,7 @@ fn month_to_short_str(month: u32) -> &'static str {
 
 // Renders the settings popup
 fn render_settings_popup(f: &mut Frame, app: &App, area: Rect) {
-    let popup_area = centered_rect(75, 20, area);
+    let popup_area = centered_rect(75, 30, area);
 
     let popup_chunks = Layout::default()
         .direction(Direction::Vertical)
