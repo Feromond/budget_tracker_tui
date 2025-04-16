@@ -73,7 +73,10 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             let cursor_x = app.input_field_content[..app.input_field_cursor]
                 .chars()
                 .count() as u16;
-            f.set_cursor_position(Position::new(filter_area.x + cursor_x + 1, filter_area.y + 1));
+            f.set_cursor_position(Position::new(
+                filter_area.x + cursor_x + 1,
+                filter_area.y + 1,
+            ));
         }
         _ => {}
     }
@@ -304,18 +307,48 @@ fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
     let help_spans = match app.mode {
         AppMode::Normal => vec![
             Span::raw("↑↓ Nav | "),
-            Span::styled("a", Style::default().fg(Color::LightGreen).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "a",
+                Style::default()
+                    .fg(Color::LightGreen)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(" Add | "),
-            Span::styled("e", Style::default().fg(Color::LightYellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "e",
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(" Edit | "),
-            Span::styled("d", Style::default().fg(Color::LightRed).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "d",
+                Style::default()
+                    .fg(Color::LightRed)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(" Del | "),
-            Span::styled("f", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "f",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(" Filt | "),
             Span::raw("s Mth | c Cate | "),
-            Span::styled("1-6", Style::default().fg(Color::LightBlue).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "1-6",
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(" Sort | "),
-            Span::styled("q/Esc", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "q/Esc",
+                Style::default()
+                    .fg(Color::Magenta)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(" Quit | "),
             Span::styled(".", Style::default().fg(Color::Red)).add_modifier(Modifier::BOLD),
             Span::raw(" ⚙"),
@@ -849,5 +882,8 @@ fn render_settings_popup(f: &mut Frame, app: &App, area: Rect) {
     let cursor_x = app.input_field_content[..app.input_field_cursor]
         .chars()
         .count() as u16;
-    f.set_cursor_position(Position::new(input_chunk.x + cursor_x + 1, input_chunk.y + 1));
+    f.set_cursor_position(Position::new(
+        input_chunk.x + cursor_x + 1,
+        input_chunk.y + 1,
+    ));
 }

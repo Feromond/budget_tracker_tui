@@ -12,7 +12,7 @@ pub(crate) fn load_transactions(data_path: &Path) -> StdResult<Vec<Transaction>,
         return Ok(vec![]);
     }
 
-    let file = File::open(&data_path)?;
+    let file = File::open(data_path)?;
     let mut rdr = csv::ReaderBuilder::new().flexible(true).from_reader(file);
     let mut transactions = Vec::new();
     let headers = rdr
@@ -43,12 +43,15 @@ pub(crate) fn load_transactions(data_path: &Path) -> StdResult<Vec<Transaction>,
     Ok(transactions)
 }
 
-pub(crate) fn save_transactions(transactions: &[Transaction], data_path: &Path) -> StdResult<(), Error> {
+pub(crate) fn save_transactions(
+    transactions: &[Transaction],
+    data_path: &Path,
+) -> StdResult<(), Error> {
     if let Some(parent) = data_path.parent() {
         create_dir_all(parent)?;
     }
 
-    let file = File::create(&data_path)?;
+    let file = File::create(data_path)?;
     let mut wtr = csv::Writer::from_writer(file);
     for transaction in transactions {
         wtr.serialize(transaction).map_err(|e| {

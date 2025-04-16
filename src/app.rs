@@ -1,6 +1,6 @@
+use crate::config::{load_settings, save_settings, AppSettings};
 use crate::model::*;
 use crate::persistence::{load_categories, load_transactions, save_transactions};
-use crate::config::{load_settings, save_settings, AppSettings};
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
 use std::cmp::Ordering;
@@ -68,52 +68,68 @@ impl App {
         };
 
         // --- Determine Data File Path (based on settings or default) ---
-        let (initial_data_file_path, path_error_msg) = 
-            match loaded_settings.data_file_path {
-                Some(path_str) => {
-                    let path = PathBuf::from(path_str);
-                    if let Some(parent) = path.parent() {
-                        if !parent.exists() {
-                            if let Err(e) = create_dir_all(parent) {
-                                (
+        let (initial_data_file_path, path_error_msg) = match loaded_settings.data_file_path {
+            Some(path_str) => {
+                let path = PathBuf::from(path_str);
+                if let Some(parent) = path.parent() {
+                    if !parent.exists() {
+                        if let Err(e) = create_dir_all(parent) {
+                            (
                                     // Fallback to default if creating parent fails
                                     Self::get_default_data_file_path().unwrap_or_else(|_| PathBuf::from("transactions.csv")), 
                                     Some(format!("Config Path Error: Could not create parent dir for {}: {}. Using default.", path.display(), e))
                                 )
-                            } else {
-                                (path, None) // Parent created successfully
-                            }
                         } else {
-                            (path, None) // Parent already exists
+                            (path, None) // Parent created successfully
                         }
                     } else {
-                        (path, None) // Path has no parent (e.g., relative path in current dir)
+                        (path, None) // Parent already exists
                     }
+                } else {
+                    (path, None) // Path has no parent (e.g., relative path in current dir)
                 }
-                None => { // No path in config, use default logic
-                    match Self::get_default_data_file_path() {
-                        Ok(path) => (path, None),
-                        Err(e) => (
-                            PathBuf::from("transactions.csv"),
-                            Some(format!("Data Dir Error: {}. Using local.", e))
-                        )
-                    }
+            }
+            None => {
+                // No path in config, use default logic
+                match Self::get_default_data_file_path() {
+                    Ok(path) => (path, None),
+                    Err(e) => (
+                        PathBuf::from("transactions.csv"),
+                        Some(format!("Data Dir Error: {}. Using local.", e)),
+                    ),
                 }
-            };
-
-        // --- Load Transactions ---
-        let (mut transactions, load_tx_specific_error_msg) = match load_transactions(&initial_data_file_path) {
-            Ok(txs) => (txs, None),
-            Err(e) => (vec![], Some(format!("Load TX Error [{}]: {}", initial_data_file_path.display(), e))),
+            }
         };
 
+        // --- Load Transactions ---
+        let (mut transactions, load_tx_specific_error_msg) =
+            match load_transactions(&initial_data_file_path) {
+                Ok(txs) => (txs, None),
+                Err(e) => (
+                    vec![],
+                    Some(format!(
+                        "Load TX Error [{}]: {}",
+                        initial_data_file_path.display(),
+                        e
+                    )),
+                ),
+            };
+
         // Combine potential errors (settings, path, tx load)
-        let load_tx_error_msg = [load_settings_error_msg, path_error_msg, load_tx_specific_error_msg]
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>()
-            .join(" | ");
-        let load_tx_error_msg = if load_tx_error_msg.is_empty() { None } else { Some(load_tx_error_msg) };
+        let load_tx_error_msg = [
+            load_settings_error_msg,
+            path_error_msg,
+            load_tx_specific_error_msg,
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" | ");
+        let load_tx_error_msg = if load_tx_error_msg.is_empty() {
+            None
+        } else {
+            Some(load_tx_error_msg)
+        };
 
         // --- Load Categories ---
         let (categories, load_cat_error_msg) = match load_categories() {
@@ -460,13 +476,15 @@ impl App {
                         match save_transactions(&self.transactions, &self.data_file_path) {
                             Ok(_) => {
                                 // Apply filter *after* successful save
-                                self.status_message = Some("Transaction updated successfully.".to_string());
+                                self.status_message =
+                                    Some("Transaction updated successfully.".to_string());
                                 self.apply_filter();
                                 self.calculate_monthly_summaries();
                                 self.exit_editing();
                             }
                             Err(e) => {
-                                self.status_message = Some(format!("Error saving updated transaction: {}", e));
+                                self.status_message =
+                                    Some(format!("Error saving updated transaction: {}", e));
                                 // UI state (sorting/filtering) will not be updated on error
                             }
                         }
@@ -538,7 +556,8 @@ impl App {
 
             if let Some(selected) = self.table_state.selected() {
                 if selected >= self.filtered_indices.len() && !self.filtered_indices.is_empty() {
-                    self.table_state.select(Some(self.filtered_indices.len() - 1));
+                    self.table_state
+                        .select(Some(self.filtered_indices.len() - 1));
                 }
             }
 
@@ -1132,7 +1151,10 @@ impl App {
                 match save_settings(&settings) {
                     Ok(_) => {
                         self.data_file_path = new_path;
-                        self.status_message = Some(format!("Settings saved. Data file set to: {}", self.data_file_path.display()));
+                        self.status_message = Some(format!(
+                            "Settings saved. Data file set to: {}",
+                            self.data_file_path.display()
+                        ));
                         self.exit_settings_mode();
                     }
                     Err(e) => {
@@ -1142,7 +1164,11 @@ impl App {
                 }
             }
             Err(e) => {
-                self.status_message = Some(format!("Error saving to new path '{}': {}. Check path and permissions.", new_path.display(), e));
+                self.status_message = Some(format!(
+                    "Error saving to new path '{}': {}. Check path and permissions.",
+                    new_path.display(),
+                    e
+                ));
                 // Keep the user in settings mode to allow correction
             }
         }
@@ -1154,13 +1180,17 @@ impl App {
                 let path_str = default_path.to_string_lossy().to_string();
                 self.input_field_content = path_str;
                 self.input_field_cursor = self.input_field_content.len();
-                self.status_message = Some("Path reset to default. Press Enter to save.".to_string());
+                self.status_message =
+                    Some("Path reset to default. Press Enter to save.".to_string());
             }
             Err(e) => {
                 let fallback_path = "transactions.csv";
                 self.input_field_content = fallback_path.to_string();
                 self.input_field_cursor = self.input_field_content.len();
-                self.status_message = Some(format!("Error getting default path ({}). Reset to local '{}'. Press Enter to save.", e, fallback_path));
+                self.status_message = Some(format!(
+                    "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
+                    e, fallback_path
+                ));
             }
         }
     }

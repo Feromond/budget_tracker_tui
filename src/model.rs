@@ -1,8 +1,8 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use serde::Deserializer;
 use serde::de::Error as SerdeError;
+use serde::Deserializer;
 
 pub(crate) const DATE_FORMAT: &str = "%Y-%m-%d";
 
