@@ -1,4 +1,5 @@
 mod app;
+mod config;
 mod event;
 mod model;
 mod persistence;
@@ -26,7 +27,7 @@ fn main() -> StdResult<(), Box<dyn std::error::Error>> {
 
     let run_result = run_app(&mut terminal, &mut app);
 
-    let save_result = save_transactions(&app.transactions);
+    let save_result = save_transactions(&app.transactions, &app.data_file_path);
 
     disable_raw_mode()?;
     stdout().execute(LeaveAlternateScreen)?;

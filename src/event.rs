@@ -60,6 +60,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 KeyCode::Char('f') => app.start_filtering(),
                 KeyCode::Char('s') => app.enter_summary_mode(),
                 KeyCode::Char('c') => app.enter_category_summary_mode(),
+                KeyCode::Char('.') => app.enter_settings_mode(),
                 // Sorting
                 KeyCode::Char('1') | KeyCode::F(1) => app.set_sort_column(SortColumn::Date),
                 KeyCode::Char('2') | KeyCode::F(2) => app.set_sort_column(SortColumn::Description),
@@ -179,6 +180,17 @@ fn update(app: &mut App, key_event: KeyEvent) {
             KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => {
                 app.previous_category_summary_year()
             }
+            _ => {}
+        },
+        AppMode::Settings => match key_code {
+            KeyCode::Esc => app.exit_settings_mode(),
+            KeyCode::Enter => app.save_settings(),
+            KeyCode::Char('r') => app.reset_settings_path_to_default(),
+            KeyCode::Char(c) => app.insert_char_at_cursor(c),
+            KeyCode::Backspace => app.delete_char_before_cursor(),
+            KeyCode::Delete => app.delete_char_after_cursor(),
+            KeyCode::Left => app.move_cursor_left(),
+            KeyCode::Right => app.move_cursor_right(),
             _ => {}
         },
     }
