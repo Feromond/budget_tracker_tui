@@ -15,29 +15,36 @@ pub(crate) fn run_app<B: Backend>(
         terminal.draw(|f| ui(f, app))?;
 
         if event::poll(Duration::from_millis(250))? {
-            if let Event::Key(key) = event::read()? {
-                // Handle key events consistently across platforms
-                match key.kind {
-                    KeyEventKind::Press => {
-                        // Ignore key events with modifiers (except Shift for capital letters)
-                        if key.modifiers == KeyModifiers::NONE
-                            || (key.modifiers == KeyModifiers::SHIFT
-                                && key.code
-                                    == KeyCode::Char(
-                                        key.code.to_string().to_uppercase().chars().next().unwrap(),
-                                    ))
-                        {
-                            if app.mode != AppMode::ConfirmDelete
-                                && app.mode != AppMode::SelectingCategory
-                                && app.mode != AppMode::SelectingSubcategory
-                            {
-                                app.status_message = None;
-                            }
-                            update(app, key);
-                        }
+            match event::read()? {
+                // Handle Paste Event
+                Event::Paste(text) => {
+                    if app.mode == AppMode::Settings {
+                        app.input_field_content = text;
+                        app.input_field_cursor = app.input_field_content.len();
                     }
-                    _ => {} // Ignore other key event kinds (Release, Repeat)
+                    // Potentially handle paste in other modes later if needed
                 }
+                Event::Key(key) => {
+                    match key.kind {
+                        KeyEventKind::Press => {
+                            if key.modifiers == KeyModifiers::NONE
+                                || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u')))
+                                // Let Shift+Char pass through for typing capitals/symbols in settings path
+                                || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                            {
+                                if app.mode != AppMode::ConfirmDelete
+                                    && app.mode != AppMode::SelectingCategory
+                                    && app.mode != AppMode::SelectingSubcategory
+                                {
+                                    app.status_message = None;
+                                }
+                                update(app, key);
+                            }
+                        }
+                        _ => {} // Ignore other key event kinds (Release, Repeat)
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -60,7 +67,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 KeyCode::Char('f') => app.start_filtering(),
                 KeyCode::Char('s') => app.enter_summary_mode(),
                 KeyCode::Char('c') => app.enter_category_summary_mode(),
-                KeyCode::Char('.') => app.enter_settings_mode(),
+                KeyCode::Char('o') => app.enter_settings_mode(),
                 // Sorting
                 KeyCode::Char('1') | KeyCode::F(1) => app.set_sort_column(SortColumn::Date),
                 KeyCode::Char('2') | KeyCode::F(2) => app.set_sort_column(SortColumn::Description),
@@ -182,15 +189,18 @@ fn update(app: &mut App, key_event: KeyEvent) {
             }
             _ => {}
         },
-        AppMode::Settings => match key_code {
-            KeyCode::Esc => app.exit_settings_mode(),
-            KeyCode::Enter => app.save_settings(),
-            KeyCode::Char('r') => app.reset_settings_path_to_default(),
-            KeyCode::Char(c) => app.insert_char_at_cursor(c),
-            KeyCode::Backspace => app.delete_char_before_cursor(),
-            KeyCode::Delete => app.delete_char_after_cursor(),
-            KeyCode::Left => app.move_cursor_left(),
-            KeyCode::Right => app.move_cursor_right(),
+        AppMode::Settings => match (key_code, key_event.modifiers) {
+            (KeyCode::Esc, KeyModifiers::NONE) => app.exit_settings_mode(),
+            (KeyCode::Enter, KeyModifiers::NONE) => app.save_settings(),
+            (KeyCode::Char('d'), KeyModifiers::CONTROL) => app.reset_settings_path_to_default(),
+            (KeyCode::Char('u'), KeyModifiers::CONTROL) => app.clear_input_field(),
+            (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
+                app.insert_char_at_cursor(c);
+            }
+            (KeyCode::Backspace, KeyModifiers::NONE) => app.delete_char_before_cursor(),
+            (KeyCode::Delete, KeyModifiers::NONE) => app.delete_char_after_cursor(),
+            (KeyCode::Left, KeyModifiers::NONE) => app.move_cursor_left(),
+            (KeyCode::Right, KeyModifiers::NONE) => app.move_cursor_right(),
             _ => {}
         },
     }
