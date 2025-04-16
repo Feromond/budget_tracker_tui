@@ -20,8 +20,13 @@ pub(crate) fn run_app<B: Backend>(
                 match key.kind {
                     KeyEventKind::Press => {
                         // Ignore key events with modifiers (except Shift for capital letters)
-                        if key.modifiers == KeyModifiers::NONE || 
-                           (key.modifiers == KeyModifiers::SHIFT && key.code == KeyCode::Char(key.code.to_string().to_uppercase().chars().next().unwrap())) {
+                        if key.modifiers == KeyModifiers::NONE
+                            || (key.modifiers == KeyModifiers::SHIFT
+                                && key.code
+                                    == KeyCode::Char(
+                                        key.code.to_string().to_uppercase().chars().next().unwrap(),
+                                    ))
+                        {
                             if app.mode != AppMode::ConfirmDelete
                                 && app.mode != AppMode::SelectingCategory
                                 && app.mode != AppMode::SelectingSubcategory
