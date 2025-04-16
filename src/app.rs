@@ -74,11 +74,16 @@ impl App {
                 if let Some(parent) = path.parent() {
                     if !parent.exists() {
                         if let Err(e) = create_dir_all(parent) {
-                            (
-                                    // Fallback to default if creating parent fails
-                                    Self::get_default_data_file_path().unwrap_or_else(|_| PathBuf::from("transactions.csv")), 
-                                    Some(format!("Config Path Error: Could not create parent dir for {}: {}. Using default.", path.display(), e))
+                            {
+                                let fallback = match Self::get_default_data_file_path() {
+                                    Ok(p) => p,
+                                    Err(_) => PathBuf::from("transactions.csv"),
+                                };
+                                (
+                                    fallback,
+                                    Some(format!("Config Path Error: Could not create parent dir for {}: {}. Using default.", path.display(), e)),
                                 )
+                            }
                         } else {
                             (path, None) // Parent created successfully
                         }
