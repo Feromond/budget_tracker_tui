@@ -597,8 +597,12 @@ impl App {
             // If the last character is a hyphen that we likely auto-inserted,
             // remove it and the preceding digit.
             if (len == 5 || len == 8) && field_content.ends_with('-') {
-                 // Check if the character before the hyphen is a digit (sanity check)
-                if field_content.chars().nth(len - 2).map_or(false, |ch| ch.is_ascii_digit()) {
+                // Check if the character before the hyphen is a digit (sanity check)
+                if field_content
+                    .chars()
+                    .nth(len - 2)
+                    .is_some_and(|ch| ch.is_ascii_digit())
+                {
                     field_content.pop(); // Remove the hyphen
                     field_content.pop(); // Remove the preceding digit
                 } else {
