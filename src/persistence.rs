@@ -1,33 +1,14 @@
 use crate::model::{CategoryInfo, Transaction, TransactionType};
 use std::fs::{create_dir_all, File};
 use std::io::{Error, ErrorKind};
-use std::path::PathBuf;
+use std::path::Path;
 use std::result::Result as StdResult;
 
-pub(crate) const DATA_FILE_NAME: &str = "transactions.csv";
-const APP_DATA_SUBDIR: &str = "BudgetTracker";
-
-// Helper function to get the application-specific data directory path
-fn get_data_file_path() -> StdResult<PathBuf, Error> {
-    match dirs::data_dir() {
-        Some(mut path) => {
-            path.push(APP_DATA_SUBDIR);
-            // Ensure the directory exists
-            create_dir_all(&path)?;
-            path.push(DATA_FILE_NAME);
-            Ok(path)
-        }
-        None => Err(Error::new(
-            ErrorKind::NotFound,
-            "Could not find user data directory",
-        )),
-    }
-}
-
-pub(crate) fn load_transactions() -> StdResult<Vec<Transaction>, Error> {
-    let data_path = get_data_file_path()?;
-
+pub(crate) fn load_transactions(data_path: &Path) -> StdResult<Vec<Transaction>, Error> {
     if !data_path.exists() {
+        if let Some(parent) = data_path.parent() {
+            create_dir_all(parent)?;
+        }
         return Ok(vec![]);
     }
 
@@ -62,8 +43,11 @@ pub(crate) fn load_transactions() -> StdResult<Vec<Transaction>, Error> {
     Ok(transactions)
 }
 
-pub(crate) fn save_transactions(transactions: &[Transaction]) -> StdResult<(), Error> {
-    let data_path = get_data_file_path()?;
+pub(crate) fn save_transactions(transactions: &[Transaction], data_path: &Path) -> StdResult<(), Error> {
+    if let Some(parent) = data_path.parent() {
+        create_dir_all(parent)?;
+    }
+
     let file = File::create(&data_path)?;
     let mut wtr = csv::Writer::from_writer(file);
     for transaction in transactions {
