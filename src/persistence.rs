@@ -79,23 +79,33 @@ pub(crate) fn load_categories() -> StdResult<Vec<CategoryInfo>, Error> {
     let mut header_error = None;
 
     let headers = rdr.headers()?.clone();
-    let type_idx = headers.iter().position(|h| h.eq_ignore_ascii_case("Type"));
+    let type_idx = headers
+        .iter()
+        .position(|h| h.eq_ignore_ascii_case("Type"))
+        .ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "Embedded category data missing required header: Type",
+            )
+        })?;
     let cat_idx = headers
         .iter()
-        .position(|h| h.eq_ignore_ascii_case("Category"));
+        .position(|h| h.eq_ignore_ascii_case("Category"))
+        .ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "Embedded category data missing required header: Category",
+            )
+        })?;
     let subcat_idx = headers
         .iter()
-        .position(|h| h.eq_ignore_ascii_case("Subcategory"));
-
-    if type_idx.is_none() || cat_idx.is_none() || subcat_idx.is_none() {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Embedded category data missing required headers: Type, Category, Subcategory",
-        ));
-    }
-    let type_idx = type_idx.unwrap();
-    let cat_idx = cat_idx.unwrap();
-    let subcat_idx = subcat_idx.unwrap();
+        .position(|h| h.eq_ignore_ascii_case("Subcategory"))
+        .ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "Embedded category data missing required header: Subcategory",
+            )
+        })?;
 
     for (index, result) in rdr.records().enumerate() {
         let record = result.map_err(|e| {

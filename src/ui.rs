@@ -132,9 +132,9 @@ fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         };
         let cells = vec![
             Cell::from(tx.date.format(DATE_FORMAT).to_string()),
-            Cell::from(tx.description.clone()),
-            Cell::from(tx.category.clone()),
-            Cell::from(tx.subcategory.clone()),
+            Cell::from(tx.description.as_str()),
+            Cell::from(tx.category.as_str()),
+            Cell::from(tx.subcategory.as_str()),
             Cell::from(format!("{:?}", tx.transaction_type)),
             Cell::from(format!("{:.2}", tx.amount)).style(amount_style),
         ];
