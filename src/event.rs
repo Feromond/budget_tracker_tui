@@ -37,8 +37,8 @@ fn update(app: &mut App, key_event: KeyEvent) {
         AppMode::Normal => {
             match key_code {
                 KeyCode::Char('q') | KeyCode::Esc => app.quit(),
-                KeyCode::Down | KeyCode::Char('j') => app.next_item(),
-                KeyCode::Up | KeyCode::Char('k') => app.previous_item(),
+                KeyCode::Down => app.next_item(),
+                KeyCode::Up => app.previous_item(),
                 KeyCode::Char('a') => app.start_adding(),
                 KeyCode::Char('d') => app.prepare_for_delete(),
                 KeyCode::Char('e') => app.start_editing(),
@@ -88,6 +88,16 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 }
                 KeyCode::Up => app.previous_add_edit_field(),
                 KeyCode::Down => app.next_add_edit_field(),
+                KeyCode::Left => match app.current_add_edit_field {
+                    0 => app.decrement_date(),
+                    3 => app.toggle_transaction_type(),
+                    _ => {}
+                },
+                KeyCode::Right => match app.current_add_edit_field {
+                    0 => app.increment_date(),
+                    3 => app.toggle_transaction_type(),
+                    _ => {}
+                },
                 KeyCode::Char(c) => match app.current_add_edit_field {
                     0 if c == '+' || c == '=' => app.increment_date(),
                     0 if c == '-' => app.decrement_date(),
@@ -128,28 +138,26 @@ fn update(app: &mut App, key_event: KeyEvent) {
             KeyCode::Right => app.move_cursor_right(),
             _ => {}
         },
-        AppMode::Summary => {
-            match key_code {
-                KeyCode::Char('q') | KeyCode::Esc => app.exit_summary_mode(),
-                KeyCode::Down | KeyCode::Char('j') => app.next_item(), // Navigate months
-                KeyCode::Up | KeyCode::Char('k') => app.previous_item(), // Navigate months
-                KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_summary_year(),
-                KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => app.previous_summary_year(),
-                _ => {}
-            }
-        }
+        AppMode::Summary => match key_code {
+            KeyCode::Char('q') | KeyCode::Esc => app.exit_summary_mode(),
+            KeyCode::Down => app.next_item(),
+            KeyCode::Up => app.previous_item(),
+            KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_summary_year(),
+            KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => app.previous_summary_year(),
+            _ => {}
+        },
         AppMode::SelectingCategory | AppMode::SelectingSubcategory => match key_code {
             KeyCode::Esc => app.cancel_selection(),
             KeyCode::Enter => app.confirm_selection(),
-            KeyCode::Down | KeyCode::Char('j') => app.select_next_list_item(),
-            KeyCode::Up | KeyCode::Char('k') => app.select_previous_list_item(),
+            KeyCode::Down => app.select_next_list_item(),
+            KeyCode::Up => app.select_previous_list_item(),
             KeyCode::Tab => {}
             _ => {}
         },
         AppMode::CategorySummary => match key_code {
             KeyCode::Char('q') | KeyCode::Esc => app.exit_category_summary_mode(),
-            KeyCode::Down | KeyCode::Char('j') => app.next_category_summary_item(),
-            KeyCode::Up | KeyCode::Char('k') => app.previous_category_summary_item(),
+            KeyCode::Down => app.next_category_summary_item(),
+            KeyCode::Up => app.previous_category_summary_item(),
             KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => {
                 app.next_category_summary_year()
             }

@@ -171,10 +171,10 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
 
     // Field titles and hints
     let field_definitions = [
-        ("Date (YYYY-MM-DD)", "(+/- adjust or manually enter)"),
+        ("Date (YYYY-MM-DD)", "(◀/▶ or +/- adjust, Digits to enter)"),
         ("Description", ""),
         ("Amount", ""),
-        ("Type", "(Enter to toggle)"),
+        ("Type", "(◀/▶ or Enter to toggle)"),
         ("Category", "(Enter to select)"),
         ("Subcategory", "(Enter to select)"),
     ];
@@ -296,88 +296,66 @@ fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
 fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
     let help_spans = match app.mode {
         AppMode::Normal => vec![
-            Span::raw(" Nav: "),
-            Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" | Act: "),
-            Span::styled("a/e/d/f", Style::default().fg(Color::LightYellow)),
-            Span::raw("(Add/Edit/Del/Filter) "),
-            Span::styled("s/c", Style::default().fg(Color::White)),
-            Span::raw("(Month/Cat Summary) "),
-            Span::raw("| Sort: "),
+            Span::raw("↑↓ Nav | "),
+            Span::styled("a", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Add | "),
+            Span::styled("e", Style::default().fg(Color::LightYellow)),
+            Span::raw(" Edit | "),
+            Span::styled("d", Style::default().fg(Color::LightRed)),
+            Span::raw(" Del | "),
+            Span::styled("f", Style::default().fg(Color::Cyan)),
+            Span::raw(" Filter | "),
+            Span::raw("s Summ | c CatSum | "),
             Span::styled("1-6", Style::default().fg(Color::LightBlue)),
-            Span::raw("(D/Desc/Cat/Sub/T/Amt) "),
-            Span::raw("| "),
-            Span::styled("q", Style::default().fg(Color::Magenta)),
-            Span::raw("uit"),
+            Span::raw(" Sort | "),
+            Span::styled("q/Esc", Style::default().fg(Color::Magenta)),
+            Span::raw(" Quit"),
         ],
         AppMode::Adding | AppMode::Editing => vec![
-            Span::raw(" Use "),
-            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" or "),
-            Span::styled("Tab", Style::default().fg(Color::Cyan)),
-            Span::raw(" to switch fields. "),
+            Span::raw("Tab/↑↓ Nav | "),
+            Span::raw("←→ Toggle | "),
             Span::styled("Enter", Style::default().fg(Color::LightGreen)),
-            Span::raw(" to save, "),
-            Span::styled("Esc", Style::default().fg(Color::LightRed)),
-            Span::raw(" to cancel."),
-        ],
-        AppMode::ConfirmDelete => vec![
-            Span::styled(
-                "Confirm Delete?",
-                Style::default().fg(Color::LightRed).bold(),
-            ),
-            Span::raw(" Press "),
-            Span::styled("y", Style::default().fg(Color::LightGreen)),
-            Span::raw("es or "),
-            Span::styled("n", Style::default().fg(Color::LightRed)),
-            Span::raw("o / "),
-            Span::styled("Esc", Style::default().fg(Color::LightRed)),
-            Span::raw("."),
-        ],
-        AppMode::Filtering => vec![
-            Span::styled("Filter:", Style::default().fg(Color::Yellow)),
-            Span::raw(" "),
-            Span::styled("Esc/Enter", Style::default().fg(Color::LightRed)),
-            Span::raw(" Exit | "),
-            Span::styled("←/→/Del/Bksp", Style::default().fg(Color::Cyan)),
-            Span::raw(" Edit"),
-        ],
-        AppMode::Summary => vec![
-            Span::styled("Summary:", Style::default().fg(Color::Yellow)),
-            Span::raw(" Month: "),
-            Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" | Year: "),
-            Span::styled("[/] or PgUp/PgDn", Style::default().fg(Color::Cyan)),
-            Span::raw(" | "),
-            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
-            Span::raw(" Exit"),
-        ],
-        AppMode::SelectingCategory | AppMode::SelectingSubcategory => vec![
-            Span::styled("Select:", Style::default().fg(Color::Yellow)),
-            Span::raw(" "),
-            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" Nav | "),
-            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
-            Span::raw(" Select | "),
+            Span::raw(" Save/Select | "),
             Span::styled("Esc", Style::default().fg(Color::LightRed)),
             Span::raw(" Cancel"),
         ],
-        AppMode::CategorySummary => vec![
-            Span::styled("Category Summary:", Style::default().fg(Color::Yellow)),
-            Span::raw(" Cat/Month: "),
-            Span::styled("j/k/↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" | Year: "),
-            Span::styled("[/] or PgUp/Dn", Style::default().fg(Color::Cyan)),
-            Span::raw(" | "),
+        AppMode::ConfirmDelete => vec![
+            Span::styled("y", Style::default().fg(Color::LightGreen)),
+            Span::raw(": Confirm | "),
+            Span::styled("n/Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(": Cancel"),
+        ],
+        AppMode::Filtering => vec![
+            Span::raw("Type Filter | "),
+            Span::raw("← → Cursor | "),
+            Span::raw("Bksp/Del Edit | "),
+            Span::styled("Enter/Esc", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Apply/Exit"),
+        ],
+        AppMode::Summary => vec![
+            Span::raw("↑↓ Nav | "),
+            Span::raw("←→/[] Year | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
-            Span::raw(" Exit"),
+            Span::raw(" Back"),
+        ],
+        AppMode::SelectingCategory | AppMode::SelectingSubcategory => vec![
+            Span::raw("↑↓ Nav | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(": Confirm | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(": Cancel"),
+        ],
+        AppMode::CategorySummary => vec![
+            Span::raw("↑↓ Nav | "),
+            Span::raw("←→/[] Year | "),
+            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Back"),
         ],
     };
 
     let help_paragraph = Paragraph::new(Line::from(help_spans))
-        .block(Block::default().borders(Borders::ALL).title("Help"))
-        .alignment(Alignment::Center);
-
+        .alignment(Alignment::Center)
+        .block(Block::default().borders(Borders::ALL).title("Help"));
     f.render_widget(help_paragraph, area);
 }
 
