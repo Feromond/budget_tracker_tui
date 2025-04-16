@@ -15,7 +15,6 @@ A simple, fast, and efficient Terminal User Interface (TUI) application for trac
 
 <!-- Placeholder for Screenshot -->
 
-
 <img width="928" alt="Screenshot 2025-04-15 at 11 44 08 PM" src="https://github.com/user-attachments/assets/ab47b560-f3ab-4f95-919f-5de58a828d0c" style="border: 2px solid #ccc; margin: 20px;" />
 <br><br>
 <img width="926" alt="Screenshot 2025-04-15 at 11 44 30 PM" src="https://github.com/user-attachments/assets/71aa516e-4917-41d8-9257-e837491a3bd9" style="border: 2px solid #ccc; margin: 20px;" />
@@ -78,13 +77,15 @@ There are a few ways to run the application:
 
 ## ⚙️ Data Storage
 
-The application stores your transaction data in a `transactions.csv` file within a dedicated application data directory. The exact location depends on your operating system:
+The application stores your transaction data in a `transactions.csv` file within a dedicated application data directory. The exact location depends on your operating system by default:
 
 - **Linux:** `$XDG_DATA_HOME/BudgetTracker/transactions.csv` (typically `~/.local/share/BudgetTracker/transactions.csv`)
 - **macOS:** `~/Library/Application Support/BudgetTracker/transactions.csv`
 - **Windows:** `%APPDATA%\BudgetTracker\transactions.csv` (e.g., `C:\Users\<YourUsername>\AppData\Roaming\BudgetTracker\transactions.csv`)
 
 The necessary directories are created automatically if they don't exist.
+
+You can manually override and set the path for this transaction.csv by going into the settings via the 'o' key on the main transaction view.
 
 ## References
 
