@@ -10,7 +10,7 @@ use event::run_app;
 use persistence::save_transactions;
 
 use crossterm::{
-    event::{EnableBracketedPaste, DisableBracketedPaste},
+    event::{DisableBracketedPaste, EnableBracketedPaste},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
@@ -20,7 +20,9 @@ use std::result::Result as StdResult;
 
 fn main() -> StdResult<(), Box<dyn std::error::Error>> {
     enable_raw_mode()?;
-    stdout().execute(EnterAlternateScreen)?.execute(EnableBracketedPaste)?;
+    stdout()
+        .execute(EnterAlternateScreen)?
+        .execute(EnableBracketedPaste)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
     let mut app = App::new();
