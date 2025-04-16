@@ -1,7 +1,33 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-pub const DATE_FORMAT: &str = "%Y-%m-%d";
+use serde::Deserializer;
+use serde::de::Error as SerdeError;
+
+pub(crate) const DATE_FORMAT: &str = "%Y-%m-%d";
+
+fn deserialize_flexible_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if let Ok(date) = NaiveDate::parse_from_str(&s, DATE_FORMAT) {
+        return Ok(date);
+    }
+    if let Ok(date) = NaiveDate::parse_from_str(&s, "%Y/%m/%d") {
+        return Ok(date);
+    }
+    if let Ok(date) = NaiveDate::parse_from_str(&s, "%d/%m/%Y") {
+        return Ok(date);
+    }
+    if let Ok(date) = NaiveDate::parse_from_str(&s, "%d-%m-%Y") {
+        return Ok(date);
+    }
+    Err(SerdeError::custom(format!(
+        "Invalid date format: '{}'. Expected YYYY-MM-DD, YYYY/MM/DD, DD/MM/YYYY, or DD-MM-YYYY.",
+        s
+    )))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub enum TransactionType {
@@ -23,9 +49,11 @@ impl TryFrom<&str> for TransactionType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Transaction {
-    #[serde(with = "date_format")]
+    // Apply the custom deserializer for reading dates so it can work on excel edits
+    #[serde(deserialize_with = "deserialize_flexible_date")]
+    #[serde(serialize_with = "date_format::serialize")]
     pub date: NaiveDate,
     pub description: String,
     pub amount: f64,
@@ -42,7 +70,7 @@ fn default_category() -> String {
 
 pub mod date_format {
     use chrono::NaiveDate;
-    use serde::{self, Deserialize, Deserializer, Serializer};
+    use serde::{self, Serializer};
 
     const FORMAT: &str = super::DATE_FORMAT;
 
@@ -52,14 +80,6 @@ pub mod date_format {
     {
         let s = format!("{}", date.format(FORMAT));
         serializer.serialize_str(&s)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        NaiveDate::parse_from_str(&s, FORMAT).map_err(serde::de::Error::custom)
     }
 }
 
