@@ -566,10 +566,52 @@ impl App {
         }
     }
     pub(crate) fn insert_char_add_edit(&mut self, c: char) {
-        self.add_edit_fields[self.current_add_edit_field].push(c);
+        let current_field = self.current_add_edit_field;
+        let field_content = &mut self.add_edit_fields[current_field];
+
+        // Special handling for the Date field (index 0)
+        if current_field == 0 && c.is_ascii_digit() {
+            let len = field_content.len();
+
+            // Auto-insert hyphens for YYYY-MM-DD
+            if (len == 4 || len == 7) && len < 10 {
+                field_content.push('-');
+            }
+
+            // Append the digit if the total length is less than 10
+            if field_content.len() < 10 {
+                field_content.push(c);
+            }
+        } else {
+            // Default behavior for other fields or non-digit characters
+            field_content.push(c);
+        }
     }
     pub(crate) fn delete_char_add_edit(&mut self) {
-        self.add_edit_fields[self.current_add_edit_field].pop();
+        let current_field = self.current_add_edit_field;
+        let field_content = &mut self.add_edit_fields[current_field];
+
+        // Special handling for the Date field (index 0)
+        if current_field == 0 {
+            let len = field_content.len();
+            // If the last character is a hyphen that we likely auto-inserted,
+            // remove it and the preceding digit.
+            if (len == 5 || len == 8) && field_content.ends_with('-') {
+                 // Check if the character before the hyphen is a digit (sanity check)
+                if field_content.chars().nth(len - 2).map_or(false, |ch| ch.is_ascii_digit()) {
+                    field_content.pop(); // Remove the hyphen
+                    field_content.pop(); // Remove the preceding digit
+                } else {
+                    // Should not happen with current logic, but handle gracefully
+                    field_content.pop(); // Just remove the hyphen
+                }
+            } else if !field_content.is_empty() {
+                field_content.pop(); // Standard backspace
+            }
+        } else if !field_content.is_empty() {
+            // Default behavior for other fields
+            field_content.pop();
+        }
     }
     pub(crate) fn next_add_edit_field(&mut self) {
         let next_field = (self.current_add_edit_field + 1) % self.add_edit_fields.len();

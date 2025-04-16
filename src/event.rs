@@ -91,9 +91,11 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 KeyCode::Char(c) => match app.current_add_edit_field {
                     0 if c == '+' || c == '=' => app.increment_date(),
                     0 if c == '-' => app.decrement_date(),
-                    // Prevent text input in Type, Category, Subcategory fields
-                    field if ![3, 4, 5].contains(&field) => app.insert_char_add_edit(c),
-                    _ => {} // Ignore char input for fields 3, 4, 5
+                    // Only allow digits for the date field (field 0)
+                    0 if c.is_ascii_digit() => app.insert_char_add_edit(c),
+                    // Allow any character for other non-special fields (1, 2)
+                    field if ![0, 3, 4, 5].contains(&field) => app.insert_char_add_edit(c),
+                    _ => {} // Ignore char input for fields 0 (non-digit), 3, 4, 5
                 },
                 KeyCode::Backspace => {
                     if ![3, 4, 5].contains(&app.current_add_edit_field) {
