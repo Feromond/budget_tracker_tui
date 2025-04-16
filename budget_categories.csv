@@ -24,16 +24,24 @@ Expense,Housing,Property Tax
 Expense,Housing,Home Insurance
 Expense,Housing,Repairs & Maintenance
 Expense,Housing,HOA Fees
+Expense,Housing,Moving Expenses
+Expense,Housing,Furniture & Decor
 Expense,Utilities,Electricity
 Expense,Utilities,Water
 Expense,Utilities,Gas
 Expense,Utilities,Internet
 Expense,Utilities,Phone / Cell Service
 Expense,Utilities,Garbage / Recycling
-Expense,Groceries & Household,Groceries
-Expense,Groceries & Household,Cleaning Supplies
-Expense,Groceries & Household,Personal Care
-Expense,Groceries & Household,Pet Supplies
+Expense,Utilities,Streaming Services (TV/Movie)
+Expense,Food & Dining,Groceries
+Expense,Food & Dining,Restaurants
+Expense,Food & Dining,Takeout / Delivery
+Expense,Food & Dining,Coffee Shops
+Expense,Food & Dining,Fast Food
+Expense,Food & Dining,Alcohol & Bars
+Expense,Household,Household Supplies
+Expense,Household,Toiletries
+Expense,Household,Pet Food & Supplies
 Expense,Transportation,Fuel / Gas
 Expense,Transportation,Car Payment
 Expense,Transportation,Insurance
@@ -41,24 +49,28 @@ Expense,Transportation,Public Transit
 Expense,Transportation,Parking
 Expense,Transportation,Maintenance & Repairs
 Expense,Transportation,Ride Sharing
-Expense,Food & Dining,Restaurants
-Expense,Food & Dining,Takeout / Delivery
-Expense,Food & Dining,Coffee Shops
+Expense,Transportation,Tolls
+Expense,Transportation,Vehicle Registration/License
 Expense,Family & Children,Childcare / Babysitting
 Expense,Family & Children,School Supplies
 Expense,Family & Children,Child Support
-Expense,Family & Children,Kids’ Activities
+Expense,Family & Children,Kids' Activities
 Expense,Family & Children,Clothing (Children)
 Expense,Health & Wellness,Health Insurance
-Expense,Health & Wellness,Medical / Dental Expenses
+Expense,Health & Wellness,Medical Expenses
+Expense,Health & Wellness,Dental Expenses
 Expense,Health & Wellness,Therapy / Counseling
 Expense,Health & Wellness,Fitness / Gym
 Expense,Health & Wellness,Medications
-Expense,Entertainment & Leisure,Subscriptions
-Expense,Entertainment & Leisure,Games / Apps
-Expense,Entertainment & Leisure,Hobbies
-Expense,Entertainment & Leisure,Vacations / Travel
-Expense,Entertainment & Leisure,Books / Movies
+Expense,Health & Wellness,Vitamins & Supplements
+Expense,Health & Wellness,Eyecare
+Expense,Entertainment,Streaming Music
+Expense,Entertainment,Gaming Subscriptions/Purchases
+Expense,Entertainment,Concerts/Events
+Expense,Entertainment,Sporting Goods
+Expense,Entertainment,Arts & Crafts
+Expense,Entertainment,Vacations / Travel
+Expense,Entertainment,Books / Movies
 Expense,Education,Tuition
 Expense,Education,Student Loan Payments
 Expense,Education,Books & Supplies
@@ -70,12 +82,24 @@ Expense,Shopping,Clothing
 Expense,Shopping,Electronics
 Expense,Shopping,Gifts
 Expense,Shopping,Misc. Shopping
+Expense,Shopping,Home Goods
+Expense,Shopping,Tools & Hardware
+Expense,Shopping,Books & Music (Physical)
+Expense,Shopping,Hobbies
 Expense,Work & Business,Professional Fees
 Expense,Work & Business,Work Travel
 Expense,Work & Business,Office Supplies
-Expense,Personal & Other,Donations
-Expense,Personal & Other,Savings / Investments
+Expense,Work & Business,Software Subscriptions
+Expense,Work & Business,Training & Development
+Expense,Work & Business,Union Dues
+Expense,Work & Business,Home Office
+Expense,Personal & Other,Charity/Donations
+Expense,Personal & Other,Personal Savings/Investments
 Expense,Personal & Other,Emergency Fund
 Expense,Personal & Other,Bank Fees
+Expense,Personal & Other,ATM Fees
 Expense,Personal & Other,Cash Withdrawals
+Expense,Personal & Other,Postage & Shipping
+Expense,Personal & Other,Taxes (Other)
+Expense,Personal & Other,Legal Fees
 Expense,Personal & Other,Miscellaneous
