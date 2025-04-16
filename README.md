@@ -14,11 +14,13 @@ A simple, fast, and efficient Terminal User Interface (TUI) application for trac
 - [References](#references)
 
 <!-- Placeholder for Screenshot -->
-<img width="991" alt="Screenshot 2025-04-15 at 5 38 35 PM" src="https://github.com/user-attachments/assets/2b6b8868-f3b9-43e1-a16b-531f1dbd75d4" style="border: 2px solid #ccc; margin: 20px;" />
+
+
+<img width="928" alt="Screenshot 2025-04-15 at 11 44 08 PM" src="https://github.com/user-attachments/assets/ab47b560-f3ab-4f95-919f-5de58a828d0c" style="border: 2px solid #ccc; margin: 20px;" />
 <br><br>
-<img width="989" alt="Screenshot 2025-04-15 at 5 30 03 PM" src="https://github.com/user-attachments/assets/1058185b-a0ad-4e42-afed-00c381156341" style="border: 2px solid #ccc; margin: 20px;" />
+<img width="926" alt="Screenshot 2025-04-15 at 11 44 30 PM" src="https://github.com/user-attachments/assets/71aa516e-4917-41d8-9257-e837491a3bd9" style="border: 2px solid #ccc; margin: 20px;" />
 <br><br>
-<img width="989" alt="Screenshot 2025-04-15 at 5 30 13 PM" src="https://github.com/user-attachments/assets/3b54216b-4812-48be-90fe-8046f6651cd0" style="border: 2px solid #ccc; margin: 20px;" />
+<img width="926" alt="Screenshot 2025-04-15 at 11 44 45 PM" src="https://github.com/user-attachments/assets/c230ee05-b69b-457f-b108-4afe6ee5aaa1" style="border: 2px solid #ccc; margin: 20px;" />
 
 ## ✨ Features
 
