@@ -13,6 +13,7 @@ csv = "1.3.1"
 serde = { version = "1.0.219", features = ["derive"] }
 chrono = { version = "0.4.40", features = ["serde"] }
 dirs = "6.0.0"
+serde_json = "1.0.140"
 
 [[bin]]
 name = "Budget_Tracker"
@@ -29,3 +30,9 @@ version = "0.1.0"
 copyright = "Copyright Ventra Software 2025. All rights reserved."
 category = "Finance"
 short_description = "A simple TUI budget tracker."
+
+[profile.release]
+strip = true
+opt-level = 3
+lto = true
+codegen-units = 1
