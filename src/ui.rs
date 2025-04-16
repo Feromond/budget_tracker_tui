@@ -68,17 +68,14 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
 
     render_help_bar(f, app, help_area);
 
-    match app.mode {
-        AppMode::Filtering => {
-            let cursor_x = app.input_field_content[..app.input_field_cursor]
-                .chars()
-                .count() as u16;
-            f.set_cursor_position(Position::new(
-                filter_area.x + cursor_x + 1,
-                filter_area.y + 1,
-            ));
-        }
-        _ => {}
+    if app.mode == AppMode::Filtering {
+        let cursor_x = app.input_field_content[..app.input_field_cursor]
+            .chars()
+            .count() as u16;
+        f.set_cursor_position(Position::new(
+            filter_area.x + cursor_x + 1,
+            filter_area.y + 1,
+        ));
     }
 }
 
