@@ -1,7 +1,7 @@
 use crate::app::{App, AppMode};
 use crate::model::SortColumn;
 use crate::ui::ui;
-use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::prelude::Backend;
 use ratatui::Terminal;
 use std::result::Result as StdResult;
@@ -16,13 +16,23 @@ pub(crate) fn run_app<B: Backend>(
 
         if event::poll(Duration::from_millis(250))? {
             if let Event::Key(key) = event::read()? {
-                if app.mode != AppMode::ConfirmDelete
-                    && app.mode != AppMode::SelectingCategory
-                    && app.mode != AppMode::SelectingSubcategory
-                {
-                    app.status_message = None;
+                // Handle key events consistently across platforms
+                match key.kind {
+                    KeyEventKind::Press => {
+                        // Ignore key events with modifiers (except Shift for capital letters)
+                        if key.modifiers == KeyModifiers::NONE || 
+                           (key.modifiers == KeyModifiers::SHIFT && key.code == KeyCode::Char(key.code.to_string().to_uppercase().chars().next().unwrap())) {
+                            if app.mode != AppMode::ConfirmDelete
+                                && app.mode != AppMode::SelectingCategory
+                                && app.mode != AppMode::SelectingSubcategory
+                            {
+                                app.status_message = None;
+                            }
+                            update(app, key);
+                        }
+                    }
+                    _ => {} // Ignore other key event kinds (Release, Repeat)
                 }
-                update(app, key);
             }
         }
     }
