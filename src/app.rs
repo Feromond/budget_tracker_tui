@@ -1144,39 +1144,60 @@ impl App {
             self.status_message = Some("Error: Path cannot be empty.".to_string());
             return;
         }
-
         let new_path = PathBuf::from(new_path_str);
 
-        match save_transactions(&self.transactions, &new_path) {
-            Ok(_) => {
-                // Path is writable, now save the setting
-                let settings = AppSettings {
-                    data_file_path: Some(new_path_str.to_string()),
-                };
-                match save_settings(&settings) {
-                    Ok(_) => {
-                        self.data_file_path = new_path;
-                        self.status_message = Some(format!(
-                            "Settings saved. Data file set to: {}",
-                            self.data_file_path.display()
-                        ));
-                        self.exit_settings_mode();
-                    }
-                    Err(e) => {
-                        self.status_message = Some(format!("Error saving config file: {}", e));
-                        // Keep user in settings mode
-                    }
-                }
-            }
-            Err(e) => {
+        if !new_path.exists() {
+            if let Err(e) = save_transactions(&self.transactions, &new_path) {
                 self.status_message = Some(format!(
-                    "Error saving to new path '{}': {}. Check path and permissions.",
+                    "Error creating transactions file '{}': {}. Check path and permissions.",
                     new_path.display(),
                     e
                 ));
-                // Keep the user in settings mode to allow correction
+                return;
             }
         }
+
+        // Save the new data file path in config
+        let settings = AppSettings {
+            data_file_path: Some(new_path_str.to_string()),
+        };
+        if let Err(e) = save_settings(&settings) {
+            self.status_message = Some(format!("Error saving config file: {}", e));
+            return;
+        }
+
+        // Update app state to use new path
+        self.data_file_path = new_path.clone();
+
+        let txs = match load_transactions(&self.data_file_path) {
+            Ok(tx) => tx,
+            Err(e) => {
+                self.status_message = Some(format!(
+                    "Error loading transactions from '{}': {}. Check file format and permissions.",
+                    self.data_file_path.display(),
+                    e
+                ));
+                return;
+            }
+        };
+        self.transactions = txs;
+
+        // Exit settings UI and refresh the table and summaries
+        self.exit_settings_mode();
+        self.sort_transactions();
+        self.filtered_indices = (0..self.transactions.len()).collect();
+        if !self.filtered_indices.is_empty() {
+            self.table_state.select(Some(0));
+        } else {
+            self.table_state.select(None);
+        }
+        self.calculate_monthly_summaries();
+        self.calculate_category_summaries();
+
+        self.status_message = Some(format!(
+            "Settings saved. Data file set to: {}",
+            self.data_file_path.display()
+        ));
     }
 
     pub(crate) fn reset_settings_path_to_default(&mut self) {
@@ -1246,3 +1267,4 @@ fn sort_transactions_impl(
         }
     });
 }
+
