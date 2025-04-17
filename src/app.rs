@@ -1267,4 +1267,3 @@ fn sort_transactions_impl(
         }
     });
 }
-
