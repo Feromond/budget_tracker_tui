@@ -180,7 +180,10 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
             let is_focused = app.current_add_edit_field == i;
             let title = format!("{} {}", base_title, hint).trim_end().to_string();
             let content = if i == 3 {
-                Span::styled(format!(" < {} > ", text), Style::default().fg(Color::White).bold())
+                Span::styled(
+                    format!(" < {} > ", text),
+                    Style::default().fg(Color::White).bold(),
+                )
             } else {
                 Span::raw(text.as_str())
             };
@@ -252,10 +255,7 @@ fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
         if field_idx >= scroll_offset && field_idx < scroll_offset + max_visible_fields {
             let visible_idx = field_idx - scroll_offset;
             if let Some(chunk) = form_chunks.get(visible_idx) {
-                f.set_cursor_position(Position::new(
-                    chunk.x + text_len + 1,
-                    chunk.y + 1,
-                ));
+                f.set_cursor_position(Position::new(chunk.x + text_len + 1, chunk.y + 1));
             }
         }
     }

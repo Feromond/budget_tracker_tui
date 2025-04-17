@@ -17,7 +17,9 @@ fn main() {
                 .set_icon(match icon_path.to_str() {
                     Some(s) => s,
                     None => {
-                        println!("Build Warning: Icon path contains invalid unicode, skipping icon");
+                        println!(
+                            "Build Warning: Icon path contains invalid unicode, skipping icon"
+                        );
                         return;
                     }
                 })
