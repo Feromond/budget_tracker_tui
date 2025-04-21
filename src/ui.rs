@@ -578,7 +578,7 @@ fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         }
     } else {
         // Add a row indicating no data if no year is selected
-        table_rows.push(Row::new(vec![Cell::from("No Data")]).height(1)); // Simple row with one cell
+        table_rows.push(Row::new(vec![Cell::from("N/A")]).height(1));
         chart_data_styled.push(Bar::default().label("N/A".into()).value(0));
     }
 
