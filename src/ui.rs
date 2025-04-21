@@ -1,4 +1,4 @@
-use crate::app::{App, AppMode};
+use crate::app::{App, AppMode, CategorySummaryItem};
 use crate::model::{MonthlySummary, SortColumn, SortOrder, TransactionType, DATE_FORMAT};
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Position, Rect};
 use ratatui::prelude::*;
@@ -659,60 +659,44 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         .height(1)
         .bottom_margin(1);
 
-    // Data for Table
+    // Data for Table (hierarchical)
     let current_year = app
         .category_summary_years
         .get(app.category_summary_year_index)
         .copied();
     let year_str = current_year.map_or_else(|| "N/A".to_string(), |y| y.to_string());
-    let month_category_subcategory_list = app.get_current_category_summary_list();
-
-    let rows =
-        month_category_subcategory_list
-            .iter()
-            .map(|(month, category_name, subcategory_name)| {
-                let summary = current_year
-                    .and_then(|year| {
-                        app.category_summaries
-                            .get(&(year, *month))
-                            .and_then(|month_map| {
-                                month_map.get(&(category_name.clone(), subcategory_name.clone()))
-                            })
-                    })
-                    .cloned()
-                    .unwrap_or_default();
-
+    let items = app.get_visible_category_summary_items();
+    let rows = items.iter().map(|item| {
+        match item {
+            CategorySummaryItem::Month(month, summary) => {
+                let symbol = if app.expanded_category_summary_months.contains(month) { "▼" } else { "▶" };
+                let month_cell = format!("{} {}", symbol, month_to_short_str(*month));
                 let net = summary.income - summary.expense;
-                let net_style = if net >= 0.0 {
-                    Style::default().fg(Color::LightGreen)
-                } else {
-                    Style::default().fg(Color::LightRed)
-                };
-                let month_name = month_to_short_str(*month);
-                let subcat_display = if subcategory_name.is_empty() {
-                    "-".to_string()
-                } else {
-                    subcategory_name.clone()
-                };
-                let net_str = if net >= 0.0 {
-                    format!("+{:.2}", net)
-                } else {
-                    format!("{:.2}", net)
-                };
-
+                let net_style = if net >= 0.0 { Style::default().fg(Color::LightGreen) } else { Style::default().fg(Color::LightRed) };
+                let net_str = if net >= 0.0 { format!("+{:.2}", net) } else { format!("{:.2}", net) };
                 Row::new(vec![
-                    Cell::from(month_name),
-                    Cell::from(category_name.as_str()),
-                    Cell::from(subcat_display),
-                    Cell::from(format!("{:.2}", summary.income))
-                        .style(Style::default().fg(Color::LightGreen)),
-                    Cell::from(format!("{:.2}", summary.expense))
-                        .style(Style::default().fg(Color::LightRed)),
+                    Cell::from(month_cell),
+                    Cell::from(""), Cell::from(""),
+                    Cell::from(format!("{:.2}", summary.income)).style(Style::default().fg(Color::LightGreen)),
+                    Cell::from(format!("{:.2}", summary.expense)).style(Style::default().fg(Color::LightRed)),
                     Cell::from(net_str).style(net_style),
-                ])
-                .height(1)
-                .bottom_margin(0)
-            });
+                ]).height(1).bottom_margin(0)
+            }
+            CategorySummaryItem::Subcategory(_, category, sub, summary) => {
+                let net = summary.income - summary.expense;
+                let net_style = if net >= 0.0 { Style::default().fg(Color::LightGreen) } else { Style::default().fg(Color::LightRed) };
+                let net_str = if net >= 0.0 { format!("+{:.2}", net) } else { format!("{:.2}", net) };
+                Row::new(vec![
+                    Cell::from(""),
+                    Cell::from(category.clone()),
+                    Cell::from(sub.clone()),
+                    Cell::from(format!("{:.2}", summary.income)).style(Style::default().fg(Color::LightGreen)),
+                    Cell::from(format!("{:.2}", summary.expense)).style(Style::default().fg(Color::LightRed)),
+                    Cell::from(net_str).style(net_style),
+                ]).height(1).bottom_margin(0)
+            }
+        }
+    });
 
     let table_title = format!(
         "Category/Subcategory Summary - {} ({}/{})",
@@ -744,10 +728,14 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let mut max_abs_chart_value: u64 = 10;
 
     if let Some(selected_index) = app.category_summary_table_state.selected() {
-        if let Some((selected_month, _, _)) = month_category_subcategory_list.get(selected_index) {
+        if let Some(item) = items.get(selected_index) {
             if let Some(year) = current_year {
+                let selected_month = match item {
+                    CategorySummaryItem::Month(m, _) => *m,
+                    CategorySummaryItem::Subcategory(m, _, _, _) => *m,
+                };
                 let mut category_totals: HashMap<String, MonthlySummary> = HashMap::new();
-                if let Some(month_map) = app.category_summaries.get(&(year, *selected_month)) {
+                if let Some(month_map) = app.category_summaries.get(&(year, selected_month)) {
                     for ((category, _), summary) in month_map.iter() {
                         let cat_summary = category_totals.entry(category.clone()).or_default();
                         cat_summary.income += summary.income;
@@ -786,7 +774,7 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 max_abs_chart_value = (current_max as u64).max(10); // Ensure max is at least 10
                 chart_title = format!(
                     "Category Net Balance - {} {}",
-                    month_to_short_str(*selected_month),
+                    month_to_short_str(selected_month),
                     year_str
                 );
             }
