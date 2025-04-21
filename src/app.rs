@@ -659,6 +659,7 @@ impl App {
         }
 
         self.calculate_category_summaries();
+        self.calculate_monthly_summaries();
     }
 
     // --- Input Handling ---
@@ -756,16 +757,18 @@ impl App {
     fn calculate_monthly_summaries(&mut self) {
         self.monthly_summaries.clear();
         let mut years = Vec::new();
-        for tx in &self.transactions {
-            let year = tx.date.year();
-            let month = tx.date.month();
-            let summary = self.monthly_summaries.entry((year, month)).or_default();
-            match tx.transaction_type {
-                TransactionType::Income => summary.income += tx.amount,
-                TransactionType::Expense => summary.expense += tx.amount,
-            }
-            if !years.contains(&year) {
-                years.push(year);
+        for &idx in &self.filtered_indices {
+            if let Some(tx) = self.transactions.get(idx) {
+                let year = tx.date.year();
+                let month = tx.date.month();
+                let summary = self.monthly_summaries.entry((year, month)).or_default();
+                match tx.transaction_type {
+                    TransactionType::Income => summary.income += tx.amount,
+                    TransactionType::Expense => summary.expense += tx.amount,
+                }
+                if !years.contains(&year) {
+                    years.push(year);
+                }
             }
         }
         years.sort_unstable();
@@ -792,8 +795,6 @@ impl App {
 
     pub(crate) fn exit_summary_mode(&mut self) {
         self.mode = AppMode::Normal;
-        // Reset selection for main table if needed (depends on desired behavior)
-        // self.table_state.select(Some(0));
         self.status_message = None;
     }
 
