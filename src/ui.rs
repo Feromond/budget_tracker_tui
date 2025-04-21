@@ -552,38 +552,27 @@ fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 .get(&(year, month))
                 .cloned()
                 .unwrap_or_default();
-            let net = summary.income - summary.expense;
-            let net_i64 = net.round() as i64;
-            let net_style = if net >= 0.0 {
-                Style::default().fg(Color::LightGreen)
-            } else {
-                Style::default().fg(Color::LightRed)
-            };
             let month_name = month_to_short_str(month);
-            let net_str = if net >= 0.0 {
-                format!("+{:.2}", net)
-            } else {
-                format!("{:.2}", net)
-            };
-
+            let inc_cell = cell_income(summary.income);
+            let exp_cell = cell_expense(summary.expense);
+            let net_cell = cell_net(summary.income - summary.expense);
             table_rows.push(
-                Row::new(vec![
-                    Cell::from(month_name),
-                    Cell::from(format!("{:.2}", summary.income))
-                        .style(Style::default().fg(Color::LightGreen)),
-                    Cell::from(format!("{:.2}", summary.expense))
-                        .style(Style::default().fg(Color::LightRed)),
-                    Cell::from(net_str).style(net_style),
-                ])
-                .height(1)
-                .bottom_margin(0),
+                Row::new(vec![Cell::from(month_name), inc_cell, exp_cell, net_cell])
+                    .height(1)
+                    .bottom_margin(0),
             );
 
+            let net = summary.income - summary.expense;
+            let net_i64 = net.round() as i64;
             chart_data_styled.push(
                 Bar::default()
                     .label(month_name.into())
                     .value(net_i64.unsigned_abs())
-                    .style(net_style),
+                    .style(if net >= 0.0 {
+                        Style::default().fg(Color::LightGreen)
+                    } else {
+                        Style::default().fg(Color::LightRed)
+                    }),
             );
             max_abs_chart_value = max_abs_chart_value.max(net_i64.abs());
         }
