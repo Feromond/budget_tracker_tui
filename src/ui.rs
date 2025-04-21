@@ -668,35 +668,62 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         .copied();
     let year_str = current_year.map_or_else(|| "N/A".to_string(), |y| y.to_string());
     let items = app.get_visible_category_summary_items();
-    let rows = items.iter().map(|item| {
-        match item {
-            CategorySummaryItem::Month(month, summary) => {
-                let symbol = if app.expanded_category_summary_months.contains(month) { "▼" } else { "▶" };
-                let month_cell = format!("{} {}", symbol, month_to_short_str(*month));
-                let net = summary.income - summary.expense;
-                let net_style = if net >= 0.0 { Style::default().fg(Color::LightGreen) } else { Style::default().fg(Color::LightRed) };
-                let net_str = if net >= 0.0 { format!("+{:.2}", net) } else { format!("{:.2}", net) };
-                Row::new(vec![
-                    Cell::from(month_cell),
-                    Cell::from(""), Cell::from(""),
-                    Cell::from(format!("{:.2}", summary.income)).style(Style::default().fg(Color::LightGreen)),
-                    Cell::from(format!("{:.2}", summary.expense)).style(Style::default().fg(Color::LightRed)),
-                    Cell::from(net_str).style(net_style),
-                ]).height(1).bottom_margin(0)
-            }
-            CategorySummaryItem::Subcategory(_, category, sub, summary) => {
-                let net = summary.income - summary.expense;
-                let net_style = if net >= 0.0 { Style::default().fg(Color::LightGreen) } else { Style::default().fg(Color::LightRed) };
-                let net_str = if net >= 0.0 { format!("+{:.2}", net) } else { format!("{:.2}", net) };
-                Row::new(vec![
-                    Cell::from(""),
-                    Cell::from(category.clone()),
-                    Cell::from(sub.clone()),
-                    Cell::from(format!("{:.2}", summary.income)).style(Style::default().fg(Color::LightGreen)),
-                    Cell::from(format!("{:.2}", summary.expense)).style(Style::default().fg(Color::LightRed)),
-                    Cell::from(net_str).style(net_style),
-                ]).height(1).bottom_margin(0)
-            }
+    let rows = items.iter().map(|item| match item {
+        CategorySummaryItem::Month(month, summary) => {
+            let symbol = if app.expanded_category_summary_months.contains(month) {
+                "▼"
+            } else {
+                "▶"
+            };
+            let month_cell = format!("{} {}", symbol, month_to_short_str(*month));
+            let net = summary.income - summary.expense;
+            let net_style = if net >= 0.0 {
+                Style::default().fg(Color::LightGreen)
+            } else {
+                Style::default().fg(Color::LightRed)
+            };
+            let net_str = if net >= 0.0 {
+                format!("+{:.2}", net)
+            } else {
+                format!("{:.2}", net)
+            };
+            Row::new(vec![
+                Cell::from(month_cell),
+                Cell::from(""),
+                Cell::from(""),
+                Cell::from(format!("{:.2}", summary.income))
+                    .style(Style::default().fg(Color::LightGreen)),
+                Cell::from(format!("{:.2}", summary.expense))
+                    .style(Style::default().fg(Color::LightRed)),
+                Cell::from(net_str).style(net_style),
+            ])
+            .height(1)
+            .bottom_margin(0)
+        }
+        CategorySummaryItem::Subcategory(_, category, sub, summary) => {
+            let net = summary.income - summary.expense;
+            let net_style = if net >= 0.0 {
+                Style::default().fg(Color::LightGreen)
+            } else {
+                Style::default().fg(Color::LightRed)
+            };
+            let net_str = if net >= 0.0 {
+                format!("+{:.2}", net)
+            } else {
+                format!("{:.2}", net)
+            };
+            Row::new(vec![
+                Cell::from(""),
+                Cell::from(category.clone()),
+                Cell::from(sub.clone()),
+                Cell::from(format!("{:.2}", summary.income))
+                    .style(Style::default().fg(Color::LightGreen)),
+                Cell::from(format!("{:.2}", summary.expense))
+                    .style(Style::default().fg(Color::LightRed)),
+                Cell::from(net_str).style(net_style),
+            ])
+            .height(1)
+            .bottom_margin(0)
         }
     });
 

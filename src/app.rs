@@ -1257,8 +1257,14 @@ impl App {
     // Helper to get visible hierarchical items for the category summary view
     pub(crate) fn get_visible_category_summary_items(&self) -> Vec<CategorySummaryItem> {
         let mut items = Vec::new();
-        if let Some(year) = self.category_summary_years.get(self.category_summary_year_index).copied() {
-            let mut months: Vec<u32> = self.category_summaries.keys()
+        if let Some(year) = self
+            .category_summary_years
+            .get(self.category_summary_year_index)
+            .copied()
+        {
+            let mut months: Vec<u32> = self
+                .category_summaries
+                .keys()
                 .filter_map(|(y, m)| if *y == year { Some(*m) } else { None })
                 .collect();
             months.sort_unstable();
@@ -1272,17 +1278,32 @@ impl App {
                     }
                     items.push(CategorySummaryItem::Month(month, month_total));
                     if self.expanded_category_summary_months.contains(&month) {
-                        let mut categories: Vec<String> = month_map.keys().map(|(cat, _)| cat.clone()).collect();
+                        let mut categories: Vec<String> =
+                            month_map.keys().map(|(cat, _)| cat.clone()).collect();
                         categories.sort_unstable();
                         categories.dedup();
                         for category in categories {
-                            let mut subcategories: Vec<String> = month_map.keys()
-                                .filter_map(|(cat, sub)| if cat == &category && !sub.is_empty() { Some(sub.clone()) } else { None })
+                            let mut subcategories: Vec<String> = month_map
+                                .keys()
+                                .filter_map(|(cat, sub)| {
+                                    if cat == &category && !sub.is_empty() {
+                                        Some(sub.clone())
+                                    } else {
+                                        None
+                                    }
+                                })
                                 .collect();
                             subcategories.sort_unstable();
                             for subcategory in subcategories {
-                                if let Some(summary) = month_map.get(&(category.clone(), subcategory.clone())) {
-                                    items.push(CategorySummaryItem::Subcategory(month, category.clone(), subcategory.clone(), *summary));
+                                if let Some(summary) =
+                                    month_map.get(&(category.clone(), subcategory.clone()))
+                                {
+                                    items.push(CategorySummaryItem::Subcategory(
+                                        month,
+                                        category.clone(),
+                                        subcategory.clone(),
+                                        *summary,
+                                    ));
                                 }
                             }
                         }

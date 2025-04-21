@@ -208,7 +208,8 @@ fn update(app: &mut App, key_event: KeyEvent) {
                         } else if selected_index >= len {
                             app.category_summary_table_state.select(Some(len - 1));
                         } else {
-                            app.category_summary_table_state.select(Some(selected_index));
+                            app.category_summary_table_state
+                                .select(Some(selected_index));
                         }
                     }
                 }
