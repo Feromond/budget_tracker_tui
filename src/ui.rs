@@ -398,6 +398,8 @@ fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
         AppMode::CategorySummary => vec![
             Span::raw("↑↓ Nav | "),
             Span::raw("←→/[] Year | "),
+            Span::styled("Enter", Style::default().fg(Color::Magenta)),
+            Span::raw(" ▶ Expand ▼ Collapse | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
             Span::raw(" Back"),
         ],
