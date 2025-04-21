@@ -5,6 +5,31 @@ use ratatui::prelude::*;
 use ratatui::widgets::*;
 use std::collections::HashMap;
 
+// Helper to style income cell
+fn cell_income(amount: f64) -> Cell<'static> {
+    Cell::from(format!("{:.2}", amount)).style(Style::default().fg(Color::LightGreen))
+}
+
+// Helper to style expense cell
+fn cell_expense(amount: f64) -> Cell<'static> {
+    Cell::from(format!("{:.2}", amount)).style(Style::default().fg(Color::LightRed))
+}
+
+// Helper to style net cell with sign and color
+fn cell_net(net: f64) -> Cell<'static> {
+    let s = if net >= 0.0 {
+        format!("+{:.2}", net)
+    } else {
+        format!("{:.2}", net)
+    };
+    let style = if net >= 0.0 {
+        Style::default().fg(Color::LightGreen)
+    } else {
+        Style::default().fg(Color::LightRed)
+    };
+    Cell::from(s).style(style)
+}
+
 pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     let filter_bar_height = if app.mode == AppMode::Filtering { 3 } else { 0 };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
@@ -667,7 +692,7 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         .get(app.category_summary_year_index)
         .copied();
     let year_str = current_year.map_or_else(|| "N/A".to_string(), |y| y.to_string());
-    let items = app.get_visible_category_summary_items();
+    let items = &app.cached_visible_category_items;
     let rows = items.iter().map(|item| match item {
         CategorySummaryItem::Month(month, summary) => {
             let symbol = if app.expanded_category_summary_months.contains(month) {
@@ -676,51 +701,31 @@ fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 "▶"
             };
             let month_cell = format!("{} {}", symbol, month_to_short_str(*month));
-            let net = summary.income - summary.expense;
-            let net_style = if net >= 0.0 {
-                Style::default().fg(Color::LightGreen)
-            } else {
-                Style::default().fg(Color::LightRed)
-            };
-            let net_str = if net >= 0.0 {
-                format!("+{:.2}", net)
-            } else {
-                format!("{:.2}", net)
-            };
+            let inc_cell = cell_income(summary.income);
+            let exp_cell = cell_expense(summary.expense);
+            let net_cell = cell_net(summary.income - summary.expense);
             Row::new(vec![
                 Cell::from(month_cell),
                 Cell::from(""),
                 Cell::from(""),
-                Cell::from(format!("{:.2}", summary.income))
-                    .style(Style::default().fg(Color::LightGreen)),
-                Cell::from(format!("{:.2}", summary.expense))
-                    .style(Style::default().fg(Color::LightRed)),
-                Cell::from(net_str).style(net_style),
+                inc_cell,
+                exp_cell,
+                net_cell,
             ])
             .height(1)
             .bottom_margin(0)
         }
         CategorySummaryItem::Subcategory(_, category, sub, summary) => {
-            let net = summary.income - summary.expense;
-            let net_style = if net >= 0.0 {
-                Style::default().fg(Color::LightGreen)
-            } else {
-                Style::default().fg(Color::LightRed)
-            };
-            let net_str = if net >= 0.0 {
-                format!("+{:.2}", net)
-            } else {
-                format!("{:.2}", net)
-            };
+            let inc_cell = cell_income(summary.income);
+            let exp_cell = cell_expense(summary.expense);
+            let net_cell = cell_net(summary.income - summary.expense);
             Row::new(vec![
                 Cell::from(""),
                 Cell::from(category.clone()),
                 Cell::from(sub.clone()),
-                Cell::from(format!("{:.2}", summary.income))
-                    .style(Style::default().fg(Color::LightGreen)),
-                Cell::from(format!("{:.2}", summary.expense))
-                    .style(Style::default().fg(Color::LightRed)),
-                Cell::from(net_str).style(net_style),
+                inc_cell,
+                exp_cell,
+                net_cell,
             ])
             .height(1)
             .bottom_margin(0)

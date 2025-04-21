@@ -62,6 +62,8 @@ pub struct App {
     pub(crate) category_summary_year_index: usize,
     // Expansion state for hierarchical category summary
     pub(crate) expanded_category_summary_months: HashSet<u32>,
+    // Flattened list of visible items for rendering and navigation
+    pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
 }
 
 impl App {
@@ -192,6 +194,7 @@ impl App {
             category_summary_year_index: 0,
             category_summary_table_state: TableState::default(),
             expanded_category_summary_months: HashSet::new(),
+            cached_visible_category_items: Vec::new(),
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
@@ -221,7 +224,7 @@ impl App {
         let list_len = match self.mode {
             AppMode::Normal | AppMode::Filtering => self.filtered_indices.len(),
             AppMode::Summary => 12, // Always 12 months in the view
-            AppMode::CategorySummary => self.get_current_category_summary_list().len(),
+            AppMode::CategorySummary => self.cached_visible_category_items.len(),
             _ => 0,
         };
         if list_len == 0 {
@@ -242,7 +245,7 @@ impl App {
         let list_len = match self.mode {
             AppMode::Normal | AppMode::Filtering => self.filtered_indices.len(),
             AppMode::Summary => 12, // Always 12 months
-            AppMode::CategorySummary => self.get_current_category_summary_list().len(),
+            AppMode::CategorySummary => self.cached_visible_category_items.len(),
             _ => 0,
         };
         if list_len == 0 {
@@ -859,7 +862,7 @@ impl App {
         }
 
         // Reset selection based on the potentially new list for the current year/month
-        let list_len = self.get_current_category_summary_list().len();
+        let list_len = self.cached_visible_category_items.len();
         if list_len == 0 {
             self.category_summary_table_state.select(None);
         } else {
@@ -870,39 +873,17 @@ impl App {
         }
     }
 
-    pub(crate) fn get_current_category_summary_list(&self) -> Vec<(u32, String, String)> {
-        let mut list = Vec::new();
-        if let Some(year) = self
-            .category_summary_years
-            .get(self.category_summary_year_index)
-            .copied()
-        {
-            for month in 1..=12 {
-                if let Some(month_map) = self.category_summaries.get(&(year, month)) {
-                    for (category, subcategory) in month_map.keys() {
-                        list.push((month, category.clone(), subcategory.clone()));
-                    }
-                }
-            }
-            list.sort_unstable_by(|(m1, c1, s1), (m2, c2, s2)| {
-                m1.cmp(m2).then_with(|| c1.cmp(c2)).then_with(|| s1.cmp(s2))
-            });
-        }
-        list
-    }
-
     pub(crate) fn enter_category_summary_mode(&mut self) {
         self.mode = AppMode::CategorySummary;
         self.calculate_category_summaries();
+        self.cached_visible_category_items = self.get_visible_category_summary_items();
         if !self.category_summary_years.is_empty() {
             self.category_summary_year_index = self.category_summary_years.len() - 1;
         }
-        // Select first visible item safely
-        if !self.get_visible_category_summary_items().is_empty() {
-            self.category_summary_table_state.select(Some(0));
-        } else {
-            self.category_summary_table_state.select(None);
-        }
+        // Select first visible item (or none)
+        let len = self.cached_visible_category_items.len();
+        self.category_summary_table_state
+            .select(if len > 0 { Some(0) } else { None });
         self.status_message = None;
     }
 
@@ -912,7 +893,7 @@ impl App {
     }
 
     pub(crate) fn next_category_summary_item(&mut self) {
-        let list_len = self.get_visible_category_summary_items().len();
+        let list_len = self.cached_visible_category_items.len();
         if list_len == 0 {
             return;
         }
@@ -930,7 +911,7 @@ impl App {
     }
 
     pub(crate) fn previous_category_summary_item(&mut self) {
-        let list_len = self.get_visible_category_summary_items().len();
+        let list_len = self.cached_visible_category_items.len();
         if list_len == 0 {
             return;
         }
@@ -951,12 +932,11 @@ impl App {
         if !self.category_summary_years.is_empty() {
             self.category_summary_year_index =
                 (self.category_summary_year_index + 1) % self.category_summary_years.len();
-            // Select first visible item safely
-            if !self.get_visible_category_summary_items().is_empty() {
-                self.category_summary_table_state.select(Some(0));
-            } else {
-                self.category_summary_table_state.select(None);
-            }
+            // Refresh cache and select first visible row
+            self.cached_visible_category_items = self.get_visible_category_summary_items();
+            let len = self.cached_visible_category_items.len();
+            self.category_summary_table_state
+                .select(if len > 0 { Some(0) } else { None });
         }
     }
 
@@ -967,11 +947,11 @@ impl App {
             } else {
                 self.category_summary_year_index = self.category_summary_years.len() - 1;
             }
-            if !self.get_visible_category_summary_items().is_empty() {
-                self.category_summary_table_state.select(Some(0));
-            } else {
-                self.category_summary_table_state.select(None);
-            }
+            // Refresh cache and select first visible row
+            self.cached_visible_category_items = self.get_visible_category_summary_items();
+            let len = self.cached_visible_category_items.len();
+            self.category_summary_table_state
+                .select(if len > 0 { Some(0) } else { None });
         }
     }
 
