@@ -24,6 +24,12 @@ pub enum AppMode {
     Settings,
 }
 
+#[derive(Debug)]
+pub enum CategorySummaryItem {
+    Month(u32, MonthlySummary),
+    Subcategory(u32, String, String, MonthlySummary),
+}
+
 pub struct App {
     pub(crate) transactions: Vec<Transaction>,
     pub(crate) filtered_indices: Vec<usize>,
@@ -54,6 +60,8 @@ pub struct App {
     pub(crate) category_summaries: HashMap<(i32, u32), HashMap<(String, String), MonthlySummary>>,
     pub(crate) category_summary_years: Vec<i32>,
     pub(crate) category_summary_year_index: usize,
+    // Expansion state for hierarchical category summary
+    pub(crate) expanded_category_summary_months: HashSet<u32>,
 }
 
 impl App {
@@ -183,6 +191,7 @@ impl App {
             category_summary_years: Vec::new(),
             category_summary_year_index: 0,
             category_summary_table_state: TableState::default(),
+            expanded_category_summary_months: HashSet::new(),
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
@@ -888,8 +897,8 @@ impl App {
         if !self.category_summary_years.is_empty() {
             self.category_summary_year_index = self.category_summary_years.len() - 1;
         }
-        // Select first item safely
-        if !self.get_current_category_summary_list().is_empty() {
+        // Select first visible item safely
+        if !self.get_visible_category_summary_items().is_empty() {
             self.category_summary_table_state.select(Some(0));
         } else {
             self.category_summary_table_state.select(None);
@@ -903,7 +912,7 @@ impl App {
     }
 
     pub(crate) fn next_category_summary_item(&mut self) {
-        let list_len = self.get_current_category_summary_list().len();
+        let list_len = self.get_visible_category_summary_items().len();
         if list_len == 0 {
             return;
         }
@@ -921,7 +930,7 @@ impl App {
     }
 
     pub(crate) fn previous_category_summary_item(&mut self) {
-        let list_len = self.get_current_category_summary_list().len();
+        let list_len = self.get_visible_category_summary_items().len();
         if list_len == 0 {
             return;
         }
@@ -942,8 +951,8 @@ impl App {
         if !self.category_summary_years.is_empty() {
             self.category_summary_year_index =
                 (self.category_summary_year_index + 1) % self.category_summary_years.len();
-            // Select first item safely
-            if !self.get_current_category_summary_list().is_empty() {
+            // Select first visible item safely
+            if !self.get_visible_category_summary_items().is_empty() {
                 self.category_summary_table_state.select(Some(0));
             } else {
                 self.category_summary_table_state.select(None);
@@ -958,7 +967,7 @@ impl App {
             } else {
                 self.category_summary_year_index = self.category_summary_years.len() - 1;
             }
-            if !self.get_current_category_summary_list().is_empty() {
+            if !self.get_visible_category_summary_items().is_empty() {
                 self.category_summary_table_state.select(Some(0));
             } else {
                 self.category_summary_table_state.select(None);
@@ -1243,6 +1252,45 @@ impl App {
     pub(crate) fn clear_input_field(&mut self) {
         self.input_field_content.clear();
         self.input_field_cursor = 0;
+    }
+
+    // Helper to get visible hierarchical items for the category summary view
+    pub(crate) fn get_visible_category_summary_items(&self) -> Vec<CategorySummaryItem> {
+        let mut items = Vec::new();
+        if let Some(year) = self.category_summary_years.get(self.category_summary_year_index).copied() {
+            let mut months: Vec<u32> = self.category_summaries.keys()
+                .filter_map(|(y, m)| if *y == year { Some(*m) } else { None })
+                .collect();
+            months.sort_unstable();
+            months.dedup();
+            for month in months {
+                if let Some(month_map) = self.category_summaries.get(&(year, month)) {
+                    let mut month_total = MonthlySummary::default();
+                    for summary in month_map.values() {
+                        month_total.income += summary.income;
+                        month_total.expense += summary.expense;
+                    }
+                    items.push(CategorySummaryItem::Month(month, month_total));
+                    if self.expanded_category_summary_months.contains(&month) {
+                        let mut categories: Vec<String> = month_map.keys().map(|(cat, _)| cat.clone()).collect();
+                        categories.sort_unstable();
+                        categories.dedup();
+                        for category in categories {
+                            let mut subcategories: Vec<String> = month_map.keys()
+                                .filter_map(|(cat, sub)| if cat == &category && !sub.is_empty() { Some(sub.clone()) } else { None })
+                                .collect();
+                            subcategories.sort_unstable();
+                            for subcategory in subcategories {
+                                if let Some(summary) = month_map.get(&(category.clone(), subcategory.clone())) {
+                                    items.push(CategorySummaryItem::Subcategory(month, category.clone(), subcategory.clone(), *summary));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        items
     }
 }
 
