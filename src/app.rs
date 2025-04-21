@@ -24,6 +24,12 @@ pub enum AppMode {
     Settings,
 }
 
+#[derive(Debug)]
+pub enum CategorySummaryItem {
+    Month(u32, MonthlySummary),
+    Subcategory(u32, String, String, MonthlySummary),
+}
+
 pub struct App {
     pub(crate) transactions: Vec<Transaction>,
     pub(crate) filtered_indices: Vec<usize>,
@@ -54,6 +60,10 @@ pub struct App {
     pub(crate) category_summaries: HashMap<(i32, u32), HashMap<(String, String), MonthlySummary>>,
     pub(crate) category_summary_years: Vec<i32>,
     pub(crate) category_summary_year_index: usize,
+    // Expansion state for hierarchical category summary
+    pub(crate) expanded_category_summary_months: HashSet<u32>,
+    // Flattened list of visible items for rendering and navigation
+    pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
 }
 
 impl App {
@@ -183,6 +193,8 @@ impl App {
             category_summary_years: Vec::new(),
             category_summary_year_index: 0,
             category_summary_table_state: TableState::default(),
+            expanded_category_summary_months: HashSet::new(),
+            cached_visible_category_items: Vec::new(),
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
@@ -212,7 +224,7 @@ impl App {
         let list_len = match self.mode {
             AppMode::Normal | AppMode::Filtering => self.filtered_indices.len(),
             AppMode::Summary => 12, // Always 12 months in the view
-            AppMode::CategorySummary => self.get_current_category_summary_list().len(),
+            AppMode::CategorySummary => self.cached_visible_category_items.len(),
             _ => 0,
         };
         if list_len == 0 {
@@ -233,7 +245,7 @@ impl App {
         let list_len = match self.mode {
             AppMode::Normal | AppMode::Filtering => self.filtered_indices.len(),
             AppMode::Summary => 12, // Always 12 months
-            AppMode::CategorySummary => self.get_current_category_summary_list().len(),
+            AppMode::CategorySummary => self.cached_visible_category_items.len(),
             _ => 0,
         };
         if list_len == 0 {
@@ -647,6 +659,7 @@ impl App {
         }
 
         self.calculate_category_summaries();
+        self.calculate_monthly_summaries();
     }
 
     // --- Input Handling ---
@@ -744,16 +757,18 @@ impl App {
     fn calculate_monthly_summaries(&mut self) {
         self.monthly_summaries.clear();
         let mut years = Vec::new();
-        for tx in &self.transactions {
-            let year = tx.date.year();
-            let month = tx.date.month();
-            let summary = self.monthly_summaries.entry((year, month)).or_default();
-            match tx.transaction_type {
-                TransactionType::Income => summary.income += tx.amount,
-                TransactionType::Expense => summary.expense += tx.amount,
-            }
-            if !years.contains(&year) {
-                years.push(year);
+        for &idx in &self.filtered_indices {
+            if let Some(tx) = self.transactions.get(idx) {
+                let year = tx.date.year();
+                let month = tx.date.month();
+                let summary = self.monthly_summaries.entry((year, month)).or_default();
+                match tx.transaction_type {
+                    TransactionType::Income => summary.income += tx.amount,
+                    TransactionType::Expense => summary.expense += tx.amount,
+                }
+                if !years.contains(&year) {
+                    years.push(year);
+                }
             }
         }
         years.sort_unstable();
@@ -780,8 +795,6 @@ impl App {
 
     pub(crate) fn exit_summary_mode(&mut self) {
         self.mode = AppMode::Normal;
-        // Reset selection for main table if needed (depends on desired behavior)
-        // self.table_state.select(Some(0));
         self.status_message = None;
     }
 
@@ -850,7 +863,7 @@ impl App {
         }
 
         // Reset selection based on the potentially new list for the current year/month
-        let list_len = self.get_current_category_summary_list().len();
+        let list_len = self.cached_visible_category_items.len();
         if list_len == 0 {
             self.category_summary_table_state.select(None);
         } else {
@@ -861,39 +874,17 @@ impl App {
         }
     }
 
-    pub(crate) fn get_current_category_summary_list(&self) -> Vec<(u32, String, String)> {
-        let mut list = Vec::new();
-        if let Some(year) = self
-            .category_summary_years
-            .get(self.category_summary_year_index)
-            .copied()
-        {
-            for month in 1..=12 {
-                if let Some(month_map) = self.category_summaries.get(&(year, month)) {
-                    for (category, subcategory) in month_map.keys() {
-                        list.push((month, category.clone(), subcategory.clone()));
-                    }
-                }
-            }
-            list.sort_unstable_by(|(m1, c1, s1), (m2, c2, s2)| {
-                m1.cmp(m2).then_with(|| c1.cmp(c2)).then_with(|| s1.cmp(s2))
-            });
-        }
-        list
-    }
-
     pub(crate) fn enter_category_summary_mode(&mut self) {
         self.mode = AppMode::CategorySummary;
         self.calculate_category_summaries();
+        self.cached_visible_category_items = self.get_visible_category_summary_items();
         if !self.category_summary_years.is_empty() {
             self.category_summary_year_index = self.category_summary_years.len() - 1;
         }
-        // Select first item safely
-        if !self.get_current_category_summary_list().is_empty() {
-            self.category_summary_table_state.select(Some(0));
-        } else {
-            self.category_summary_table_state.select(None);
-        }
+        // Select first visible item (or none)
+        let len = self.cached_visible_category_items.len();
+        self.category_summary_table_state
+            .select(if len > 0 { Some(0) } else { None });
         self.status_message = None;
     }
 
@@ -903,7 +894,7 @@ impl App {
     }
 
     pub(crate) fn next_category_summary_item(&mut self) {
-        let list_len = self.get_current_category_summary_list().len();
+        let list_len = self.cached_visible_category_items.len();
         if list_len == 0 {
             return;
         }
@@ -921,7 +912,7 @@ impl App {
     }
 
     pub(crate) fn previous_category_summary_item(&mut self) {
-        let list_len = self.get_current_category_summary_list().len();
+        let list_len = self.cached_visible_category_items.len();
         if list_len == 0 {
             return;
         }
@@ -942,12 +933,11 @@ impl App {
         if !self.category_summary_years.is_empty() {
             self.category_summary_year_index =
                 (self.category_summary_year_index + 1) % self.category_summary_years.len();
-            // Select first item safely
-            if !self.get_current_category_summary_list().is_empty() {
-                self.category_summary_table_state.select(Some(0));
-            } else {
-                self.category_summary_table_state.select(None);
-            }
+            // Refresh cache and select first visible row
+            self.cached_visible_category_items = self.get_visible_category_summary_items();
+            let len = self.cached_visible_category_items.len();
+            self.category_summary_table_state
+                .select(if len > 0 { Some(0) } else { None });
         }
     }
 
@@ -958,11 +948,11 @@ impl App {
             } else {
                 self.category_summary_year_index = self.category_summary_years.len() - 1;
             }
-            if !self.get_current_category_summary_list().is_empty() {
-                self.category_summary_table_state.select(Some(0));
-            } else {
-                self.category_summary_table_state.select(None);
-            }
+            // Refresh cache and select first visible row
+            self.cached_visible_category_items = self.get_visible_category_summary_items();
+            let len = self.cached_visible_category_items.len();
+            self.category_summary_table_state
+                .select(if len > 0 { Some(0) } else { None });
         }
     }
 
@@ -1243,6 +1233,66 @@ impl App {
     pub(crate) fn clear_input_field(&mut self) {
         self.input_field_content.clear();
         self.input_field_cursor = 0;
+    }
+
+    // Helper to get visible hierarchical items for the category summary view
+    pub(crate) fn get_visible_category_summary_items(&self) -> Vec<CategorySummaryItem> {
+        let mut items = Vec::new();
+        if let Some(year) = self
+            .category_summary_years
+            .get(self.category_summary_year_index)
+            .copied()
+        {
+            let mut months: Vec<u32> = self
+                .category_summaries
+                .keys()
+                .filter_map(|(y, m)| if *y == year { Some(*m) } else { None })
+                .collect();
+            months.sort_unstable();
+            months.dedup();
+            for month in months {
+                if let Some(month_map) = self.category_summaries.get(&(year, month)) {
+                    let mut month_total = MonthlySummary::default();
+                    for summary in month_map.values() {
+                        month_total.income += summary.income;
+                        month_total.expense += summary.expense;
+                    }
+                    items.push(CategorySummaryItem::Month(month, month_total));
+                    if self.expanded_category_summary_months.contains(&month) {
+                        let mut categories: Vec<String> =
+                            month_map.keys().map(|(cat, _)| cat.clone()).collect();
+                        categories.sort_unstable();
+                        categories.dedup();
+                        for category in categories {
+                            let mut subcategories: Vec<String> = month_map
+                                .keys()
+                                .filter_map(|(cat, sub)| {
+                                    if cat == &category && !sub.is_empty() {
+                                        Some(sub.clone())
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect();
+                            subcategories.sort_unstable();
+                            for subcategory in subcategories {
+                                if let Some(summary) =
+                                    month_map.get(&(category.clone(), subcategory.clone()))
+                                {
+                                    items.push(CategorySummaryItem::Subcategory(
+                                        month,
+                                        category.clone(),
+                                        subcategory.clone(),
+                                        *summary,
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        items
     }
 }
 
