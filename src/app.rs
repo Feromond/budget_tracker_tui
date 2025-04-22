@@ -1361,9 +1361,7 @@ impl App {
             5 => { /* Type field: toggle only via arrows/enter */ }
             6 | 7 => {
                 // Amount fields: only digits and one decimal point
-                if c.is_ascii_digit() {
-                    field.push(c);
-                } else if c == '.' && !field.contains('.') {
+                if c.is_ascii_digit() || (c == '.' && !field.contains('.')) {
                     field.push(c);
                 }
             }
