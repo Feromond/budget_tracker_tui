@@ -1,6 +1,6 @@
 [package]
 name = "budget_tracker_tui"
-version = "0.1.3"
+version = "0.2.0"
 edition = "2021"
 authors = ["Jacob Mish <JacobPMish@gmail.com>"]
 description = "A very simple TUI budget tracker app"
