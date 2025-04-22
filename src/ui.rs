@@ -57,6 +57,13 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::Normal | AppMode::Filtering => {
             render_transaction_table(f, app, main_area);
         }
+        AppMode::AdvancedFiltering => {
+            render_advanced_filter_form(f, app, main_area);
+        }
+        AppMode::SelectingFilterCategory | AppMode::SelectingFilterSubcategory => {
+            render_advanced_filter_form(f, app, main_area);
+            render_selection_popup(f, app, main_area);
+        }
         AppMode::Adding | AppMode::Editing => {
             render_transaction_form(f, app, main_area);
         }
@@ -401,17 +408,29 @@ fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(": Cancel"),
         ],
         AppMode::Filtering => vec![
-            Span::raw("Type Filter | "),
             Span::raw("← → Cursor | "),
             Span::raw("Bksp/Del Edit | "),
+            Span::styled("Ctrl+F", Style::default().fg(Color::LightYellow)),
+            Span::raw(" Adv Filt | "),
             Span::styled("Enter/Esc", Style::default().fg(Color::LightGreen)),
             Span::raw(" Apply/Exit"),
         ],
-        AppMode::Summary => vec![
+        AppMode::AdvancedFiltering => vec![
+            Span::raw("Tab/↑↓ Nav | "),
+            Span::raw("← → Adjust | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Save | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Cancel | "),
+            Span::styled("Ctrl+R", Style::default().fg(Color::LightYellow)),
+            Span::raw(" Clear"),
+        ],
+        AppMode::SelectingFilterCategory | AppMode::SelectingFilterSubcategory => vec![
             Span::raw("↑↓ Nav | "),
-            Span::raw("←→/[] Year | "),
-            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
-            Span::raw(" Back"),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(": Confirm | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(": Cancel"),
         ],
         AppMode::SelectingCategory | AppMode::SelectingSubcategory => vec![
             Span::raw("↑↓ Nav | "),
@@ -419,6 +438,12 @@ fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(": Confirm | "),
             Span::styled("Esc", Style::default().fg(Color::LightRed)),
             Span::raw(": Cancel"),
+        ],
+        AppMode::Summary => vec![
+            Span::raw("↑↓ Nav | "),
+            Span::raw("←→/[] Year | "),
+            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Back"),
         ],
         AppMode::CategorySummary => vec![
             Span::raw("↑↓ Nav | "),
@@ -507,6 +532,90 @@ fn render_filter_input(f: &mut Frame, app: &App, area: Rect) {
         );
     f.render_widget(input, area);
     // Cursor setting is handled in the main `ui` function
+}
+
+// Renders the advanced filter form
+fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
+    let field_definitions = [
+        (
+            "Date From (YYYY-MM-DD)",
+            "(◀/▶ or +/- adjust, Digits to enter)",
+        ),
+        (
+            "Date To (YYYY-MM-DD)",
+            "(◀/▶ or +/- adjust, Digits to enter)",
+        ),
+        ("Description", ""),
+        ("Category", "(Enter to select)"),
+        ("Subcategory", "(Enter to select)"),
+        ("Type", "(◀/▶ or Enter to toggle)"),
+        ("Amount From", ""),
+        ("Amount To", ""),
+    ];
+    let widgets: Vec<_> = app
+        .advanced_filter_fields
+        .iter()
+        .zip(field_definitions.iter())
+        .enumerate()
+        .map(|(i, (text, (title, hint)))| {
+            let focused = app.current_advanced_filter_field == i;
+            let label = format!("{} {}", title, hint).trim_end().to_string();
+            let content = if i == 5 {
+                Span::styled(
+                    format!(" < {} > ", text),
+                    Style::default().fg(Color::White).bold(),
+                )
+            } else {
+                Span::raw(text.as_str())
+            };
+            Paragraph::new(content)
+                .style(Style::default().fg(Color::White))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(label)
+                        .border_style(if focused {
+                            Style::default().fg(Color::Yellow)
+                        } else {
+                            Style::default()
+                        }),
+                )
+        })
+        .collect();
+    let margin = 1;
+    let fh = 3;
+    let total = widgets.len();
+    let avail = area.height.saturating_sub(margin * 2);
+    let maxv = ((avail / fh) as usize).max(1).min(total);
+    let offset = app
+        .current_advanced_filter_field
+        .saturating_sub(maxv - 1)
+        .min(total - maxv);
+    let mut cons = vec![Constraint::Length(fh); maxv];
+    cons.push(Constraint::Min(0));
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(margin)
+        .constraints(cons)
+        .split(area);
+    for (idx, w) in widgets.iter().enumerate().skip(offset).take(maxv) {
+        f.render_widget(w.clone(), chunks[idx - offset]);
+    }
+    f.render_widget(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Advanced Filters"),
+        area,
+    );
+    if ![3, 4, 5].contains(&app.current_advanced_filter_field) {
+        let field_idx = app.current_advanced_filter_field;
+        let len = app.advanced_filter_fields[field_idx].len() as u16;
+        if field_idx >= offset && field_idx < offset + maxv {
+            let vis = field_idx - offset;
+            let ch = chunks[vis];
+            f.set_cursor_position(Position::new(ch.x + len + 1, ch.y + 1));
+        }
+    }
 }
 
 // Renders the monthly summary view (table + chart)
