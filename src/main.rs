@@ -5,7 +5,7 @@ mod model;
 mod persistence;
 mod ui;
 
-use app::App;
+use crate::app::state::App;
 use event::run_app;
 use persistence::save_transactions;
 
