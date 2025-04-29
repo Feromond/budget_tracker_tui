@@ -742,17 +742,9 @@ impl App {
         let field_content = &mut self.add_edit_fields[current_field];
 
         // Special handling for the Date field (index 0)
-        if current_field == 0 && c.is_ascii_digit() {
-            let len = field_content.len();
-
-            // Auto-insert hyphens for YYYY-MM-DD
-            if (len == 4 || len == 7) && len < 10 {
-                field_content.push('-');
-            }
-
-            // Append the digit if the total length is less than 10
-            if field_content.len() < 10 {
-                field_content.push(c);
+        if current_field == 0 {
+            if let Some(new_content) = validate_and_insert_date_char(field_content, c) {
+                *field_content = new_content;
             }
         } 
         // Special handling for the Amount field (index 2)
@@ -763,7 +755,7 @@ impl App {
             }
         }
         else {
-            // Default behavior for other fields or non-digit characters
+            // Default behavior for other fields
             field_content.push(c);
         }
     }
@@ -1397,15 +1389,9 @@ impl App {
         let field = &mut self.advanced_filter_fields[idx];
         match idx {
             0 | 1 => {
-                // Date fields: only digits, auto-hyphen
-                if c.is_ascii_digit() {
-                    let len = field.len();
-                    if (len == 4 || len == 7) && len < 10 {
-                        field.push('-');
-                    }
-                    if field.len() < 10 {
-                        field.push(c);
-                    }
+                // Date fields
+                if let Some(new_content) = validate_and_insert_date_char(field, c) {
+                    *field = new_content;
                 }
             }
             5 => { /* Type field: toggle only via arrows/enter */ }
@@ -1671,6 +1657,91 @@ impl App {
     pub(crate) fn decrement_advanced_month(&mut self) {
         self.adjust_advanced_date(-1, DateUnit::Month);
     }
+}
+
+// Helper function for date input validation
+fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
+    if !c.is_ascii_digit() {
+        return None;
+    }
+    
+    let len = field.len();
+    
+    if len >= 10 {
+        return None;
+    }
+    
+    let mut result = field.to_string();
+    
+    // Validate month digits as they're entered
+    if len == 5 {
+        let month_digit = c.to_digit(10).unwrap_or(0);
+        if month_digit > 1 { // First digit of month can only be 0 or 1
+            // Allow direct entry of single-digit months
+            result.push(c);
+            result.push('-');
+            return Some(result);
+        }
+    } else if len == 6 {
+        let first_digit = field.chars().nth(5)
+            .and_then(|ch| ch.to_digit(10))
+            .unwrap_or(0);
+        let month = first_digit * 10 + c.to_digit(10).unwrap_or(0);
+        
+        if month == 0 || month > 12 {
+            return None;
+        }
+    }
+    
+    // Validate day digits
+    if len == 8 {
+        let day_digit = c.to_digit(10).unwrap_or(0);
+        if day_digit > 3 { // First digit of day can only be 0, 1, 2, or 3
+            return None;
+        }
+    } else if len == 9 {
+        if let (Ok(year), Ok(month)) = (
+            field[0..4].parse::<i32>(),
+            field[5..7].parse::<u32>()
+        ) {
+            let first_digit = field.chars().nth(8)
+                .and_then(|ch| ch.to_digit(10))
+                .unwrap_or(0);
+            let day = first_digit * 10 + c.to_digit(10).unwrap_or(0);
+            
+            let last_day = match month {
+                2 => if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+                    29 // Leap year February
+                } else {
+                    28 // Regular February
+                },
+                4 | 6 | 9 | 11 => 30, // 30-day months
+                _ => 31, // 31-day months
+            };
+            
+            if day == 0 || day > last_day {
+                return None;
+            }
+        }
+    }
+    
+    // Add the digit
+    result.push(c);
+    
+    // Auto-insert hyphens
+    if result.len() == 4 {
+        // Validate year
+        if let Ok(year) = result.parse::<i32>() {
+            if year < 1900 || year > 2100 {
+                return None; // Reject invalid year
+            }
+        }
+        result.push('-');
+    } else if result.len() == 7 {
+        result.push('-');
+    }
+    
+    Some(result)
 }
 
 fn sort_transactions_impl(
