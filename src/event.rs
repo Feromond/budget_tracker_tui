@@ -1,4 +1,4 @@
-use crate::app::{App, AppMode, CategorySummaryItem};
+use crate::app::state::{App, AppMode, CategorySummaryItem};
 use crate::model::SortColumn;
 use crate::ui::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};

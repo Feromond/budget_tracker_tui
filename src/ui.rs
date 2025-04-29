@@ -1,4 +1,4 @@
-use crate::app::{App, AppMode, CategorySummaryItem};
+use crate::app::state::{App, AppMode, CategorySummaryItem};
 use crate::model::{MonthlySummary, SortColumn, SortOrder, TransactionType, DATE_FORMAT};
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Position, Rect};
 use ratatui::prelude::*;
