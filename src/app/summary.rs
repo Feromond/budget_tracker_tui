@@ -1,6 +1,8 @@
 use super::state::App;
 use crate::app::state::{AppMode, CategorySummaryItem};
 use crate::model::MonthlySummary;
+use chrono;
+use chrono::Datelike;
 
 impl App {
     // --- Summary Logic ---
@@ -9,7 +11,12 @@ impl App {
         self.mode = AppMode::Summary;
         self.calculate_monthly_summaries();
         if !self.summary_years.is_empty() {
-            self.selected_summary_year_index = self.summary_years.len() - 1;
+            let current_year = chrono::Local::now().year();
+            if let Some(idx) = self.summary_years.iter().position(|&y| y == current_year) {
+                self.selected_summary_year_index = idx;
+            } else {
+                self.selected_summary_year_index = self.summary_years.len() - 1;
+            }
         }
         self.table_state.select(Some(0));
         self.status_message = None;
@@ -40,10 +47,15 @@ impl App {
     pub(crate) fn enter_category_summary_mode(&mut self) {
         self.mode = AppMode::CategorySummary;
         self.calculate_category_summaries();
-        self.cached_visible_category_items = self.get_visible_category_summary_items();
         if !self.category_summary_years.is_empty() {
-            self.category_summary_year_index = self.category_summary_years.len() - 1;
+            let current_year = chrono::Local::now().year();
+            if let Some(idx) = self.category_summary_years.iter().position(|&y| y == current_year) {
+                self.category_summary_year_index = idx;
+            } else {
+                self.category_summary_year_index = self.category_summary_years.len() - 1;
+            }
         }
+        self.cached_visible_category_items = self.get_visible_category_summary_items();
         let len = self.cached_visible_category_items.len();
         self.category_summary_table_state
             .select(if len > 0 { Some(0) } else { None });
