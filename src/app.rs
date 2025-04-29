@@ -9,6 +9,11 @@ use std::fs::create_dir_all;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 
+pub(crate) enum DateUnit {
+    Day,
+    Month,
+}
+
 // Define application modes
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum AppMode {
@@ -294,18 +299,47 @@ impl App {
     }
 
     // --- Date Adjustment Logic ---
-    fn adjust_date_field(&mut self, days: i64) {
+    fn adjust_date(&mut self, amount: i64, unit: DateUnit) {
         if self.current_add_edit_field == 0 {
-            if let Ok(mut current_date) =
+            if let Ok(current_date) =
                 NaiveDate::parse_from_str(&self.add_edit_fields[0], DATE_FORMAT)
             {
-                // Add or subtract days
-                current_date = if days > 0 {
-                    current_date + Duration::days(days)
-                } else {
-                    current_date - Duration::days(-days)
+                let new_date = match unit {
+                    DateUnit::Day => {
+                        if amount > 0 {
+                            current_date + Duration::days(amount)
+                        } else {
+                            current_date - Duration::days(-amount)
+                        }
+                    },  
+                    DateUnit::Month => {
+                        let day = current_date.day();
+                        let month = current_date.month() as i32;
+                        let year = current_date.year();
+                        
+                        let new_month = month + amount as i32;
+                        let mut target_year = year + (new_month - 1) / 12;
+                        let mut target_month = ((new_month - 1) % 12) + 1;
+                        
+                        if target_month <= 0 {
+                            target_month += 12;
+                            target_year -= 1;
+                        }
+                        
+                        NaiveDate::from_ymd_opt(target_year, target_month as u32, day)
+                            .unwrap_or_else(|| {
+                                // Get the last day of the target month
+                                let last_day = if target_month == 12 {
+                                    NaiveDate::from_ymd_opt(target_year + 1, 1, 1).unwrap()
+                                } else {
+                                    NaiveDate::from_ymd_opt(target_year, target_month as u32 + 1, 1).unwrap()
+                                };
+                                last_day - Duration::days(1)
+                            })
+                    }
                 };
-                self.add_edit_fields[0] = current_date.format(DATE_FORMAT).to_string();
+                
+                self.add_edit_fields[0] = new_date.format(DATE_FORMAT).to_string();
                 self.status_message = None; // Clear status on successful adjustment
             } else {
                 self.status_message = Some(format!(
@@ -317,11 +351,19 @@ impl App {
     }
 
     pub(crate) fn increment_date(&mut self) {
-        self.adjust_date_field(1);
+        self.adjust_date(1, DateUnit::Day);
     }
 
     pub(crate) fn decrement_date(&mut self) {
-        self.adjust_date_field(-1);
+        self.adjust_date(-1, DateUnit::Day);
+    }
+
+    pub(crate) fn increment_month(&mut self) {
+        self.adjust_date(1, DateUnit::Month);
+    }
+
+    pub(crate) fn decrement_month(&mut self) {
+        self.adjust_date(-1, DateUnit::Month);
     }
 
     // --- Validation Helper ---
@@ -712,7 +754,15 @@ impl App {
             if field_content.len() < 10 {
                 field_content.push(c);
             }
-        } else {
+        } 
+        // Special handling for the Amount field (index 2)
+        else if current_field == 2 {
+            // Only allow digits and one decimal point
+            if c.is_ascii_digit() || (c == '.' && !field_content.contains('.')) {
+                field_content.push(c);
+            }
+        }
+        else {
             // Default behavior for other fields or non-digit characters
             field_content.push(c);
         }
@@ -1555,28 +1605,71 @@ impl App {
         self.calculate_monthly_summaries();
     }
 
-    pub(crate) fn increment_advanced_date(&mut self) {
+    pub(crate) fn adjust_advanced_date(&mut self, amount: i64, unit: DateUnit) {
         let idx = self.current_advanced_filter_field;
         if idx == 0 || idx == 1 {
-            if let Ok(date) =
+            if let Ok(current_date) =
                 NaiveDate::parse_from_str(&self.advanced_filter_fields[idx], DATE_FORMAT)
             {
-                let new_date = date + Duration::days(1);
+                let new_date = match unit {
+                    DateUnit::Day => {
+                        // Simple Duration-based day adjustment
+                        if amount > 0 {
+                            current_date + Duration::days(amount)
+                        } else {
+                            current_date - Duration::days(-amount)
+                        }
+                    },
+                    DateUnit::Month => {
+                        // Use Chrono's date arithmetic methods
+                        let mut year = current_date.year();
+                        let mut month = current_date.month() as i32 + amount as i32;
+                        
+                        // Adjust year if month goes out of range (1-12)
+                        while month > 12 {
+                            month -= 12;
+                            year += 1;
+                        }
+                        while month < 1 {
+                            month += 12;
+                            year -= 1;
+                        }
+                        
+                        let day = current_date.day();
+                        
+                        // Try to create date with same day, or last day of month if that would be invalid
+                        NaiveDate::from_ymd_opt(year, month as u32, day)
+                            .unwrap_or_else(|| {
+                                // If creating with the same day fails, use the last day of the month
+                                let last_day = if month == 12 {
+                                    NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
+                                } else {
+                                    NaiveDate::from_ymd_opt(year, month as u32 + 1, 1).unwrap()
+                                };
+                                last_day - Duration::days(1)
+                            })
+                    }
+                };
+                
                 self.advanced_filter_fields[idx] = new_date.format(DATE_FORMAT).to_string();
             }
         }
     }
 
+    pub(crate) fn increment_advanced_date(&mut self) {
+        self.adjust_advanced_date(1, DateUnit::Day);
+    }
+
     pub(crate) fn decrement_advanced_date(&mut self) {
-        let idx = self.current_advanced_filter_field;
-        if idx == 0 || idx == 1 {
-            if let Ok(date) =
-                NaiveDate::parse_from_str(&self.advanced_filter_fields[idx], DATE_FORMAT)
-            {
-                let new_date = date - Duration::days(1);
-                self.advanced_filter_fields[idx] = new_date.format(DATE_FORMAT).to_string();
-            }
-        }
+        self.adjust_advanced_date(-1, DateUnit::Day);
+    }
+
+    pub(crate) fn increment_advanced_month(&mut self) {
+        self.adjust_advanced_date(1, DateUnit::Month);
+    }
+
+    pub(crate) fn decrement_advanced_month(&mut self) {
+        self.adjust_advanced_date(-1, DateUnit::Month);
     }
 }
 
