@@ -92,9 +92,9 @@ fn update(app: &mut App, key_event: KeyEvent) {
             match (key_event.modifiers, key_code) {
                 (KeyModifiers::NONE, KeyCode::Esc) => {
                     if app.mode == AppMode::Adding {
-                        app.exit_adding();
+                        app.exit_adding(true);
                     } else {
-                        app.exit_editing();
+                        app.exit_editing(true);
                     }
                 }
                 (KeyModifiers::NONE, KeyCode::Tab) => {

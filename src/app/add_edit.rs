@@ -17,12 +17,14 @@ impl App {
         self.add_edit_fields[3] = "Expense".to_string();
         self.status_message = None;
     }
-    pub(crate) fn exit_adding(&mut self) {
-        // TODO: Add status message for exiting without saving
+    pub(crate) fn exit_adding(&mut self, cancelled: bool) {
         self.mode = crate::app::state::AppMode::Normal;
         self.editing_index = None;
         self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
+        if cancelled {
+            self.status_message = Some("Add transaction cancelled.".to_string());
+        }
     }
     pub(crate) fn add_transaction(&mut self) {
         // Parse and validate all fields for a new transaction.
@@ -58,7 +60,7 @@ impl App {
                 match save_transactions(&self.transactions, &self.data_file_path) {
                     Ok(_) => {
                         self.status_message = Some("Transaction added successfully.".to_string());
-                        self.exit_adding();
+                        self.exit_adding(false);
                     }
                     Err(e) => {
                         self.status_message = Some(format!("Error saving transaction: {}", e));
@@ -114,12 +116,16 @@ impl App {
             self.status_message = Some("Select a transaction to edit first".to_string());
         }
     }
-    pub(crate) fn exit_editing(&mut self) {
+    pub(crate) fn exit_editing(&mut self, cancelled: bool) {
         self.mode = crate::app::state::AppMode::Normal;
         self.editing_index = None;
         self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
-        self.status_message = None;
+        if cancelled {
+            self.status_message = Some("Edit transaction cancelled.".to_string());
+        } else {
+            self.status_message = None;
+        }
     }
     pub(crate) fn update_transaction(&mut self) {
         if let Some(index) = self.editing_index {
@@ -151,20 +157,18 @@ impl App {
                         };
                         match save_transactions(&self.transactions, &self.data_file_path) {
                             Ok(_) => {
-                                self.status_message =
-                                    Some("Transaction updated successfully.".to_string());
+                                self.status_message = Some("Transaction updated successfully.".to_string());
                                 self.apply_filter();
                                 self.calculate_monthly_summaries();
-                                self.exit_editing();
+                                self.exit_editing(false);
                             }
                             Err(e) => {
-                                self.status_message =
-                                    Some(format!("Error saving updated transaction: {}", e));
+                                self.status_message = Some(format!("Error saving updated transaction: {}", e));
                             }
                         }
                     } else {
                         self.status_message = Some("Error: Invalid index during edit".to_string());
-                        self.exit_editing();
+                        self.exit_editing(true);
                     }
                 }
                 (Err(_), _, _) => {
@@ -174,8 +178,7 @@ impl App {
                     ));
                 }
                 (_, _, Err(_)) => {
-                    self.status_message =
-                        Some("Error: Invalid Amount (Must be a number)".to_string());
+                    self.status_message = Some("Error: Invalid Amount (Must be a number)".to_string());
                 }
                 (_, "", _) => {
                     self.status_message = Some("Error: Description cannot be empty".to_string());
@@ -189,7 +192,7 @@ impl App {
             }
         } else {
             self.status_message = Some("Error: No transaction selected for editing".to_string());
-            self.exit_editing();
+            self.exit_editing(true);
         }
     }
     // --- Toggle Transaction Type ---
