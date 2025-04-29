@@ -17,11 +17,12 @@ impl App {
         self.add_edit_fields[3] = "Expense".to_string();
         self.status_message = None;
     }
-    pub(crate) fn exit_adding(&mut self) { // TODO: Add status message for exiting without saving
+    pub(crate) fn exit_adding(&mut self) {
+        // TODO: Add status message for exiting without saving
         self.mode = crate::app::state::AppMode::Normal;
         self.editing_index = None;
         self.current_add_edit_field = 0;
-        self.add_edit_fields = Default::default(); 
+        self.add_edit_fields = Default::default();
     }
     pub(crate) fn add_transaction(&mut self) {
         // Parse and validate all fields for a new transaction.
