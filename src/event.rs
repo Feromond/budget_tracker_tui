@@ -34,8 +34,8 @@ pub(crate) fn run_app<B: Backend>(
                                 // Allow Shift+Char in Adding and Editing modes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Arrow in Adding, Editing, and AdvancedFiltering modes for month changes
-                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering) 
-                                    && key.modifiers == KeyModifiers::SHIFT 
+                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering)
+                                    && key.modifiers == KeyModifiers::SHIFT
                                     && matches!(key.code, KeyCode::Left | KeyCode::Right))
                                 // Allow Ctrl+F/R in simple Filtering mode
                                 || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r')))
@@ -131,14 +131,16 @@ fn update(app: &mut App, key_event: KeyEvent) {
                     3 => app.toggle_transaction_type(),
                     _ => {}
                 },
-                (KeyModifiers::SHIFT, KeyCode::Left) => match app.current_add_edit_field {
-                    0 => app.decrement_month(), 
-                    _ => {}
-                },
-                (KeyModifiers::SHIFT, KeyCode::Right) => match app.current_add_edit_field {
-                    0 => app.increment_month(),
-                    _ => {}
-                },
+                (KeyModifiers::SHIFT, KeyCode::Left) => {
+                    if app.current_add_edit_field == 0 {
+                        app.decrement_month()
+                    }
+                }
+                (KeyModifiers::SHIFT, KeyCode::Right) => {
+                    if app.current_add_edit_field == 0 {
+                        app.increment_month()
+                    }
+                }
                 (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_add_edit_field {
                     0 if c == '+' || c == '=' => app.increment_date(),
                     0 if c == '-' => app.decrement_date(),
@@ -152,7 +154,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
                     if app.current_add_edit_field == 1 {
                         app.insert_char_add_edit(c);
                     }
-                },
+                }
                 (KeyModifiers::NONE, KeyCode::Backspace) => {
                     if ![3, 4, 5].contains(&app.current_add_edit_field) {
                         app.delete_char_add_edit();
@@ -178,11 +180,11 @@ fn update(app: &mut App, key_event: KeyEvent) {
             (KeyModifiers::NONE, KeyCode::Char(c)) => {
                 app.insert_char_at_cursor(c);
                 app.apply_filter();
-            },
+            }
             (KeyModifiers::SHIFT, KeyCode::Char(c)) => {
                 app.insert_char_at_cursor(c);
                 app.apply_filter();
-            },
+            }
             (KeyModifiers::NONE, KeyCode::Backspace) => {
                 app.delete_char_before_cursor();
                 app.apply_filter();
@@ -223,7 +225,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 _ => {}
             },
             (KeyModifiers::SHIFT, KeyCode::Right) => match app.current_advanced_filter_field {
-                0 | 1 => app.increment_advanced_month(), 
+                0 | 1 => app.increment_advanced_month(),
                 _ => {}
             },
             (KeyModifiers::NONE, KeyCode::Char(c)) => app.insert_char_advanced_filter(c),

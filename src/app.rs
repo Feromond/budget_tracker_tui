@@ -311,34 +311,35 @@ impl App {
                         } else {
                             current_date - Duration::days(-amount)
                         }
-                    },  
+                    }
                     DateUnit::Month => {
                         let day = current_date.day();
                         let month = current_date.month() as i32;
                         let year = current_date.year();
-                        
+
                         let new_month = month + amount as i32;
                         let mut target_year = year + (new_month - 1) / 12;
                         let mut target_month = ((new_month - 1) % 12) + 1;
-                        
+
                         if target_month <= 0 {
                             target_month += 12;
                             target_year -= 1;
                         }
-                        
+
                         NaiveDate::from_ymd_opt(target_year, target_month as u32, day)
                             .unwrap_or_else(|| {
                                 // Get the last day of the target month
                                 let last_day = if target_month == 12 {
                                     NaiveDate::from_ymd_opt(target_year + 1, 1, 1).unwrap()
                                 } else {
-                                    NaiveDate::from_ymd_opt(target_year, target_month as u32 + 1, 1).unwrap()
+                                    NaiveDate::from_ymd_opt(target_year, target_month as u32 + 1, 1)
+                                        .unwrap()
                                 };
                                 last_day - Duration::days(1)
                             })
                     }
                 };
-                
+
                 self.add_edit_fields[0] = new_date.format(DATE_FORMAT).to_string();
                 self.status_message = None; // Clear status on successful adjustment
             } else {
@@ -746,15 +747,14 @@ impl App {
             if let Some(new_content) = validate_and_insert_date_char(field_content, c) {
                 *field_content = new_content;
             }
-        } 
+        }
         // Special handling for the Amount field (index 2)
         else if current_field == 2 {
             // Only allow digits and one decimal point
             if c.is_ascii_digit() || (c == '.' && !field_content.contains('.')) {
                 field_content.push(c);
             }
-        }
-        else {
+        } else {
             // Default behavior for other fields
             field_content.push(c);
         }
@@ -1605,12 +1605,12 @@ impl App {
                         } else {
                             current_date - Duration::days(-amount)
                         }
-                    },
+                    }
                     DateUnit::Month => {
                         // Use Chrono's date arithmetic methods
                         let mut year = current_date.year();
                         let mut month = current_date.month() as i32 + amount as i32;
-                        
+
                         // Adjust year if month goes out of range (1-12)
                         while month > 12 {
                             month -= 12;
@@ -1620,23 +1620,22 @@ impl App {
                             month += 12;
                             year -= 1;
                         }
-                        
+
                         let day = current_date.day();
-                        
+
                         // Try to create date with same day, or last day of month if that would be invalid
-                        NaiveDate::from_ymd_opt(year, month as u32, day)
-                            .unwrap_or_else(|| {
-                                // If creating with the same day fails, use the last day of the month
-                                let last_day = if month == 12 {
-                                    NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
-                                } else {
-                                    NaiveDate::from_ymd_opt(year, month as u32 + 1, 1).unwrap()
-                                };
-                                last_day - Duration::days(1)
-                            })
+                        NaiveDate::from_ymd_opt(year, month as u32, day).unwrap_or_else(|| {
+                            // If creating with the same day fails, use the last day of the month
+                            let last_day = if month == 12 {
+                                NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
+                            } else {
+                                NaiveDate::from_ymd_opt(year, month as u32 + 1, 1).unwrap()
+                            };
+                            last_day - Duration::days(1)
+                        })
                     }
                 };
-                
+
                 self.advanced_filter_fields[idx] = new_date.format(DATE_FORMAT).to_string();
             }
         }
@@ -1664,75 +1663,80 @@ fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
     if !c.is_ascii_digit() {
         return None;
     }
-    
+
     let len = field.len();
-    
+
     if len >= 10 {
         return None;
     }
-    
+
     let mut result = field.to_string();
-    
+
     // Validate month digits as they're entered
     if len == 5 {
         let month_digit = c.to_digit(10).unwrap_or(0);
-        if month_digit > 1 { // First digit of month can only be 0 or 1
+        if month_digit > 1 {
+            // First digit of month can only be 0 or 1
             // Allow direct entry of single-digit months
             result.push(c);
             result.push('-');
             return Some(result);
         }
     } else if len == 6 {
-        let first_digit = field.chars().nth(5)
+        let first_digit = field
+            .chars()
+            .nth(5)
             .and_then(|ch| ch.to_digit(10))
             .unwrap_or(0);
         let month = first_digit * 10 + c.to_digit(10).unwrap_or(0);
-        
+
         if month == 0 || month > 12 {
             return None;
         }
     }
-    
+
     // Validate day digits
     if len == 8 {
         let day_digit = c.to_digit(10).unwrap_or(0);
-        if day_digit > 3 { // First digit of day can only be 0, 1, 2, or 3
+        if day_digit > 3 {
+            // First digit of day can only be 0, 1, 2, or 3
             return None;
         }
     } else if len == 9 {
-        if let (Ok(year), Ok(month)) = (
-            field[0..4].parse::<i32>(),
-            field[5..7].parse::<u32>()
-        ) {
-            let first_digit = field.chars().nth(8)
+        if let (Ok(year), Ok(month)) = (field[0..4].parse::<i32>(), field[5..7].parse::<u32>()) {
+            let first_digit = field
+                .chars()
+                .nth(8)
                 .and_then(|ch| ch.to_digit(10))
                 .unwrap_or(0);
             let day = first_digit * 10 + c.to_digit(10).unwrap_or(0);
-            
+
             let last_day = match month {
-                2 => if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
-                    29 // Leap year February
-                } else {
-                    28 // Regular February
-                },
+                2 => {
+                    if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+                        29 // Leap year February
+                    } else {
+                        28 // Regular February
+                    }
+                }
                 4 | 6 | 9 | 11 => 30, // 30-day months
-                _ => 31, // 31-day months
+                _ => 31,              // 31-day months
             };
-            
+
             if day == 0 || day > last_day {
                 return None;
             }
         }
     }
-    
+
     // Add the digit
     result.push(c);
-    
+
     // Auto-insert hyphens
     if result.len() == 4 {
         // Validate year
         if let Ok(year) = result.parse::<i32>() {
-            if year < 1900 || year > 2100 {
+            if !(1900..=2100).contains(&year) {
                 return None; // Reject invalid year
             }
         }
@@ -1740,7 +1744,7 @@ fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
     } else if result.len() == 7 {
         result.push('-');
     }
-    
+
     Some(result)
 }
 
