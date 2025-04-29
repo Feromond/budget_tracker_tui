@@ -1,7 +1,7 @@
 use crate::app::state::App;
+use crate::ui::helpers::centered_rect;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use crate::ui::helpers::centered_rect;
 
 pub fn render_confirmation_dialog(f: &mut Frame, message: &str, area: Rect) {
     let dialog_area = centered_rect(60, 20, area);
@@ -104,4 +104,4 @@ pub fn render_settings_popup(f: &mut Frame, app: &App, area: Rect) {
         input_chunk.x + visible_cursor_x + 1, // Add 1 for left border
         input_chunk.y + 1,                    // Add 1 for top border
     ));
-} 
+}

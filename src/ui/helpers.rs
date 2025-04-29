@@ -36,4 +36,4 @@ pub fn month_to_short_str(month: u32) -> &'static str {
         12 => "Dec",
         _ => "?",
     }
-} 
+}

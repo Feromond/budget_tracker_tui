@@ -81,4 +81,4 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
     .highlight_symbol(" > ");
 
     f.render_stateful_widget(table, area, &mut app.table_state);
-} 
+}

@@ -95,4 +95,4 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
             f.set_cursor_position(Position::new(ch.x + len + 1, ch.y + 1));
         }
     }
-} 
+}

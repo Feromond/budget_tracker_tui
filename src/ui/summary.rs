@@ -1,7 +1,7 @@
 use crate::app::state::App;
+use crate::ui::helpers::month_to_short_str;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use crate::ui::helpers::month_to_short_str;
 
 fn cell_income(amount: f64) -> Cell<'static> {
     Cell::from(format!("{:.2}", amount)).style(Style::default().fg(Color::LightGreen))
@@ -183,4 +183,4 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
     );
 
     f.render_widget(summary_paragraph, area);
-} 
+}

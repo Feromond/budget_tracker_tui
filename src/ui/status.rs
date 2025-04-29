@@ -12,4 +12,4 @@ pub fn render_status_bar(f: &mut Frame, message: &str, area: Rect) {
         .block(Block::default().borders(Borders::ALL).title("Status"))
         .alignment(Alignment::Center);
     f.render_widget(status_text, area);
-} 
+}

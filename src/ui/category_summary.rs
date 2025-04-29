@@ -1,9 +1,9 @@
 use crate::app::state::{App, CategorySummaryItem};
+use crate::model::MonthlySummary;
+use crate::ui::helpers::month_to_short_str;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use crate::ui::helpers::month_to_short_str;
 use std::collections::HashMap;
-use crate::model::MonthlySummary;
 
 fn cell_income(amount: f64) -> Cell<'static> {
     Cell::from(format!("{:.2}", amount)).style(Style::default().fg(Color::LightGreen))
@@ -205,4 +205,4 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         .max(max_abs_chart_value);
 
     f.render_widget(bar_chart, chart_area);
-} 
+}

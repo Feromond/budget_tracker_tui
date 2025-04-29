@@ -102,4 +102,4 @@ pub fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
             }
         }
     }
-} 
+}

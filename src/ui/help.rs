@@ -126,4 +126,4 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
         .alignment(Alignment::Center)
         .block(Block::default().borders(Borders::ALL).title("Help"));
     f.render_widget(help_paragraph, area);
-} 
+}

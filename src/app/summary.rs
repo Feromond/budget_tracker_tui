@@ -49,7 +49,11 @@ impl App {
         self.calculate_category_summaries();
         if !self.category_summary_years.is_empty() {
             let current_year = chrono::Local::now().year();
-            if let Some(idx) = self.category_summary_years.iter().position(|&y| y == current_year) {
+            if let Some(idx) = self
+                .category_summary_years
+                .iter()
+                .position(|&y| y == current_year)
+            {
                 self.category_summary_year_index = idx;
             } else {
                 self.category_summary_year_index = self.category_summary_years.len() - 1;

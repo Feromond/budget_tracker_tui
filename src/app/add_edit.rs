@@ -157,13 +157,15 @@ impl App {
                         };
                         match save_transactions(&self.transactions, &self.data_file_path) {
                             Ok(_) => {
-                                self.status_message = Some("Transaction updated successfully.".to_string());
+                                self.status_message =
+                                    Some("Transaction updated successfully.".to_string());
                                 self.apply_filter();
                                 self.calculate_monthly_summaries();
                                 self.exit_editing(false);
                             }
                             Err(e) => {
-                                self.status_message = Some(format!("Error saving updated transaction: {}", e));
+                                self.status_message =
+                                    Some(format!("Error saving updated transaction: {}", e));
                             }
                         }
                     } else {
@@ -178,7 +180,8 @@ impl App {
                     ));
                 }
                 (_, _, Err(_)) => {
-                    self.status_message = Some("Error: Invalid Amount (Must be a number)".to_string());
+                    self.status_message =
+                        Some("Error: Invalid Amount (Must be a number)".to_string());
                 }
                 (_, "", _) => {
                     self.status_message = Some("Error: Description cannot be empty".to_string());

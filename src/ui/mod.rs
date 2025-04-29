@@ -1,12 +1,12 @@
-pub mod transaction_table;
-pub mod transaction_form;
-pub mod filter;
-pub mod summary;
 pub mod category_summary;
-pub mod help;
-pub mod status;
 pub mod dialog;
+pub mod filter;
+pub mod help;
 pub mod helpers;
+pub mod status;
+pub mod summary;
+pub mod transaction_form;
+pub mod transaction_table;
 
 use crate::app::state::{App, AppMode};
 use ratatui::Frame;
@@ -89,4 +89,4 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             filter_area.y + 1,
         ));
     }
-} 
+}
