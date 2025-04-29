@@ -9,6 +9,11 @@ use std::fs::create_dir_all;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 
+pub(crate) enum DateUnit {
+    Day,
+    Month,
+}
+
 // Define application modes
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum AppMode {
@@ -294,18 +299,48 @@ impl App {
     }
 
     // --- Date Adjustment Logic ---
-    fn adjust_date_field(&mut self, days: i64) {
+    fn adjust_date(&mut self, amount: i64, unit: DateUnit) {
         if self.current_add_edit_field == 0 {
-            if let Ok(mut current_date) =
+            if let Ok(current_date) =
                 NaiveDate::parse_from_str(&self.add_edit_fields[0], DATE_FORMAT)
             {
-                // Add or subtract days
-                current_date = if days > 0 {
-                    current_date + Duration::days(days)
-                } else {
-                    current_date - Duration::days(-days)
+                let new_date = match unit {
+                    DateUnit::Day => {
+                        if amount > 0 {
+                            current_date + Duration::days(amount)
+                        } else {
+                            current_date - Duration::days(-amount)
+                        }
+                    }
+                    DateUnit::Month => {
+                        let day = current_date.day();
+                        let month = current_date.month() as i32;
+                        let year = current_date.year();
+
+                        let new_month = month + amount as i32;
+                        let mut target_year = year + (new_month - 1) / 12;
+                        let mut target_month = ((new_month - 1) % 12) + 1;
+
+                        if target_month <= 0 {
+                            target_month += 12;
+                            target_year -= 1;
+                        }
+
+                        NaiveDate::from_ymd_opt(target_year, target_month as u32, day)
+                            .unwrap_or_else(|| {
+                                // Get the last day of the target month
+                                let last_day = if target_month == 12 {
+                                    NaiveDate::from_ymd_opt(target_year + 1, 1, 1).unwrap()
+                                } else {
+                                    NaiveDate::from_ymd_opt(target_year, target_month as u32 + 1, 1)
+                                        .unwrap()
+                                };
+                                last_day - Duration::days(1)
+                            })
+                    }
                 };
-                self.add_edit_fields[0] = current_date.format(DATE_FORMAT).to_string();
+
+                self.add_edit_fields[0] = new_date.format(DATE_FORMAT).to_string();
                 self.status_message = None; // Clear status on successful adjustment
             } else {
                 self.status_message = Some(format!(
@@ -317,11 +352,19 @@ impl App {
     }
 
     pub(crate) fn increment_date(&mut self) {
-        self.adjust_date_field(1);
+        self.adjust_date(1, DateUnit::Day);
     }
 
     pub(crate) fn decrement_date(&mut self) {
-        self.adjust_date_field(-1);
+        self.adjust_date(-1, DateUnit::Day);
+    }
+
+    pub(crate) fn increment_month(&mut self) {
+        self.adjust_date(1, DateUnit::Month);
+    }
+
+    pub(crate) fn decrement_month(&mut self) {
+        self.adjust_date(-1, DateUnit::Month);
     }
 
     // --- Validation Helper ---
@@ -700,20 +743,19 @@ impl App {
         let field_content = &mut self.add_edit_fields[current_field];
 
         // Special handling for the Date field (index 0)
-        if current_field == 0 && c.is_ascii_digit() {
-            let len = field_content.len();
-
-            // Auto-insert hyphens for YYYY-MM-DD
-            if (len == 4 || len == 7) && len < 10 {
-                field_content.push('-');
+        if current_field == 0 {
+            if let Some(new_content) = validate_and_insert_date_char(field_content, c) {
+                *field_content = new_content;
             }
-
-            // Append the digit if the total length is less than 10
-            if field_content.len() < 10 {
+        }
+        // Special handling for the Amount field (index 2)
+        else if current_field == 2 {
+            // Only allow digits and one decimal point
+            if c.is_ascii_digit() || (c == '.' && !field_content.contains('.')) {
                 field_content.push(c);
             }
         } else {
-            // Default behavior for other fields or non-digit characters
+            // Default behavior for other fields
             field_content.push(c);
         }
     }
@@ -1347,15 +1389,9 @@ impl App {
         let field = &mut self.advanced_filter_fields[idx];
         match idx {
             0 | 1 => {
-                // Date fields: only digits, auto-hyphen
-                if c.is_ascii_digit() {
-                    let len = field.len();
-                    if (len == 4 || len == 7) && len < 10 {
-                        field.push('-');
-                    }
-                    if field.len() < 10 {
-                        field.push(c);
-                    }
+                // Date fields
+                if let Some(new_content) = validate_and_insert_date_char(field, c) {
+                    *field = new_content;
                 }
             }
             5 => { /* Type field: toggle only via arrows/enter */ }
@@ -1555,29 +1591,161 @@ impl App {
         self.calculate_monthly_summaries();
     }
 
-    pub(crate) fn increment_advanced_date(&mut self) {
+    pub(crate) fn adjust_advanced_date(&mut self, amount: i64, unit: DateUnit) {
         let idx = self.current_advanced_filter_field;
         if idx == 0 || idx == 1 {
-            if let Ok(date) =
+            if let Ok(current_date) =
                 NaiveDate::parse_from_str(&self.advanced_filter_fields[idx], DATE_FORMAT)
             {
-                let new_date = date + Duration::days(1);
+                let new_date = match unit {
+                    DateUnit::Day => {
+                        // Simple Duration-based day adjustment
+                        if amount > 0 {
+                            current_date + Duration::days(amount)
+                        } else {
+                            current_date - Duration::days(-amount)
+                        }
+                    }
+                    DateUnit::Month => {
+                        // Use Chrono's date arithmetic methods
+                        let mut year = current_date.year();
+                        let mut month = current_date.month() as i32 + amount as i32;
+
+                        // Adjust year if month goes out of range (1-12)
+                        while month > 12 {
+                            month -= 12;
+                            year += 1;
+                        }
+                        while month < 1 {
+                            month += 12;
+                            year -= 1;
+                        }
+
+                        let day = current_date.day();
+
+                        // Try to create date with same day, or last day of month if that would be invalid
+                        NaiveDate::from_ymd_opt(year, month as u32, day).unwrap_or_else(|| {
+                            // If creating with the same day fails, use the last day of the month
+                            let last_day = if month == 12 {
+                                NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
+                            } else {
+                                NaiveDate::from_ymd_opt(year, month as u32 + 1, 1).unwrap()
+                            };
+                            last_day - Duration::days(1)
+                        })
+                    }
+                };
+
                 self.advanced_filter_fields[idx] = new_date.format(DATE_FORMAT).to_string();
             }
         }
     }
 
+    pub(crate) fn increment_advanced_date(&mut self) {
+        self.adjust_advanced_date(1, DateUnit::Day);
+    }
+
     pub(crate) fn decrement_advanced_date(&mut self) {
-        let idx = self.current_advanced_filter_field;
-        if idx == 0 || idx == 1 {
-            if let Ok(date) =
-                NaiveDate::parse_from_str(&self.advanced_filter_fields[idx], DATE_FORMAT)
-            {
-                let new_date = date - Duration::days(1);
-                self.advanced_filter_fields[idx] = new_date.format(DATE_FORMAT).to_string();
+        self.adjust_advanced_date(-1, DateUnit::Day);
+    }
+
+    pub(crate) fn increment_advanced_month(&mut self) {
+        self.adjust_advanced_date(1, DateUnit::Month);
+    }
+
+    pub(crate) fn decrement_advanced_month(&mut self) {
+        self.adjust_advanced_date(-1, DateUnit::Month);
+    }
+}
+
+// Helper function for date input validation
+fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
+    if !c.is_ascii_digit() {
+        return None;
+    }
+
+    let len = field.len();
+
+    if len >= 10 {
+        return None;
+    }
+
+    let mut result = field.to_string();
+
+    // Validate month digits as they're entered
+    if len == 5 {
+        let month_digit = c.to_digit(10).unwrap_or(0);
+        if month_digit > 1 {
+            // First digit of month can only be 0 or 1
+            // Allow direct entry of single-digit months
+            result.push(c);
+            result.push('-');
+            return Some(result);
+        }
+    } else if len == 6 {
+        let first_digit = field
+            .chars()
+            .nth(5)
+            .and_then(|ch| ch.to_digit(10))
+            .unwrap_or(0);
+        let month = first_digit * 10 + c.to_digit(10).unwrap_or(0);
+
+        if month == 0 || month > 12 {
+            return None;
+        }
+    }
+
+    // Validate day digits
+    if len == 8 {
+        let day_digit = c.to_digit(10).unwrap_or(0);
+        if day_digit > 3 {
+            // First digit of day can only be 0, 1, 2, or 3
+            return None;
+        }
+    } else if len == 9 {
+        if let (Ok(year), Ok(month)) = (field[0..4].parse::<i32>(), field[5..7].parse::<u32>()) {
+            let first_digit = field
+                .chars()
+                .nth(8)
+                .and_then(|ch| ch.to_digit(10))
+                .unwrap_or(0);
+            let day = first_digit * 10 + c.to_digit(10).unwrap_or(0);
+
+            let last_day = match month {
+                2 => {
+                    if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
+                        29 // Leap year February
+                    } else {
+                        28 // Regular February
+                    }
+                }
+                4 | 6 | 9 | 11 => 30, // 30-day months
+                _ => 31,              // 31-day months
+            };
+
+            if day == 0 || day > last_day {
+                return None;
             }
         }
     }
+
+    // Add the digit
+    result.push(c);
+
+    // Auto-insert hyphens
+    if result.len() == 4 {
+        // Validate year
+        if let Ok(year) = result.parse::<i32>() {
+            if !(1900..=2100).contains(&year) {
+                return None; // Reject invalid year
+            }
+        }
+        result.push('-');
+    } else if result.len() == 7 {
+        result.push('-');
+    }
+
+    Some(result)
 }
 
 fn sort_transactions_impl(

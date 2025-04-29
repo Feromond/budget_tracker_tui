@@ -196,7 +196,10 @@ fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
 fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
     // Field titles and hints
     let field_definitions = [
-        ("Date (YYYY-MM-DD)", "(◀/▶ or +/- adjust, Digits to enter)"),
+        (
+            "Date (YYYY-MM-DD)",
+            "(◀/▶ or +/- for days, Shift+◀/▶ for months, Digits to enter)",
+        ),
         ("Description", ""),
         ("Amount", ""),
         ("Type", "(◀/▶ or Enter to toggle)"),
@@ -541,11 +544,11 @@ fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
     let field_definitions = [
         (
             "Date From (YYYY-MM-DD)",
-            "(◀/▶ or +/- adjust, Digits to enter)",
+            "(◀/▶ or +/- for days, Shift+◀/▶ for months, Digits to enter)",
         ),
         (
             "Date To (YYYY-MM-DD)",
-            "(◀/▶ or +/- adjust, Digits to enter)",
+            "(◀/▶ or +/- for days, Shift+◀/▶ for months, Digits to enter)",
         ),
         ("Description", ""),
         ("Category", "(Enter to select)"),
