@@ -104,6 +104,7 @@ impl App {
                 let path_str = default_path.to_string_lossy().to_string();
                 self.settings_fields[0] = path_str;
                 self.current_settings_field = 0;
+                self.input_field_cursor = self.settings_fields[0].len();
                 self.status_message =
                     Some("Path reset to default. Press Enter to save.".to_string());
             }
@@ -111,6 +112,7 @@ impl App {
                 let fallback_path = "transactions.csv";
                 self.settings_fields[0] = fallback_path.to_string();
                 self.current_settings_field = 0;
+                self.input_field_cursor = self.settings_fields[0].len();
                 self.status_message = Some(format!(
                     "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
                     e, fallback_path
