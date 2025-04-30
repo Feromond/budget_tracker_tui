@@ -236,10 +236,11 @@ fn update(app: &mut App, key_event: KeyEvent) {
         },
         AppMode::Summary => match key_code {
             KeyCode::Char('q') | KeyCode::Esc => app.exit_summary_mode(),
-            KeyCode::Down => app.next_item(),
-            KeyCode::Up => app.previous_item(),
+            KeyCode::Down => app.next_summary_month(),
+            KeyCode::Up => app.previous_summary_month(),
             KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_summary_year(),
             KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => app.previous_summary_year(),
+            KeyCode::Char('m') => app.summary_multi_month_mode = !app.summary_multi_month_mode,
             _ => {}
         },
         AppMode::SelectingCategory | AppMode::SelectingSubcategory => match key_code {
