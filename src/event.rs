@@ -243,6 +243,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
             KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_summary_year(),
             KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => app.previous_summary_year(),
             KeyCode::Char('m') => app.summary_multi_month_mode = !app.summary_multi_month_mode,
+            KeyCode::Char('c') => app.summary_cumulative_mode = !app.summary_cumulative_mode,
             _ => {}
         },
         AppMode::SelectingCategory | AppMode::SelectingSubcategory => match key_code {
