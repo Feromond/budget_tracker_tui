@@ -73,7 +73,9 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     .enumerate()
                     .map(|(i, &amt)| {
                         cum += amt;
-                        if cum > max_expense { max_expense = cum; }
+                        if cum > max_expense {
+                            max_expense = cum;
+                        }
                         ((i + 1) as f64, cum)
                     })
                     .collect()
@@ -82,7 +84,9 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     .iter()
                     .enumerate()
                     .map(|(i, &amt)| {
-                        if amt > max_expense { max_expense = amt; }
+                        if amt > max_expense {
+                            max_expense = amt;
+                        }
                         ((i + 1) as f64, amt)
                     })
                     .collect()
@@ -125,7 +129,9 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     .enumerate()
                     .map(|(i, &amt)| {
                         cum += amt;
-                        if cum > max_expense { max_expense = cum; }
+                        if cum > max_expense {
+                            max_expense = cum;
+                        }
                         ((i + 1) as f64, cum)
                     })
                     .collect()
@@ -134,7 +140,9 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     .iter()
                     .enumerate()
                     .map(|(i, &amt)| {
-                        if amt > max_expense { max_expense = amt; }
+                        if amt > max_expense {
+                            max_expense = amt;
+                        }
                         ((i + 1) as f64, amt)
                     })
                     .collect()
@@ -308,17 +316,11 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 .labels(y_labels),
         );
     f.render_widget(chart, line_chart_area);
-    // Always show legend for single month if legend_labels is not empty or cumulative budget is present
-    if app.summary_multi_month_mode && !legend_labels.is_empty() {
-        let legend_line = Line::from(legend_labels);
-        let legend_area = Rect {
-            x: line_chart_area.x + 2,
-            y: line_chart_area.y + 2, // below the title
-            width: line_chart_area.width.saturating_sub(4),
-            height: 1,
-        };
-        f.render_widget(legend_line, legend_area);
-    } else if !app.summary_multi_month_mode && (!legend_labels.is_empty() || cumulative_budget_line.is_some()) {
+    // Show legend if needed (single or multi month)
+    if (app.summary_multi_month_mode && !legend_labels.is_empty())
+        || (!app.summary_multi_month_mode
+            && (!legend_labels.is_empty() || cumulative_budget_line.is_some()))
+    {
         let legend_line = Line::from(legend_labels);
         let legend_area = Rect {
             x: line_chart_area.x + 2,
