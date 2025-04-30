@@ -52,7 +52,11 @@ impl App {
             }
         }
         // Set selected_summary_month to current month if present, else latest month with data
-        if let Some(year) = self.summary_years.get(self.selected_summary_year_index).copied() {
+        if let Some(year) = self
+            .summary_years
+            .get(self.selected_summary_year_index)
+            .copied()
+        {
             self.update_selected_summary_month(year);
         } else {
             self.selected_summary_month = None;
@@ -69,7 +73,11 @@ impl App {
             self.selected_summary_year_index =
                 (self.selected_summary_year_index + 1) % self.summary_years.len();
             // Reset month selection for new year
-            if let Some(year) = self.summary_years.get(self.selected_summary_year_index).copied() {
+            if let Some(year) = self
+                .summary_years
+                .get(self.selected_summary_year_index)
+                .copied()
+            {
                 self.update_selected_summary_month(year);
             } else {
                 self.selected_summary_month = None;
@@ -85,7 +93,11 @@ impl App {
                 self.selected_summary_year_index = self.summary_years.len() - 1;
             }
             // Reset month selection for new year
-            if let Some(year) = self.summary_years.get(self.selected_summary_year_index).copied() {
+            if let Some(year) = self
+                .summary_years
+                .get(self.selected_summary_year_index)
+                .copied()
+            {
                 self.update_selected_summary_month(year);
             } else {
                 self.selected_summary_month = None;
@@ -94,7 +106,11 @@ impl App {
         }
     }
     pub(crate) fn next_summary_month(&mut self) {
-        if let Some(year) = self.summary_years.get(self.selected_summary_year_index).copied() {
+        if let Some(year) = self
+            .summary_years
+            .get(self.selected_summary_year_index)
+            .copied()
+        {
             let months = self.sorted_months_for_year(year);
             if let Some(current) = self.selected_summary_month {
                 if let Some(idx) = months.iter().position(|&m| m == current) {
@@ -107,7 +123,11 @@ impl App {
         }
     }
     pub(crate) fn previous_summary_month(&mut self) {
-        if let Some(year) = self.summary_years.get(self.selected_summary_year_index).copied() {
+        if let Some(year) = self
+            .summary_years
+            .get(self.selected_summary_year_index)
+            .copied()
+        {
             let months = self.sorted_months_for_year(year);
             if let Some(current) = self.selected_summary_month {
                 if let Some(idx) = months.iter().position(|&m| m == current) {
