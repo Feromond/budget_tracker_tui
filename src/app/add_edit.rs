@@ -272,19 +272,27 @@ impl App {
         }
         let category_lower = category.to_lowercase();
         let subcategory_lower = subcategory.to_lowercase();
-        let is_valid = self.categories.iter().any(|cat_info| {
-            cat_info.transaction_type == transaction_type
-                && cat_info.category.to_lowercase() == category_lower
-                && (cat_info.subcategory.to_lowercase() == subcategory_lower
-                    || cat_info.subcategory.is_empty())
-        });
-        if is_valid {
-            Ok(())
+        if subcategory.is_empty() {
+            let category_exists = self.categories.iter().any(|cat_info| {
+                cat_info.transaction_type == transaction_type
+                    && cat_info.category.to_lowercase() == category_lower
+            });
+            if category_exists {
+                return Ok(());
+            }
         } else {
-            Err(format!(
-                "Invalid Category/Subcategory: '{}' / '{}' for {:?}",
-                category, subcategory, transaction_type
-            ))
+            let pair_exists = self.categories.iter().any(|cat_info| {
+                cat_info.transaction_type == transaction_type
+                    && cat_info.category.to_lowercase() == category_lower
+                    && cat_info.subcategory.to_lowercase() == subcategory_lower
+            });
+            if pair_exists {
+                return Ok(());
+            }
         }
+        Err(format!(
+            "Invalid Category/Subcategory: '{}' / '{}' for {:?}",
+            category, subcategory, transaction_type
+        ))
     }
 }
