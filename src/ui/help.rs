@@ -5,7 +5,11 @@ use ratatui::widgets::*;
 pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
     let help_spans = match app.mode {
         AppMode::Normal => vec![
-            Span::raw("↑↓ Nav | "),
+            Span::styled(
+                "↑↓ Nav | ",
+                Style::default()
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(
                 "a",
                 Style::default()
@@ -34,7 +38,20 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" Filt | "),
-            Span::raw("s Mth | c Cate | "),
+            Span::styled(
+                "s",
+                Style::default()
+                    .fg(Color::LightMagenta)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Mth | "),
+            Span::styled(
+                "c",
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Cate | "),
             Span::styled(
                 "1-6",
                 Style::default()
