@@ -262,14 +262,28 @@ impl App {
                                 })
                                 .collect();
                             subcategories.sort_unstable();
+                            // Always include the case where subcategory is empty (Uncategorized)
+                            if month_map.contains_key(&(category.clone(), String::new())) {
+                                subcategories.insert(0, String::new());
+                            }
                             for subcategory in subcategories {
+                                let display_category = if category.is_empty() {
+                                    "Uncategorized".to_string()
+                                } else {
+                                    category.clone()
+                                };
+                                let display_subcategory = if subcategory.is_empty() {
+                                    "Uncategorized".to_string()
+                                } else {
+                                    subcategory.clone()
+                                };
                                 if let Some(summary) =
                                     month_map.get(&(category.clone(), subcategory.clone()))
                                 {
                                     items.push(CategorySummaryItem::Subcategory(
                                         month,
-                                        category.clone(),
-                                        subcategory.clone(),
+                                        display_category,
+                                        display_subcategory,
                                         *summary,
                                     ));
                                 }
