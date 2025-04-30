@@ -7,6 +7,7 @@ pub mod status;
 pub mod summary;
 pub mod transaction_form;
 pub mod transaction_table;
+pub mod settings;
 
 use crate::app::state::{App, AppMode};
 use ratatui::Frame;
@@ -64,7 +65,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         }
         AppMode::Settings => {
             transaction_table::render_transaction_table(f, app, main_area);
-            dialog::render_settings_popup(f, app, main_area);
+            settings::render_settings_form(f, app, main_area);
         }
     }
 
