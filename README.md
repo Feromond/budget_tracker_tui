@@ -19,12 +19,25 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 ## 🖼️ Screenshots
 
 <p align="center">
-  <img width="928" alt="Screenshot 2025-04-15 at 11 44 08 PM" src="https://github.com/user-attachments/assets/ab47b560-f3ab-4f95-919f-5de58a828d0c" />
+  <img width="966" alt="main_view_tui" src="https://github.com/user-attachments/assets/26d88b97-631f-433c-95bb-4647c5bf87b9" />
   <br><i>Main transaction view with summary bar and help</i><br><br>
-  <img width="926" alt="Screenshot 2025-04-15 at 11 44 30 PM" src="https://github.com/user-attachments/assets/71aa516e-4917-41d8-9257-e837491a3bd9" />
-  <br><i>Monthly summary with interactive chart and budget line</i><br><br>
-  <img width="926" alt="Screenshot 2025-04-15 at 11 44 45 PM" src="https://github.com/user-attachments/assets/c230ee05-b69b-457f-b108-4afe6ee5aaa1" />
+  <img width="966" alt="Cate Summary" src="https://github.com/user-attachments/assets/bea59559-8b34-46ac-87d8-f17e586b3cbe" />
   <br><i>Category summary with expandable/collapsible categories</i><br>
+  <img width="966" alt="Main Daily Chart" src="https://github.com/user-attachments/assets/914448f2-0a10-425a-9cdc-9c388231e9c5" />
+  <br><i>Monthly summary with interactive chart and budget line</i><br><br>
+  
+  ### SEE MORE SCREENSHOTS HERE <>
+  <details>
+  <summary>Click to see all monthly summary screenshots</summary>
+  <p align="center">
+    <img width="966" alt="Multi-month Line Chart" src="https://github.com/user-attachments/assets/d1f263b0-6a0a-4d4e-b528-57fe508a037a" />
+    <br><i>Multi-Month Line chart</i><br><br>
+    <img width="966" alt="Cumulative Chart" src="https://github.com/user-attachments/assets/5b01519d-cfc4-4e32-b1e6-fffefc7246e2" />
+    <br><i>Cumulative chart with budget line</i><br><br>
+    <img width="966" alt="Cumulative+multi_chart" src="https://github.com/user-attachments/assets/f795b663-d4dc-494e-bcb4-db1b4fefabc9" />
+    <br><i>Cumulative and multi month chart</i><br><br>
+  </p>
+</details>
 </p>
 
 ## ✨ Features
