@@ -475,11 +475,15 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
     ])
     .alignment(Alignment::Center);
 
-    let summary_paragraph = Paragraph::new(summary_line).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title("Summary (Filtered)"),
-    );
+    let is_filtered = app.filtered_indices.len() != app.transactions.len();
+    let title = if is_filtered {
+        "Grand Total (Filtered)"
+    } else {
+        "Grand Total (All Transactions)"
+    };
+
+    let summary_paragraph =
+        Paragraph::new(summary_line).block(Block::default().borders(Borders::ALL).title(title));
 
     f.render_widget(summary_paragraph, area);
 }
