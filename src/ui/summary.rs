@@ -185,27 +185,44 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let chart_title = if app.summary_multi_month_mode {
         let y = year_str_owned.clone();
         let yp = year_progress_owned.clone();
-        Line::from(vec![
-            Span::styled(
-                "Daily Spending (",
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                "All Months",
+        let mut title_spans = vec![Span::styled(
+            "Daily Spending",
+            Style::default().add_modifier(Modifier::BOLD),
+        )];
+        if app.summary_cumulative_mode {
+            title_spans.push(Span::styled(
+                " (Cumulative)",
                 Style::default()
-                    .fg(Color::LightCyan)
+                    .fg(Color::LightYellow)
                     .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(") - ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(
-                y,
-                Style::default()
-                    .fg(Color::Magenta)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(yp, Style::default().add_modifier(Modifier::BOLD)),
-        ])
+            ));
+        }
+        title_spans.push(Span::styled(
+            " (All Months)",
+            Style::default()
+                .fg(Color::LightCyan)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            " - ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+
+        title_spans.push(Span::styled(
+            y,
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            " ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            yp,
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        Line::from(title_spans)
     } else {
         let month_color = app
             .selected_summary_month
@@ -218,29 +235,43 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             .unwrap_or("-")
             .to_string();
         let y = year_str_owned.clone();
-        Line::from(vec![
-            Span::styled(
-                "Daily Spending - ",
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                y,
+        let mut title_spans = vec![Span::styled(
+            "Daily Spending",
+            Style::default().add_modifier(Modifier::BOLD),
+        )];
+        if app.summary_cumulative_mode {
+            title_spans.push(Span::styled(
+                " (Cumulative)",
                 Style::default()
-                    .fg(Color::Magenta)
+                    .fg(Color::LightYellow)
                     .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(
-                month_str,
-                Style::default()
-                    .fg(month_color)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                format!(" ({}/{})", month_index, month_count),
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-        ])
+            ));
+        }
+        title_spans.push(Span::styled(
+            " - ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            y,
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            " ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            month_str,
+            Style::default()
+                .fg(month_color)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            format!(" ({}/{})", month_index, month_count),
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        Line::from(title_spans)
     };
     let year = current_year.unwrap_or(0);
     let max_days = months
