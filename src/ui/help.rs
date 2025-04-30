@@ -197,6 +197,9 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
 
     let help_paragraph = Paragraph::new(Line::from(help_spans))
         .alignment(Alignment::Center)
-        .block(Block::default().borders(Borders::ALL).title("Help"));
+        .block(Block::default().borders(Borders::ALL).title(Span::styled(
+            "Help",
+            Style::default().add_modifier(Modifier::BOLD),
+        )));
     f.render_widget(help_paragraph, area);
 }

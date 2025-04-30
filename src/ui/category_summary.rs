@@ -140,24 +140,36 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         }
     });
 
+    let is_filtered = app.filtered_indices.len() != app.transactions.len();
     let table_title = {
         let y = year_str.clone();
         let idx = app.category_summary_year_index + 1;
         let total = app.category_summary_years.len().max(1);
         let idx_total = format!(" ({}/{})", idx, total);
-        Line::from(vec![
-            Span::styled(
-                "Category/Subcategory Summary - ",
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                y,
+        let mut title_spans = vec![];
+        if is_filtered {
+            title_spans.push(Span::styled(
+                "(Filtered) ",
                 Style::default()
-                    .fg(Color::Magenta)
+                    .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(idx_total, Style::default().add_modifier(Modifier::BOLD)),
-        ])
+            ));
+        }
+        title_spans.push(Span::styled(
+            "Category/Subcategory Summary - ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            y,
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            idx_total,
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        Line::from(title_spans)
     };
     let table = Table::new(
         rows,
@@ -236,25 +248,36 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     .unwrap_or(0);
                 let month_color = color_palette[month_idx % color_palette.len()];
                 let y = year_str.clone();
-                chart_title = Line::from(vec![
-                    Span::styled(
-                        "Category Net Balance - ",
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(
-                        month_to_short_str(selected_month),
+                let mut title_spans = vec![];
+                if is_filtered {
+                    title_spans.push(Span::styled(
+                        "(Filtered) ",
                         Style::default()
-                            .fg(month_color)
+                            .fg(Color::Yellow)
                             .add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(" ", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::styled(
-                        y,
-                        Style::default()
-                            .fg(Color::Magenta)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                ]);
+                    ));
+                }
+                title_spans.push(Span::styled(
+                    "Category Net Balance - ",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ));
+                title_spans.push(Span::styled(
+                    month_to_short_str(selected_month),
+                    Style::default()
+                        .fg(month_color)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                title_spans.push(Span::styled(
+                    " ",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ));
+                title_spans.push(Span::styled(
+                    y,
+                    Style::default()
+                        .fg(Color::Magenta)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                chart_title = Line::from(title_spans);
             }
         }
     }
@@ -262,22 +285,30 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     if bars.is_empty() {
         bars.push(Bar::default().label("No Data".into()).value(0));
         let y = year_str.clone();
-        chart_title = Line::from(vec![
-            Span::styled(
-                "Category Net Balance - ",
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                y,
+        let mut title_spans = vec![];
+        if is_filtered {
+            title_spans.push(Span::styled(
+                "(Filtered) ",
                 Style::default()
-                    .fg(Color::Magenta)
+                    .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                " (Select Row)",
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-        ]);
+            ));
+        }
+        title_spans.push(Span::styled(
+            "Category Net Balance - ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            y,
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            " (Select Row)",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        chart_title = Line::from(title_spans);
     }
 
     let num_bars = bars.len() as u16;

@@ -182,13 +182,23 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let month_count = months.len().max(1);
     let year_str_owned = year_str.clone();
     let year_progress_owned = year_progress.clone();
+    let is_filtered = app.filtered_indices.len() != app.transactions.len();
     let chart_title = if app.summary_multi_month_mode {
         let y = year_str_owned.clone();
         let yp = year_progress_owned.clone();
-        let mut title_spans = vec![Span::styled(
+        let mut title_spans = vec![];
+        if is_filtered {
+            title_spans.push(Span::styled(
+                "(Filtered) ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
+        title_spans.push(Span::styled(
             "Daily Spending",
             Style::default().add_modifier(Modifier::BOLD),
-        )];
+        ));
         if app.summary_cumulative_mode {
             title_spans.push(Span::styled(
                 " (Cumulative)",
@@ -207,7 +217,6 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             " - ",
             Style::default().add_modifier(Modifier::BOLD),
         ));
-
         title_spans.push(Span::styled(
             y,
             Style::default()
@@ -235,10 +244,19 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             .unwrap_or("-")
             .to_string();
         let y = year_str_owned.clone();
-        let mut title_spans = vec![Span::styled(
+        let mut title_spans = vec![];
+        if is_filtered {
+            title_spans.push(Span::styled(
+                "(Filtered) ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
+        title_spans.push(Span::styled(
             "Daily Spending",
             Style::default().add_modifier(Modifier::BOLD),
-        )];
+        ));
         if app.summary_cumulative_mode {
             title_spans.push(Span::styled(
                 " (Cumulative)",
@@ -366,20 +384,34 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let table_title = {
         let y = year_str_owned.clone();
         let yp = year_progress_owned.clone();
-        Line::from(vec![
-            Span::styled(
-                "Monthly Net Balance - ",
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                y,
+        let mut title_spans = vec![];
+        if is_filtered {
+            title_spans.push(Span::styled(
+                "(Filtered) ",
                 Style::default()
-                    .fg(Color::Magenta)
+                    .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(yp, Style::default().add_modifier(Modifier::BOLD)),
-        ])
+            ));
+        }
+        title_spans.push(Span::styled(
+            "Monthly Net Balance - ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            y,
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            " ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            yp,
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        Line::from(title_spans)
     };
     let mut chart_data_styled: Vec<Bar> = Vec::with_capacity(12);
     let mut max_abs_chart_value = 0i64;
@@ -483,7 +515,9 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
     };
 
     let summary_paragraph =
-        Paragraph::new(summary_line).block(Block::default().borders(Borders::ALL).title(title));
+        Paragraph::new(summary_line).block(Block::default().borders(Borders::ALL).title(
+            Span::styled(title, Style::default().add_modifier(Modifier::BOLD)),
+        ));
 
     f.render_widget(summary_paragraph, area);
 }
