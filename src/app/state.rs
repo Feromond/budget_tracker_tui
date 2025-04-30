@@ -61,6 +61,7 @@ pub struct App {
     pub(crate) selected_summary_year_index: usize,
     pub(crate) selected_summary_month: Option<u32>,
     pub(crate) summary_multi_month_mode: bool,
+    pub(crate) summary_cumulative_mode: bool,
     // Category/Subcategory Selection Popup State
     pub(crate) selecting_field_index: Option<usize>,
     pub(crate) current_selection_list: Vec<String>,
@@ -199,6 +200,7 @@ impl App {
             selected_summary_year_index: 0,
             selected_summary_month: None,
             summary_multi_month_mode: false,
+            summary_cumulative_mode: false,
             selecting_field_index: None,
             current_selection_list: Vec::new(),
             selection_list_state: ListState::default(),
