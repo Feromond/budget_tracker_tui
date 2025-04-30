@@ -155,10 +155,18 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(" Back"),
         ],
         AppMode::Settings => vec![
+            Span::styled("Tab/↑↓", Style::default().fg(Color::LightYellow).add_modifier(Modifier::BOLD)),
+            Span::raw(": Nav | "),
+            Span::styled("←/→", Style::default().fg(Color::LightCyan).add_modifier(Modifier::BOLD)),
+            Span::raw(": Cursor | "),
             Span::styled("Enter", Style::default().fg(Color::LightGreen)),
-            Span::raw(" Save Path | "),
-            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
-            Span::raw(" Back"),
+            Span::raw(": Save | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(": Cancel | "),
+            Span::styled("Ctrl+D", Style::default().fg(Color::LightMagenta)),
+            Span::raw(": Reset | "),
+            Span::styled("Ctrl+U", Style::default().fg(Color::LightMagenta)),
+            Span::raw(": Clear"),
         ],
     };
 
