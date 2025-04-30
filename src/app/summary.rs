@@ -17,9 +17,11 @@ impl App {
     }
 
     fn update_selected_summary_month(&mut self, year: i32) {
-        let current_month = chrono::Local::now().month();
+        let current_date = chrono::Local::now();
+        let current_year = current_date.year();
+        let current_month = current_date.month();
         let months = self.sorted_months_for_year(year);
-        if months.contains(&current_month) {
+        if year == current_year && months.contains(&current_month) {
             self.selected_summary_month = Some(current_month);
         } else {
             self.selected_summary_month = months.last().copied();
@@ -262,14 +264,28 @@ impl App {
                                 })
                                 .collect();
                             subcategories.sort_unstable();
+                            // Always include the case where subcategory is empty (Uncategorized)
+                            if month_map.contains_key(&(category.clone(), String::new())) {
+                                subcategories.insert(0, String::new());
+                            }
                             for subcategory in subcategories {
+                                let display_category = if category.is_empty() {
+                                    "Uncategorized".to_string()
+                                } else {
+                                    category.clone()
+                                };
+                                let display_subcategory = if subcategory.is_empty() {
+                                    "Uncategorized".to_string()
+                                } else {
+                                    subcategory.clone()
+                                };
                                 if let Some(summary) =
                                     month_map.get(&(category.clone(), subcategory.clone()))
                                 {
                                     items.push(CategorySummaryItem::Subcategory(
                                         month,
-                                        category.clone(),
-                                        subcategory.clone(),
+                                        display_category,
+                                        display_subcategory,
                                         *summary,
                                     ));
                                 }

@@ -21,11 +21,16 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         SortColumn::Amount,
     ];
 
+    let is_filtered = app.filtered_indices.len() != app.transactions.len();
     let header_cells = header_titles
         .iter()
         .zip(sort_columns.iter())
         .map(|(title, column)| {
-            let style = Style::default().fg(Color::Cyan).bold();
+            let style = if is_filtered {
+                Style::default().fg(Color::Yellow).bold()
+            } else {
+                Style::default().fg(Color::Cyan).bold()
+            };
             let symbol = if app.sort_by == *column {
                 match app.sort_order {
                     SortOrder::Ascending => " ▲",
@@ -64,6 +69,23 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         Row::new(cells).height(1).bottom_margin(0)
     });
 
+    let is_filtered = app.filtered_indices.len() != app.transactions.len();
+    let table_title = {
+        let mut spans = vec![];
+        if is_filtered {
+            spans.push(Span::styled(
+                "(Filtered) ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
+        spans.push(Span::styled(
+            "Transactions",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        Line::from(spans)
+    };
     let table = Table::new(
         rows,
         [
@@ -76,7 +98,7 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         ],
     )
     .header(header)
-    .block(Block::default().borders(Borders::ALL).title("Transactions"))
+    .block(Block::default().borders(Borders::ALL).title(table_title))
     .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED))
     .highlight_symbol(" > ");
 
