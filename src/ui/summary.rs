@@ -222,6 +222,27 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         Span::raw(format!("{:.0}", y_max * 0.75)),
         Span::raw(format!("{:.0}", y_max)),
     ];
+
+    // Add budget line if set and in single-month mode
+    let mut budget_line: Option<Vec<(f64, f64)>> = None;
+    if !app.summary_multi_month_mode {
+        if let Some(budget) = app.target_budget {
+            if let (Some(year), Some(month)) = (current_year, app.selected_summary_month) {
+                let num_days = days_in_month(year, month) as usize;
+                budget_line = Some((1..=num_days).map(|d| (d as f64, budget)).collect());
+            }
+        }
+    }
+    if let Some(ref line) = budget_line {
+        datasets.push(
+            Dataset::default()
+                .name("Budget")
+                .marker(ratatui::symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::DIM))
+                .data(line),
+        );
+    }
     let chart = Chart::new(datasets)
         .block(Block::default().title(chart_title).borders(Borders::ALL))
         .x_axis(
@@ -238,6 +259,22 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         );
     f.render_widget(chart, line_chart_area);
     if app.summary_multi_month_mode && !legend_labels.is_empty() {
+        let legend_line = Line::from(legend_labels);
+        let legend_area = Rect {
+            x: line_chart_area.x + 2,
+            y: line_chart_area.y + 2, // below the title
+            width: line_chart_area.width.saturating_sub(4),
+            height: 1,
+        };
+        f.render_widget(legend_line, legend_area);
+    } else if !app.summary_multi_month_mode && (legend_labels.len() > 0 || app.target_budget.is_some()) {
+        // Show legend for single month if budget is present
+        if app.target_budget.is_some() {
+            legend_labels.push(Span::styled(
+                "Budget",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::DIM),
+            ));
+        }
         let legend_line = Line::from(legend_labels);
         let legend_area = Rect {
             x: line_chart_area.x + 2,
