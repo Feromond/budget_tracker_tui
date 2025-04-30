@@ -56,7 +56,8 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             let year = current_year.unwrap_or(0);
             let num_days = days_in_month(year, month) as usize;
             let mut daily_expenses = vec![0.0; num_days];
-            for tx in app.transactions.iter() {
+            for &idx in &app.filtered_indices {
+                let tx = &app.transactions[idx];
                 if tx.date.year() == year && tx.date.month() == month {
                     if let crate::model::TransactionType::Expense = tx.transaction_type {
                         let day = tx.date.day() as usize;
@@ -112,7 +113,8 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         if let (Some(year), Some(month)) = (current_year, app.selected_summary_month) {
             let num_days = days_in_month(year, month) as usize;
             let mut daily_expenses = vec![0.0; num_days];
-            for tx in app.transactions.iter() {
+            for &idx in &app.filtered_indices {
+                let tx = &app.transactions[idx];
                 if tx.date.year() == year && tx.date.month() == month {
                     if let crate::model::TransactionType::Expense = tx.transaction_type {
                         let day = tx.date.day() as usize;
