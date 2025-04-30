@@ -5,11 +5,7 @@ use ratatui::widgets::*;
 pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
     let help_spans = match app.mode {
         AppMode::Normal => vec![
-            Span::styled(
-                "↑↓ Nav | ",
-                Style::default()
-                    .add_modifier(Modifier::BOLD),
-            ),
+            Span::styled("↑↓ Nav | ", Style::default().add_modifier(Modifier::BOLD)),
             Span::styled(
                 "a",
                 Style::default()

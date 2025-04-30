@@ -440,16 +440,24 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
 
     let income_span = Span::styled(
         format!("Income: {:.2}", total_income),
-        Style::default().fg(Color::LightGreen).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::LightGreen)
+            .add_modifier(Modifier::BOLD),
     );
     let expense_span = Span::styled(
         format!("Expenses: {:.2}", total_expense),
-        Style::default().fg(Color::LightRed).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::LightRed)
+            .add_modifier(Modifier::BOLD),
     );
     let net_style = if net_balance >= 0.0 {
-        Style::default().fg(Color::LightGreen).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::LightGreen)
+            .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(Color::LightRed).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::LightRed)
+            .add_modifier(Modifier::BOLD)
     };
     let net_str = if net_balance >= 0.0 {
         format!("+{:.2}", net_balance)
