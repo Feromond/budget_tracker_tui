@@ -62,18 +62,31 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         let day = tx.date.day() as usize;
                         if day > 0 && day <= num_days {
                             daily_expenses[day - 1] += tx.amount;
-                            if daily_expenses[day - 1] > max_expense {
-                                max_expense = daily_expenses[day - 1];
-                            }
                         }
                     }
                 }
             }
-            let line_data: Vec<(f64, f64)> = daily_expenses
-                .iter()
-                .enumerate()
-                .map(|(i, &amt)| ((i + 1) as f64, amt))
-                .collect();
+            let line_data: Vec<(f64, f64)> = if app.summary_cumulative_mode {
+                let mut cum = 0.0;
+                daily_expenses
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &amt)| {
+                        cum += amt;
+                        if cum > max_expense { max_expense = cum; }
+                        ((i + 1) as f64, cum)
+                    })
+                    .collect()
+            } else {
+                daily_expenses
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &amt)| {
+                        if amt > max_expense { max_expense = amt; }
+                        ((i + 1) as f64, amt)
+                    })
+                    .collect()
+            };
             all_line_data.push(line_data);
         }
         for (i, (&month, line_data)) in months.iter().zip(all_line_data.iter()).enumerate() {
@@ -91,7 +104,6 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             ));
         }
     } else {
-        // Single month: plot only selected_summary_month
         all_line_data.clear();
         if let (Some(year), Some(month)) = (current_year, app.selected_summary_month) {
             let num_days = days_in_month(year, month) as usize;
@@ -102,28 +114,51 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         let day = tx.date.day() as usize;
                         if day > 0 && day <= num_days {
                             daily_expenses[day - 1] += tx.amount;
-                            if daily_expenses[day - 1] > max_expense {
-                                max_expense = daily_expenses[day - 1];
-                            }
                         }
                     }
                 }
             }
-            let line_data: Vec<(f64, f64)> = daily_expenses
-                .iter()
-                .enumerate()
-                .map(|(i, &amt)| ((i + 1) as f64, amt))
-                .collect();
+            let line_data: Vec<(f64, f64)> = if app.summary_cumulative_mode {
+                let mut cum = 0.0;
+                daily_expenses
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &amt)| {
+                        cum += amt;
+                        if cum > max_expense { max_expense = cum; }
+                        ((i + 1) as f64, cum)
+                    })
+                    .collect()
+            } else {
+                daily_expenses
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &amt)| {
+                        if amt > max_expense { max_expense = amt; }
+                        ((i + 1) as f64, amt)
+                    })
+                    .collect()
+            };
             all_line_data.push(line_data);
             let data_ref = all_line_data.last().unwrap();
+            // Determine color for this month (same as in title)
+            let month_color = app
+                .selected_summary_month
+                .and_then(|m| months.iter().position(|&x| x == m))
+                .map(|idx| color_palette[idx % color_palette.len()])
+                .unwrap_or(Color::White);
             datasets.push(
                 Dataset::default()
                     .name(month_to_short_str(month))
                     .marker(ratatui::symbols::Marker::Braille)
                     .graph_type(GraphType::Line)
-                    .style(Style::default().fg(Color::LightRed))
+                    .style(Style::default().fg(month_color))
                     .data(data_ref),
             );
+            legend_labels.push(Span::styled(
+                month_to_short_str(month),
+                Style::default().fg(month_color),
+            ));
         }
     }
     let month_index =
@@ -144,7 +179,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         let yp = year_progress_owned.clone();
         Line::from(vec![
             Span::styled(
-                "Daily Expenses (",
+                "Daily Spending (",
                 Style::default().add_modifier(Modifier::BOLD),
             ),
             Span::styled(
@@ -177,7 +212,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         let y = year_str_owned.clone();
         Line::from(vec![
             Span::styled(
-                "Daily Expenses - ",
+                "Daily Spending - ",
                 Style::default().add_modifier(Modifier::BOLD),
             ),
             Span::styled(
@@ -223,20 +258,31 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         Span::raw(format!("{:.0}", y_max)),
     ];
 
-    // Add budget line if set and in single-month mode
-    let mut budget_line: Option<Vec<(f64, f64)>> = None;
-    if !app.summary_multi_month_mode {
-        if let Some(budget) = app.target_budget {
-            if let (Some(year), Some(month)) = (current_year, app.selected_summary_month) {
-                let num_days = days_in_month(year, month) as usize;
-                budget_line = Some((1..=num_days).map(|d| (d as f64, budget)).collect());
+    // Add cumulative budget line if in cumulative mode and budget is set
+    let mut cumulative_budget_line: Option<Vec<(f64, f64)>> = None;
+    if app.summary_cumulative_mode && app.target_budget.is_some() && !app.summary_multi_month_mode {
+        if let (Some(year), Some(month)) = (current_year, app.selected_summary_month) {
+            let num_days = days_in_month(year, month) as usize;
+            let budget = app.target_budget.unwrap();
+            if num_days > 0 {
+                let daily_budget = budget / num_days as f64;
+                let budget_line: Vec<(f64, f64)> = (1..=num_days)
+                    .map(|d| (d as f64, daily_budget * d as f64))
+                    .collect();
+                cumulative_budget_line = Some(budget_line);
+                legend_labels.push(Span::styled(
+                    "CumuBudget",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::DIM),
+                ));
             }
         }
     }
-    if let Some(ref line) = budget_line {
+    if let Some(ref budget_line) = cumulative_budget_line {
         datasets.push(
             Dataset::default()
-                .name("Budget")
+                .name("CumuBudget")
                 .marker(ratatui::symbols::Marker::Braille)
                 .graph_type(GraphType::Line)
                 .style(
@@ -244,7 +290,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::DIM),
                 )
-                .data(line),
+                .data(budget_line),
         );
     }
     let chart = Chart::new(datasets)
@@ -257,11 +303,12 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         )
         .y_axis(
             Axis::default()
-                .title("Expense")
+                .title("Spending")
                 .bounds([0.0, y_max])
                 .labels(y_labels),
         );
     f.render_widget(chart, line_chart_area);
+    // Always show legend for single month if legend_labels is not empty or cumulative budget is present
     if app.summary_multi_month_mode && !legend_labels.is_empty() {
         let legend_line = Line::from(legend_labels);
         let legend_area = Rect {
@@ -271,18 +318,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             height: 1,
         };
         f.render_widget(legend_line, legend_area);
-    } else if !app.summary_multi_month_mode
-        && (!legend_labels.is_empty() || app.target_budget.is_some())
-    {
-        // Show legend for single month if budget is present
-        if app.target_budget.is_some() {
-            legend_labels.push(Span::styled(
-                "Budget",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::DIM),
-            ));
-        }
+    } else if !app.summary_multi_month_mode && (!legend_labels.is_empty() || cumulative_budget_line.is_some()) {
         let legend_line = Line::from(legend_labels);
         let legend_area = Rect {
             x: line_chart_area.x + 2,
