@@ -53,18 +53,8 @@ pub fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
                 .and_then(|ch| ch.to_digit(10))
                 .unwrap_or(0);
             let day = first_digit * 10 + c.to_digit(10).unwrap_or(0);
-            // Check for valid day in month, including leap years
-            let last_day = match month {
-                2 => {
-                    if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
-                        29 // Leap year February
-                    } else {
-                        28 // Regular February
-                    }
-                }
-                4 | 6 | 9 | 11 => 30, // 30-day months
-                _ => 31,              // 31-day months
-            };
+            // Use days_in_month utility for validation
+            let last_day = days_in_month(year, month);
 
             if day == 0 || day > last_day {
                 return None;
@@ -112,4 +102,32 @@ pub fn sort_transactions_impl(
             ordering
         }
     });
+}
+
+pub fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+pub fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 => 31,
+        2 => {
+            if is_leap_year(year) {
+                29
+            } else {
+                28
+            }
+        }
+        3 => 31,
+        4 => 30,
+        5 => 31,
+        6 => 30,
+        7 => 31,
+        8 => 31,
+        9 => 30,
+        10 => 31,
+        11 => 30,
+        12 => 31,
+        _ => 31,
+    }
 }

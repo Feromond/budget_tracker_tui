@@ -5,6 +5,39 @@ use chrono;
 use chrono::Datelike;
 
 impl App {
+    // --- Private Helpers for Summary Navigation ---
+    pub fn sorted_months_for_year(&self, year: i32) -> Vec<u32> {
+        let mut months: Vec<u32> = self
+            .monthly_summaries
+            .keys()
+            .filter_map(|(y, m)| if *y == year { Some(*m) } else { None })
+            .collect();
+        months.sort_unstable();
+        months
+    }
+
+    fn update_selected_summary_month(&mut self, year: i32) {
+        let current_month = chrono::Local::now().month();
+        let months = self.sorted_months_for_year(year);
+        if months.contains(&current_month) {
+            self.selected_summary_month = Some(current_month);
+        } else {
+            self.selected_summary_month = months.last().copied();
+        }
+    }
+
+    // --- Private Helpers for Category Summary Navigation ---
+    pub fn sorted_category_months_for_year(&self, year: i32) -> Vec<u32> {
+        let mut months: Vec<u32> = self
+            .category_summaries
+            .keys()
+            .filter_map(|(y, m)| if *y == year { Some(*m) } else { None })
+            .collect();
+        months.sort_unstable();
+        months.dedup();
+        months
+    }
+
     // --- Summary Logic ---
     // Handles entering/exiting summary mode, navigating years, and updating monthly summaries.
     pub(crate) fn enter_summary_mode(&mut self) {
@@ -18,6 +51,16 @@ impl App {
                 self.selected_summary_year_index = self.summary_years.len() - 1;
             }
         }
+        // Set selected_summary_month to current month if present, else latest month with data
+        if let Some(year) = self
+            .summary_years
+            .get(self.selected_summary_year_index)
+            .copied()
+        {
+            self.update_selected_summary_month(year);
+        } else {
+            self.selected_summary_month = None;
+        }
         self.table_state.select(Some(0));
         self.status_message = None;
     }
@@ -29,6 +72,16 @@ impl App {
         if !self.summary_years.is_empty() {
             self.selected_summary_year_index =
                 (self.selected_summary_year_index + 1) % self.summary_years.len();
+            // Reset month selection for new year
+            if let Some(year) = self
+                .summary_years
+                .get(self.selected_summary_year_index)
+                .copied()
+            {
+                self.update_selected_summary_month(year);
+            } else {
+                self.selected_summary_month = None;
+            }
             self.table_state.select(Some(0));
         }
     }
@@ -39,7 +92,51 @@ impl App {
             } else {
                 self.selected_summary_year_index = self.summary_years.len() - 1;
             }
+            // Reset month selection for new year
+            if let Some(year) = self
+                .summary_years
+                .get(self.selected_summary_year_index)
+                .copied()
+            {
+                self.update_selected_summary_month(year);
+            } else {
+                self.selected_summary_month = None;
+            }
             self.table_state.select(Some(0));
+        }
+    }
+    pub(crate) fn next_summary_month(&mut self) {
+        if let Some(year) = self
+            .summary_years
+            .get(self.selected_summary_year_index)
+            .copied()
+        {
+            let months = self.sorted_months_for_year(year);
+            if let Some(current) = self.selected_summary_month {
+                if let Some(idx) = months.iter().position(|&m| m == current) {
+                    let next_idx = (idx + 1) % months.len();
+                    self.selected_summary_month = Some(months[next_idx]);
+                }
+            } else if let Some(&first) = months.first() {
+                self.selected_summary_month = Some(first);
+            }
+        }
+    }
+    pub(crate) fn previous_summary_month(&mut self) {
+        if let Some(year) = self
+            .summary_years
+            .get(self.selected_summary_year_index)
+            .copied()
+        {
+            let months = self.sorted_months_for_year(year);
+            if let Some(current) = self.selected_summary_month {
+                if let Some(idx) = months.iter().position(|&m| m == current) {
+                    let prev_idx = if idx == 0 { months.len() - 1 } else { idx - 1 };
+                    self.selected_summary_month = Some(months[prev_idx]);
+                }
+            } else if let Some(&first) = months.first() {
+                self.selected_summary_month = Some(first);
+            }
         }
     }
     // --- Category Summary Logic ---

@@ -18,9 +18,11 @@ pub(crate) fn run_app<B: Backend>(
             match event::read()? {
                 // Handle Paste Event
                 Event::Paste(text) => {
-                    if app.mode == AppMode::Settings {
-                        app.input_field_content = text;
-                        app.input_field_cursor = app.input_field_content.len();
+                    if app.mode == AppMode::Settings && app.current_settings_field == 0 {
+                        let field = &mut app.settings_fields[0];
+                        let cursor = app.input_field_cursor;
+                        field.insert_str(cursor, &text);
+                        app.input_field_cursor += text.chars().count();
                     }
                     // Potentially handle paste in other modes later if needed
                 }
@@ -236,10 +238,12 @@ fn update(app: &mut App, key_event: KeyEvent) {
         },
         AppMode::Summary => match key_code {
             KeyCode::Char('q') | KeyCode::Esc => app.exit_summary_mode(),
-            KeyCode::Down => app.next_item(),
-            KeyCode::Up => app.previous_item(),
+            KeyCode::Down => app.next_summary_month(),
+            KeyCode::Up => app.previous_summary_month(),
             KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_summary_year(),
             KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => app.previous_summary_year(),
+            KeyCode::Char('m') => app.summary_multi_month_mode = !app.summary_multi_month_mode,
+            KeyCode::Char('c') => app.summary_cumulative_mode = !app.summary_cumulative_mode,
             _ => {}
         },
         AppMode::SelectingCategory | AppMode::SelectingSubcategory => match key_code {
@@ -300,14 +304,20 @@ fn update(app: &mut App, key_event: KeyEvent) {
             (KeyCode::Esc, KeyModifiers::NONE) => app.exit_settings_mode(),
             (KeyCode::Enter, KeyModifiers::NONE) => app.save_settings(),
             (KeyCode::Char('d'), KeyModifiers::CONTROL) => app.reset_settings_path_to_default(),
-            (KeyCode::Char('u'), KeyModifiers::CONTROL) => app.clear_input_field(),
-            (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
-                app.insert_char_at_cursor(c);
+            (KeyCode::Char('u'), KeyModifiers::CONTROL) => app.clear_settings_field(),
+            (KeyCode::Tab, KeyModifiers::NONE) | (KeyCode::Down, KeyModifiers::NONE) => {
+                app.next_settings_field()
             }
-            (KeyCode::Backspace, KeyModifiers::NONE) => app.delete_char_before_cursor(),
-            (KeyCode::Delete, KeyModifiers::NONE) => app.delete_char_after_cursor(),
-            (KeyCode::Left, KeyModifiers::NONE) => app.move_cursor_left(),
-            (KeyCode::Right, KeyModifiers::NONE) => app.move_cursor_right(),
+            (KeyCode::BackTab, KeyModifiers::NONE) | (KeyCode::Up, KeyModifiers::NONE) => {
+                app.previous_settings_field()
+            }
+            (KeyCode::Left, KeyModifiers::NONE) => app.move_cursor_left_settings(),
+            (KeyCode::Right, KeyModifiers::NONE) => app.move_cursor_right_settings(),
+            (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
+                app.insert_char_settings(c);
+            }
+            (KeyCode::Backspace, KeyModifiers::NONE) => app.delete_char_settings(),
+            (KeyCode::Delete, KeyModifiers::NONE) => app.clear_settings_field(),
             _ => {}
         },
     }

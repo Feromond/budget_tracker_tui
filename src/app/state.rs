@@ -59,6 +59,9 @@ pub struct App {
     pub(crate) monthly_summaries: HashMap<(i32, u32), MonthlySummary>,
     pub(crate) summary_years: Vec<i32>,
     pub(crate) selected_summary_year_index: usize,
+    pub(crate) selected_summary_month: Option<u32>,
+    pub(crate) summary_multi_month_mode: bool,
+    pub(crate) summary_cumulative_mode: bool,
     // Category/Subcategory Selection Popup State
     pub(crate) selecting_field_index: Option<usize>,
     pub(crate) current_selection_list: Vec<String>,
@@ -72,6 +75,11 @@ pub struct App {
     pub(crate) expanded_category_summary_months: HashSet<u32>,
     // Flattened list of visible items for rendering and navigation
     pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
+    // Settings form state
+    pub(crate) settings_fields: [String; 2],
+    pub(crate) current_settings_field: usize,
+    // Budget
+    pub(crate) target_budget: Option<f64>,
 }
 
 impl App {
@@ -190,6 +198,9 @@ impl App {
             monthly_summaries: HashMap::new(),
             summary_years: Vec::new(),
             selected_summary_year_index: 0,
+            selected_summary_month: None,
+            summary_multi_month_mode: false,
+            summary_cumulative_mode: false,
             selecting_field_index: None,
             current_selection_list: Vec::new(),
             selection_list_state: ListState::default(),
@@ -199,6 +210,9 @@ impl App {
             category_summary_table_state: TableState::default(),
             expanded_category_summary_months: HashSet::new(),
             cached_visible_category_items: Vec::new(),
+            settings_fields: Default::default(),
+            current_settings_field: 0,
+            target_budget: loaded_settings.target_budget,
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
