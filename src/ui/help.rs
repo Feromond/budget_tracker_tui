@@ -101,14 +101,54 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(": Cancel"),
         ],
         AppMode::Summary => vec![
-            Span::raw("↑↓ Nav | "),
-            Span::raw("←→/[] Year | "),
+            Span::styled(
+                "↑↓",
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Month | "),
+            Span::styled(
+                "←→",
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("/"),
+            Span::styled(
+                "[]",
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Year | "),
+            Span::styled("m", Style::default().fg(Color::LightBlue)),
+            Span::raw(" Multi | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
             Span::raw(" Back"),
         ],
         AppMode::CategorySummary => vec![
-            Span::raw("↑↓ Nav | "),
-            Span::raw("←→/[] Year | "),
+            Span::styled(
+                "↑↓",
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Nav | "),
+            Span::styled(
+                "←→",
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("/"),
+            Span::styled(
+                "[]",
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Year | "),
             Span::styled("Enter", Style::default().fg(Color::Magenta)),
             Span::raw(" ▶ Expand ▼ Collapse | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
