@@ -3,11 +3,11 @@ pub mod dialog;
 pub mod filter;
 pub mod help;
 pub mod helpers;
+pub mod settings;
 pub mod status;
 pub mod summary;
 pub mod transaction_form;
 pub mod transaction_table;
-pub mod settings;
 
 use crate::app::state::{App, AppMode};
 use ratatui::Frame;

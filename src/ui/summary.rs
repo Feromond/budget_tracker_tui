@@ -239,7 +239,11 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 .name("Budget")
                 .marker(ratatui::symbols::Marker::Braille)
                 .graph_type(GraphType::Line)
-                .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::DIM))
+                .style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::DIM),
+                )
                 .data(line),
         );
     }
@@ -267,12 +271,16 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             height: 1,
         };
         f.render_widget(legend_line, legend_area);
-    } else if !app.summary_multi_month_mode && (legend_labels.len() > 0 || app.target_budget.is_some()) {
+    } else if !app.summary_multi_month_mode
+        && (!legend_labels.is_empty() || app.target_budget.is_some())
+    {
         // Show legend for single month if budget is present
         if app.target_budget.is_some() {
             legend_labels.push(Span::styled(
                 "Budget",
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::DIM),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::DIM),
             ));
         }
         let legend_line = Line::from(legend_labels);

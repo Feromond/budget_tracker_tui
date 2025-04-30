@@ -117,7 +117,9 @@ impl App {
         }
     }
     pub(crate) fn move_cursor_right_settings(&mut self) {
-        if self.current_settings_field == 0 && self.input_field_cursor < self.settings_fields[0].len() {
+        if self.current_settings_field == 0
+            && self.input_field_cursor < self.settings_fields[0].len()
+        {
             self.input_field_cursor += 1;
         }
     }

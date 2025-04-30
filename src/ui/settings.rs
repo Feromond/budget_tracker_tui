@@ -1,7 +1,7 @@
 use crate::app::state::App;
 use ratatui::prelude::*;
-use ratatui::widgets::*;
 use ratatui::widgets::Clear;
+use ratatui::widgets::*;
 
 pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
     let field_definitions = [
@@ -113,4 +113,4 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
             f.set_cursor_position(Position::new(chunk.x + visible_cursor_x + 1, chunk.y + 1));
         }
     }
-} 
+}

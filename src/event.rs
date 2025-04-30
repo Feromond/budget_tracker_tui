@@ -18,13 +18,11 @@ pub(crate) fn run_app<B: Backend>(
             match event::read()? {
                 // Handle Paste Event
                 Event::Paste(text) => {
-                    if app.mode == AppMode::Settings {
-                        if app.current_settings_field == 0 {
-                            let field = &mut app.settings_fields[0];
-                            let cursor = app.input_field_cursor;
-                            field.insert_str(cursor, &text);
-                            app.input_field_cursor += text.chars().count();
-                        }
+                    if app.mode == AppMode::Settings && app.current_settings_field == 0 {
+                        let field = &mut app.settings_fields[0];
+                        let cursor = app.input_field_cursor;
+                        field.insert_str(cursor, &text);
+                        app.input_field_cursor += text.chars().count();
                     }
                     // Potentially handle paste in other modes later if needed
                 }
@@ -306,8 +304,12 @@ fn update(app: &mut App, key_event: KeyEvent) {
             (KeyCode::Enter, KeyModifiers::NONE) => app.save_settings(),
             (KeyCode::Char('d'), KeyModifiers::CONTROL) => app.reset_settings_path_to_default(),
             (KeyCode::Char('u'), KeyModifiers::CONTROL) => app.clear_settings_field(),
-            (KeyCode::Tab, KeyModifiers::NONE) | (KeyCode::Down, KeyModifiers::NONE) => app.next_settings_field(),
-            (KeyCode::BackTab, KeyModifiers::NONE) | (KeyCode::Up, KeyModifiers::NONE) => app.previous_settings_field(),
+            (KeyCode::Tab, KeyModifiers::NONE) | (KeyCode::Down, KeyModifiers::NONE) => {
+                app.next_settings_field()
+            }
+            (KeyCode::BackTab, KeyModifiers::NONE) | (KeyCode::Up, KeyModifiers::NONE) => {
+                app.previous_settings_field()
+            }
             (KeyCode::Left, KeyModifiers::NONE) => app.move_cursor_left_settings(),
             (KeyCode::Right, KeyModifiers::NONE) => app.move_cursor_right_settings(),
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {

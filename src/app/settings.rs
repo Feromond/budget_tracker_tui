@@ -13,7 +13,7 @@ impl App {
         self.settings_fields[1] = loaded_settings
             .target_budget
             .map(|v| v.to_string())
-            .unwrap_or_else(String::new);
+            .unwrap_or_default();
         self.current_settings_field = 0;
         self.input_field_cursor = self.settings_fields[0].len();
         self.status_message = None;
@@ -35,7 +35,9 @@ impl App {
             match target_budget_str.parse::<f64>() {
                 Ok(val) if val > 0.0 => Some(val),
                 _ => {
-                    self.status_message = Some("Error: Target budget must be a positive number or blank.".to_string());
+                    self.status_message = Some(
+                        "Error: Target budget must be a positive number or blank.".to_string(),
+                    );
                     return;
                 }
             }
@@ -58,7 +60,7 @@ impl App {
         // Save the new data file path and target budget in config (future: add to AppSettings)
         let settings = AppSettings {
             data_file_path: Some(new_path_str.to_string()),
-            target_budget: target_budget,
+            target_budget,
         };
         if let Err(e) = save_settings(&settings) {
             self.status_message = Some(format!("Error saving config file: {}", e));

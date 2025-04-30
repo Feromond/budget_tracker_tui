@@ -155,9 +155,19 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(" Back"),
         ],
         AppMode::Settings => vec![
-            Span::styled("Tab/↑↓", Style::default().fg(Color::LightYellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Tab/↑↓",
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(": Nav | "),
-            Span::styled("←/→", Style::default().fg(Color::LightCyan).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "←/→",
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(": Cursor | "),
             Span::styled("Enter", Style::default().fg(Color::LightGreen)),
             Span::raw(": Save | "),
