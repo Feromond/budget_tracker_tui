@@ -124,6 +124,8 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(" Year | "),
             Span::styled("m", Style::default().fg(Color::LightBlue)),
             Span::raw(" Multi | "),
+            Span::styled("c", Style::default().fg(Color::LightYellow)),
+            Span::raw(" Cumu | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
             Span::raw(" Back"),
         ],
