@@ -7,8 +7,8 @@ Income,Freelance / Side Hustle,
 Income,Investments,Dividends
 Income,Investments,Interest
 Income,Investments,Capital Gains
+Income,Investments,Rental Income
 Income,Business Income,
-Income,Rental Income,
 Income,Government Income,Tax Refund
 Income,Government Income,Employment Insurance
 Income,Government Income,Child Benefits
@@ -26,6 +26,8 @@ Expense,Housing,Repairs & Maintenance
 Expense,Housing,HOA Fees
 Expense,Housing,Moving Expenses
 Expense,Housing,Furniture & Decor
+Expense,Housing,Mortgage Principal
+Expense,Housing,Mortgage Interest
 Expense,Utilities,Electricity
 Expense,Utilities,Water
 Expense,Utilities,Gas
@@ -40,9 +42,9 @@ Expense,Food & Dining,Fast Food
 Expense,Food & Dining,Alcohol & Bars
 Expense,Household,Household Supplies
 Expense,Household,Toiletries
-Expense,Household,Pet Food & Supplies
 Expense,Transportation,Fuel / Gas
 Expense,Transportation,Car Payment
+Expense,Transportation,Car Lease
 Expense,Transportation,Insurance
 Expense,Transportation,Public Transit
 Expense,Transportation,Parking
@@ -50,12 +52,14 @@ Expense,Transportation,Maintenance & Repairs
 Expense,Transportation,Ride Sharing
 Expense,Transportation,Tolls
 Expense,Transportation,Vehicle Registration/License
+Expense,Transportation,EV Charging
 Expense,Family & Children,Childcare / Babysitting
 Expense,Family & Children,School Supplies
 Expense,Family & Children,Child Support
 Expense,Family & Children,Kids' Activities
 Expense,Family & Children,Clothing (Children)
 Expense,Family & Children,Family Support
+Expense,Family & Children,College Savings
 Expense,Health & Wellness,Health Insurance
 Expense,Health & Wellness,Medical Expenses
 Expense,Health & Wellness,Dental Expenses
@@ -64,6 +68,7 @@ Expense,Health & Wellness,Fitness / Gym
 Expense,Health & Wellness,Medications
 Expense,Health & Wellness,Vitamins & Supplements
 Expense,Health & Wellness,Eyecare
+Expense,Health & Wellness,Life Insurance
 Expense,Entertainment,Streaming Music
 Expense,Entertainment,Streaming Services (TV/Movies)
 Expense,Entertainment,Gaming Subscriptions/Purchases
@@ -72,6 +77,9 @@ Expense,Entertainment,Sporting Goods
 Expense,Entertainment,Arts & Crafts
 Expense,Entertainment,Vacations / Travel
 Expense,Entertainment,Books / Movies
+Expense,Entertainment,Theme Parks
+Expense,Entertainment,Board Games
+Expense,Entertainment,Hobbies
 Expense,Education,Tuition
 Expense,Education,Student Loan Payments
 Expense,Education,Books & Supplies
@@ -86,7 +94,8 @@ Expense,Shopping,Misc. Shopping
 Expense,Shopping,Home Goods
 Expense,Shopping,Tools & Hardware
 Expense,Shopping,Books & Music (Physical)
-Expense,Shopping,Hobbies
+Expense,Shopping,Jewelry
+Expense,Shopping,Thrift/Secondhand
 Expense,Work & Business,Professional Fees
 Expense,Work & Business,Work Travel
 Expense,Work & Business,Office Supplies
@@ -95,8 +104,6 @@ Expense,Work & Business,Training & Development
 Expense,Work & Business,Union Dues
 Expense,Work & Business,Home Office
 Expense,Personal & Other,Charity/Donations
-Expense,Personal & Other,Personal Savings/Investments
-Expense,Personal & Other,Emergency Fund
 Expense,Personal & Other,Bank Fees
 Expense,Personal & Other,ATM Fees
 Expense,Personal & Other,Cash Withdrawals
@@ -104,3 +111,16 @@ Expense,Personal & Other,Postage & Shipping
 Expense,Personal & Other,Taxes (Other)
 Expense,Personal & Other,Legal Fees
 Expense,Personal & Other,Miscellaneous
+Expense,Personal & Other,Income Tax
+Expense,Digital Services,Cloud Storage
+Expense,Digital Services,VPN
+Expense,Digital Services,Domain/Hosting
+Expense,Digital Services,App Subscriptions
+Expense,Pets,Pet Food & Supplies
+Expense,Pets,Vet Bills
+Expense,Pets,Pet Insurance
+Expense,Pets,Pet Grooming
+Expense,Savings & Investments,Retirement
+Expense,Savings & Investments,Crypto
+Expense,Savings & Investments,Personal Savings/Investments
+Expense,Savings & Investments,Emergency Fund
