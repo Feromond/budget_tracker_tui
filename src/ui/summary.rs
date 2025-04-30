@@ -31,12 +31,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     // --- Line Chart: Daily Expenses for Selected Month or All Months (Multi Mode) ---
     let mut months: Vec<u32> = vec![];
     if let Some(year) = current_year {
-        months = app
-            .monthly_summaries
-            .keys()
-            .filter_map(|(y, m)| if *y == year { Some(*m) } else { None })
-            .collect();
-        months.sort_unstable();
+        months = app.sorted_months_for_year(year);
     }
     let color_palette = [
         Color::LightRed,
