@@ -6,7 +6,7 @@ use chrono::Datelike;
 
 impl App {
     // --- Private Helpers for Summary Navigation ---
-    fn sorted_months_for_year(&self, year: i32) -> Vec<u32> {
+    pub fn sorted_months_for_year(&self, year: i32) -> Vec<u32> {
         let mut months: Vec<u32> = self
             .monthly_summaries
             .keys()
@@ -24,6 +24,18 @@ impl App {
         } else {
             self.selected_summary_month = months.last().copied();
         }
+    }
+
+    // --- Private Helpers for Category Summary Navigation ---
+    pub fn sorted_category_months_for_year(&self, year: i32) -> Vec<u32> {
+        let mut months: Vec<u32> = self
+            .category_summaries
+            .keys()
+            .filter_map(|(y, m)| if *y == year { Some(*m) } else { None })
+            .collect();
+        months.sort_unstable();
+        months.dedup();
+        months
     }
 
     // --- Summary Logic ---
