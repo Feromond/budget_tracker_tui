@@ -94,4 +94,67 @@ impl App {
         self.input_field_content.clear();
         self.input_field_cursor = 0;
     }
+    pub(crate) fn next_settings_field(&mut self) {
+        let next_field = (self.current_settings_field + 1) % self.settings_fields.len();
+        self.current_settings_field = next_field;
+        if self.current_settings_field == 0 {
+            self.input_field_cursor = self.settings_fields[0].len();
+        }
+    }
+    pub(crate) fn previous_settings_field(&mut self) {
+        if self.current_settings_field == 0 {
+            self.current_settings_field = self.settings_fields.len() - 1;
+        } else {
+            self.current_settings_field -= 1;
+        }
+        if self.current_settings_field == 0 {
+            self.input_field_cursor = self.settings_fields[0].len();
+        }
+    }
+    pub(crate) fn move_cursor_left_settings(&mut self) {
+        if self.current_settings_field == 0 && self.input_field_cursor > 0 {
+            self.input_field_cursor -= 1;
+        }
+    }
+    pub(crate) fn move_cursor_right_settings(&mut self) {
+        if self.current_settings_field == 0 && self.input_field_cursor < self.settings_fields[0].len() {
+            self.input_field_cursor += 1;
+        }
+    }
+    pub(crate) fn insert_char_settings(&mut self, c: char) {
+        let idx = self.current_settings_field;
+        if idx == 1 {
+            // Target Budget: only allow digits and one decimal point
+            let field = &mut self.settings_fields[1];
+            if c.is_ascii_digit() || (c == '.' && !field.contains('.')) {
+                field.push(c);
+            }
+        } else {
+            // Data File Path: insert at cursor
+            let field = &mut self.settings_fields[0];
+            field.insert(self.input_field_cursor, c);
+            self.input_field_cursor += 1;
+        }
+    }
+    pub(crate) fn delete_char_settings(&mut self) {
+        let idx = self.current_settings_field;
+        if idx == 1 {
+            let field = &mut self.settings_fields[1];
+            field.pop();
+        } else {
+            // Data File Path: delete before cursor
+            let field = &mut self.settings_fields[0];
+            if self.input_field_cursor > 0 && !field.is_empty() {
+                field.remove(self.input_field_cursor - 1);
+                self.input_field_cursor -= 1;
+            }
+        }
+    }
+    pub(crate) fn clear_settings_field(&mut self) {
+        let idx = self.current_settings_field;
+        self.settings_fields[idx].clear();
+        if idx == 0 {
+            self.input_field_cursor = 0;
+        }
+    }
 }
