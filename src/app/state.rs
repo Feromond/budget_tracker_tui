@@ -74,6 +74,11 @@ pub struct App {
     pub(crate) expanded_category_summary_months: HashSet<u32>,
     // Flattened list of visible items for rendering and navigation
     pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
+    // Settings form state
+    pub(crate) settings_fields: [String; 2],
+    pub(crate) current_settings_field: usize,
+    // Budget
+    pub(crate) target_budget: Option<f64>,
 }
 
 impl App {
@@ -203,6 +208,9 @@ impl App {
             category_summary_table_state: TableState::default(),
             expanded_category_summary_months: HashSet::new(),
             cached_visible_category_items: Vec::new(),
+            settings_fields: Default::default(),
+            current_settings_field: 0,
+            target_budget: loaded_settings.target_budget,
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
