@@ -55,14 +55,12 @@ pub(crate) fn save_transactions(
     let mut wtr = csv::Writer::from_writer(file);
     for transaction in transactions {
         wtr.serialize(transaction).map_err(|e| {
-            Error::other(
-                format!(
-                    "Failed to serialize transaction {:?} to {}: {}",
-                    transaction,
-                    data_path.display(),
-                    e
-                ),
-            )
+            Error::other(format!(
+                "Failed to serialize transaction {:?} to {}: {}",
+                transaction,
+                data_path.display(),
+                e
+            ))
         })?;
     }
     wtr.flush()?;

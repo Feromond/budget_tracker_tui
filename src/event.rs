@@ -27,8 +27,8 @@ pub(crate) fn run_app<B: Backend>(
                     // Potentially handle paste in other modes later if needed
                 }
                 Event::Key(key) => {
-                    if key.kind == KeyEventKind::Press {
-                            if key.modifiers == KeyModifiers::NONE
+                    if key.kind == KeyEventKind::Press
+                        && (key.modifiers == KeyModifiers::NONE
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Let Shift+Char pass through for typing capitals/symbols in settings path
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
@@ -39,18 +39,15 @@ pub(crate) fn run_app<B: Backend>(
                                     && key.modifiers == KeyModifiers::SHIFT
                                     && matches!(key.code, KeyCode::Left | KeyCode::Right))
                                 // Allow Ctrl+F/R in simple Filtering mode
-                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r')))
-                                // Allow Shift+Char in Filtering mode for capital letters
-                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
-                            {
-                                if app.mode != AppMode::ConfirmDelete
-                                    && app.mode != AppMode::SelectingCategory
-                                    && app.mode != AppMode::SelectingSubcategory
-                                {
-                                    app.status_message = None;
-                                }
-                                update(app, key);
-                            }
+                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r'))) || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_))))
+                    {
+                        if app.mode != AppMode::ConfirmDelete
+                            && app.mode != AppMode::SelectingCategory
+                            && app.mode != AppMode::SelectingSubcategory
+                        {
+                            app.status_message = None;
+                        }
+                        update(app, key);
                     }
                 }
                 _ => {}
