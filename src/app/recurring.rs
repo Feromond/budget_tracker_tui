@@ -1,7 +1,7 @@
 use super::state::App;
 use crate::model::{RecurrenceFrequency, Transaction};
 use crate::recurring::{generate_recurring_transactions, remove_generated_recurring_transactions};
-use chrono::{NaiveDate, Datelike};
+use chrono::NaiveDate;
 
 impl App {
     pub(crate) fn generate_recurring_transactions(&mut self) {
@@ -32,56 +32,31 @@ impl App {
     pub(crate) fn start_recurring_settings(&mut self) {
         if let Some(view_index) = self.table_state.selected() {
             if let Some(original_index) = self.get_original_index(view_index) {
-                let tx = &self.transactions[original_index];
+                // Clone the transaction to avoid borrowing issues
+                let tx = self.transactions[original_index].clone();
                 
-                // If this is a generated recurring transaction, find and edit the original's settings instead
-                if tx.is_generated_from_recurring {
-                    if let Some(original_recurring_index) = self.find_original_recurring_transaction(tx) {
-                        // Find the view index for the original transaction
-                        if let Some(original_view_index) = self.filtered_indices.iter().position(|&idx| idx == original_recurring_index) {
-                            // Select the original transaction in the table
-                            self.table_state.select(Some(original_view_index));
-                            self.status_message = Some("Jumped to original recurring transaction for settings.".to_string());
-                            
-                            // Now edit the original transaction's recurring settings
-                            let original_tx = &self.transactions[original_recurring_index];
-                            self.mode = crate::app::state::AppMode::RecurringSettings;
-                            self.recurring_transaction_index = Some(original_recurring_index);
-                            self.current_recurring_field = 0;
-                            
-                            // Initialize fields with current values
-                            self.recurring_settings_fields[0] = if original_tx.is_recurring { "Yes" } else { "No" }.to_string();
-                            self.recurring_settings_fields[1] = original_tx.recurrence_frequency
-                                .map(|f| f.to_string().to_string())
-                                .unwrap_or(String::from("Monthly"));
-                            self.recurring_settings_fields[2] = original_tx.recurrence_end_date
-                                .map(|d| d.format(crate::model::DATE_FORMAT).to_string())
-                                .unwrap_or(String::new());
-                            return;
-                        } else {
-                            self.status_message = Some("Original recurring transaction not visible in current filter.".to_string());
-                            return;
-                        }
-                    } else {
-                        self.status_message = Some("Could not find original recurring transaction.".to_string());
-                        return;
+                // Jump to original if this is a generated transaction, or use current if not
+                if let Some(target_index) = self.jump_to_original_if_needed(&tx, original_index, crate::app::util::JumpToOriginalAction::RecurringSettings) {
+                    let target_tx = &self.transactions[target_index];
+                    
+                    self.mode = crate::app::state::AppMode::RecurringSettings;
+                    self.recurring_transaction_index = Some(target_index);
+                    self.current_recurring_field = 0;
+                    
+                    // Initialize fields with current values
+                    self.recurring_settings_fields[0] = if target_tx.is_recurring { "Yes" } else { "No" }.to_string();
+                    self.recurring_settings_fields[1] = target_tx.recurrence_frequency
+                        .map(|f| f.to_string().to_string())
+                        .unwrap_or(String::from("Monthly"));
+                    self.recurring_settings_fields[2] = target_tx.recurrence_end_date
+                        .map(|d| d.format(crate::model::DATE_FORMAT).to_string())
+                        .unwrap_or(String::new());
+                    
+                    // Only clear status message if we didn't jump (to preserve jump message)
+                    if target_index == original_index {
+                        self.status_message = None;
                     }
                 }
-                
-                self.mode = crate::app::state::AppMode::RecurringSettings;
-                self.recurring_transaction_index = Some(original_index);
-                self.current_recurring_field = 0;
-                
-                // Initialize fields with current values
-                self.recurring_settings_fields[0] = if tx.is_recurring { "Yes" } else { "No" }.to_string();
-                self.recurring_settings_fields[1] = tx.recurrence_frequency
-                    .map(|f| f.to_string().to_string())
-                    .unwrap_or(String::from("Monthly"));
-                self.recurring_settings_fields[2] = tx.recurrence_end_date
-                    .map(|d| d.format(crate::model::DATE_FORMAT).to_string())
-                    .unwrap_or(String::new());
-                
-                self.status_message = None;
             } else {
                 self.status_message = Some("Error: Could not map view index to transaction".to_string());
             }
@@ -201,8 +176,8 @@ impl App {
     
     pub(crate) fn insert_char_recurring(&mut self, c: char) {
         if self.current_recurring_field == 2 {
-            // Use the same sophisticated date validation as add/edit forms
-            if let Some(new_date) = crate::app::util::validate_and_insert_date_char(
+            // Use the centralized date validation from validation module
+            if let Some(new_date) = crate::validation::validate_and_insert_date_char(
                 &self.recurring_settings_fields[2], 
                 c
             ) {
@@ -217,38 +192,15 @@ impl App {
     
     pub(crate) fn delete_char_recurring(&mut self) {
         if self.current_recurring_field == 2 {
-            let current_field = &mut self.recurring_settings_fields[2];
-            let len = current_field.len();
-
-            if current_field.ends_with('-') && (current_field.len() == 5 || current_field.len() == 8) {
-                if current_field
-                    .chars()
-                    .nth(len - 2)
-                    .is_some_and(|ch| ch.is_ascii_digit())
-                {
-                    current_field.pop(); // Remove the hyphen
-                    current_field.pop(); // Remove the preceding digit
-                } else {
-                    current_field.pop(); 
-                }
-            } else if !current_field.is_empty() {
-                current_field.pop();
-            }
+            crate::validation::handle_date_backspace(&mut self.recurring_settings_fields[2]);
             self.status_message = None;
         }
     }
     
-
     pub(crate) fn increment_date_recurring(&mut self) {
         if self.current_recurring_field == 2 {
-            if self.recurring_settings_fields[2].is_empty() {
-                // If empty, jump to today's date
-                let today = chrono::Local::now().date_naive();
-                self.recurring_settings_fields[2] = today.format(crate::model::DATE_FORMAT).to_string();
-                self.status_message = None;
-            } else if let Ok(date) = chrono::NaiveDate::parse_from_str(&self.recurring_settings_fields[2], crate::model::DATE_FORMAT) {
-                let new_date = date + chrono::Duration::days(1);
-                self.recurring_settings_fields[2] = new_date.format(crate::model::DATE_FORMAT).to_string();
+            if let Some(new_date) = self.increment_date_field(&self.recurring_settings_fields[2]) {
+                self.recurring_settings_fields[2] = new_date;
                 self.status_message = None;
             }
         }
@@ -256,14 +208,8 @@ impl App {
 
     pub(crate) fn decrement_date_recurring(&mut self) {
         if self.current_recurring_field == 2 {
-            if self.recurring_settings_fields[2].is_empty() {
-                // If empty, jump to today's date
-                let today = chrono::Local::now().date_naive();
-                self.recurring_settings_fields[2] = today.format(crate::model::DATE_FORMAT).to_string();
-                self.status_message = None;
-            } else if let Ok(date) = chrono::NaiveDate::parse_from_str(&self.recurring_settings_fields[2], crate::model::DATE_FORMAT) {
-                let new_date = date - chrono::Duration::days(1);
-                self.recurring_settings_fields[2] = new_date.format(crate::model::DATE_FORMAT).to_string();
+            if let Some(new_date) = self.decrement_date_field(&self.recurring_settings_fields[2]) {
+                self.recurring_settings_fields[2] = new_date;
                 self.status_message = None;
             }
         }
@@ -271,21 +217,8 @@ impl App {
 
     pub(crate) fn increment_month_recurring(&mut self) {
         if self.current_recurring_field == 2 {
-            if self.recurring_settings_fields[2].is_empty() {
-                // If empty, jump to today's date
-                let today = chrono::Local::now().date_naive();
-                self.recurring_settings_fields[2] = today.format(crate::model::DATE_FORMAT).to_string();
-                self.status_message = None;
-            } else if let Ok(date) = chrono::NaiveDate::parse_from_str(&self.recurring_settings_fields[2], crate::model::DATE_FORMAT) {
-                // Add one month using chrono's date arithmetic
-                let new_date = if date.month() == 12 {
-                    NaiveDate::from_ymd_opt(date.year() + 1, 1, date.day())
-                        .unwrap_or_else(|| NaiveDate::from_ymd_opt(date.year() + 1, 1, 28).unwrap())
-                } else {
-                    NaiveDate::from_ymd_opt(date.year(), date.month() + 1, date.day())
-                        .unwrap_or_else(|| NaiveDate::from_ymd_opt(date.year(), date.month() + 1, 28).unwrap())
-                };
-                self.recurring_settings_fields[2] = new_date.format(crate::model::DATE_FORMAT).to_string();
+            if let Some(new_date) = self.increment_month_field(&self.recurring_settings_fields[2]) {
+                self.recurring_settings_fields[2] = new_date;
                 self.status_message = None;
             }
         }
@@ -293,21 +226,8 @@ impl App {
 
     pub(crate) fn decrement_month_recurring(&mut self) {
         if self.current_recurring_field == 2 {
-            if self.recurring_settings_fields[2].is_empty() {
-                // If empty, jump to today's date
-                let today = chrono::Local::now().date_naive();
-                self.recurring_settings_fields[2] = today.format(crate::model::DATE_FORMAT).to_string();
-                self.status_message = None;
-            } else if let Ok(date) = chrono::NaiveDate::parse_from_str(&self.recurring_settings_fields[2], crate::model::DATE_FORMAT) {
-                // Subtract one month using chrono's date arithmetic
-                let new_date = if date.month() == 1 {
-                    NaiveDate::from_ymd_opt(date.year() - 1, 12, date.day())
-                        .unwrap_or_else(|| NaiveDate::from_ymd_opt(date.year() - 1, 12, 28).unwrap())
-                } else {
-                    NaiveDate::from_ymd_opt(date.year(), date.month() - 1, date.day())
-                        .unwrap_or_else(|| NaiveDate::from_ymd_opt(date.year(), date.month() - 1, 28).unwrap())
-                };
-                self.recurring_settings_fields[2] = new_date.format(crate::model::DATE_FORMAT).to_string();
+            if let Some(new_date) = self.decrement_month_field(&self.recurring_settings_fields[2]) {
+                self.recurring_settings_fields[2] = new_date;
                 self.status_message = None;
             }
         }
