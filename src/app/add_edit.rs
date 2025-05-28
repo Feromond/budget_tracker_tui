@@ -5,6 +5,30 @@ use crate::persistence::save_transactions;
 use chrono::NaiveDate;
 
 impl App {
+    // Helper function to find the original recurring transaction for a generated one
+    pub(crate) fn find_original_recurring_transaction(&self, generated_tx: &crate::model::Transaction) -> Option<usize> {
+        if !generated_tx.is_generated_from_recurring {
+            return None; // Not a generated transaction
+        }
+        
+        // Find the original transaction that matches this generated one
+        for (index, tx) in self.transactions.iter().enumerate() {
+            if tx.is_recurring 
+                && !tx.is_generated_from_recurring 
+                && tx.description == generated_tx.description
+                && tx.amount == generated_tx.amount
+                && tx.transaction_type == generated_tx.transaction_type
+                && tx.category == generated_tx.category
+                && tx.subcategory == generated_tx.subcategory
+                && tx.recurrence_frequency == generated_tx.recurrence_frequency
+                && tx.recurrence_end_date == generated_tx.recurrence_end_date
+            {
+                return Some(index);
+            }
+        }
+        None
+    }
+
     // --- Adding Logic ---
     // Handles entering add mode, setting up default values, and resetting state.
     pub(crate) fn start_adding(&mut self) {
@@ -52,14 +76,23 @@ impl App {
                     transaction_type,
                     category: category.to_string(),
                     subcategory: subcategory.to_string(),
+                    is_recurring: false,
+                    recurrence_frequency: None,
+                    recurrence_end_date: None,
+                    is_generated_from_recurring: false,
                 };
                 self.transactions.push(new_transaction);
                 self.sort_transactions();
                 self.apply_filter();
                 self.calculate_monthly_summaries();
+                self.calculate_category_summaries();
                 match save_transactions(&self.transactions, &self.data_file_path) {
                     Ok(_) => {
                         self.status_message = Some("Transaction added successfully.".to_string());
+                        
+                        // Regenerate recurring transactions after adding a new one
+                        self.generate_recurring_transactions();
+                        
                         self.exit_adding(false);
                     }
                     Err(e) => {
@@ -92,6 +125,44 @@ impl App {
         if let Some(view_index) = self.table_state.selected() {
             if let Some(original_index) = self.get_original_index(view_index) {
                 let tx = &self.transactions[original_index];
+                
+                // If this is a generated recurring transaction, find and edit the original instead
+                if tx.is_generated_from_recurring {
+                    if let Some(original_recurring_index) = self.find_original_recurring_transaction(tx) {
+                        // Find the view index for the original transaction
+                        if let Some(original_view_index) = self.filtered_indices.iter().position(|&idx| idx == original_recurring_index) {
+                            // Select the original transaction in the table
+                            self.table_state.select(Some(original_view_index));
+                            self.status_message = Some("Jumped to original recurring transaction for editing.".to_string());
+                            
+                            // Now edit the original transaction
+                            let original_tx = &self.transactions[original_recurring_index];
+                            self.mode = crate::app::state::AppMode::Editing;
+                            self.editing_index = Some(original_recurring_index);
+                            self.current_add_edit_field = 0;
+                            self.add_edit_fields = [
+                                original_tx.date.format(DATE_FORMAT).to_string(),
+                                original_tx.description.clone(),
+                                format!("{:.2}", original_tx.amount),
+                                if original_tx.transaction_type == TransactionType::Income {
+                                    "Income".to_string()
+                                } else {
+                                    "Expense".to_string()
+                                },
+                                original_tx.category.clone(),
+                                original_tx.subcategory.clone(),
+                            ];
+                            return;
+                        } else {
+                            self.status_message = Some("Original recurring transaction not visible in current filter.".to_string());
+                            return;
+                        }
+                    } else {
+                        self.status_message = Some("Could not find original recurring transaction.".to_string());
+                        return;
+                    }
+                }
+                
                 self.mode = crate::app::state::AppMode::Editing;
                 self.editing_index = Some(original_index);
                 self.current_add_edit_field = 0;
@@ -147,6 +218,9 @@ impl App {
             match (date_res, description, amount_res) {
                 (Ok(date), desc, Ok(amount)) if !desc.is_empty() && amount > 0.0 => {
                     if index < self.transactions.len() {
+                        let existing_tx = &self.transactions[index];
+                        let was_recurring = existing_tx.is_recurring;
+                        
                         self.transactions[index] = crate::model::Transaction {
                             date,
                             description: desc.to_string(),
@@ -154,13 +228,24 @@ impl App {
                             transaction_type,
                             category: category.to_string(),
                             subcategory: subcategory.to_string(),
+                            is_recurring: existing_tx.is_recurring,
+                            recurrence_frequency: existing_tx.recurrence_frequency,
+                            recurrence_end_date: existing_tx.recurrence_end_date,
+                            is_generated_from_recurring: existing_tx.is_generated_from_recurring,
                         };
                         match save_transactions(&self.transactions, &self.data_file_path) {
                             Ok(_) => {
                                 self.status_message =
                                     Some("Transaction updated successfully.".to_string());
-                                self.apply_filter();
-                                self.calculate_monthly_summaries();
+                                
+                                // If this was a recurring transaction, regenerate all recurring instances
+                                if was_recurring {
+                                    self.generate_recurring_transactions();
+                                } else {
+                                    self.apply_filter();
+                                    self.calculate_monthly_summaries();
+                                }
+                                
                                 self.exit_editing(false);
                             }
                             Err(e) => {
@@ -216,6 +301,31 @@ impl App {
     pub(crate) fn prepare_for_delete(&mut self) {
         if let Some(view_index) = self.table_state.selected() {
             if let Some(original_index) = self.get_original_index(view_index) {
+                let tx = &self.transactions[original_index];
+                
+                // If this is a generated recurring transaction, find and delete the original instead
+                if tx.is_generated_from_recurring {
+                    if let Some(original_recurring_index) = self.find_original_recurring_transaction(tx) {
+                        // Find the view index for the original transaction
+                        if let Some(original_view_index) = self.filtered_indices.iter().position(|&idx| idx == original_recurring_index) {
+                            // Select the original transaction in the table
+                            self.table_state.select(Some(original_view_index));
+                            self.status_message = Some("Jumped to original recurring transaction for deletion.".to_string());
+                            
+                            // Now prepare to delete the original transaction
+                            self.delete_index = Some(original_recurring_index);
+                            self.mode = crate::app::state::AppMode::ConfirmDelete;
+                            return;
+                        } else {
+                            self.status_message = Some("Original recurring transaction not visible in current filter.".to_string());
+                            return;
+                        }
+                    } else {
+                        self.status_message = Some("Could not find original recurring transaction.".to_string());
+                        return;
+                    }
+                }
+                
                 self.delete_index = Some(original_index);
                 self.mode = crate::app::state::AppMode::ConfirmDelete;
                 self.status_message = Some("Confirm Delete? (y/n)".to_string());
@@ -229,6 +339,8 @@ impl App {
     }
     pub(crate) fn confirm_delete(&mut self) {
         if let Some(original_index) = self.delete_index {
+            let was_recurring = self.transactions[original_index].is_recurring;
+            
             self.transactions.remove(original_index);
             self.apply_filter();
             if let Some(selected) = self.table_state.selected() {
@@ -242,8 +354,14 @@ impl App {
                     self.status_message = Some("Transaction deleted successfully.".to_string());
                     self.delete_index = None;
                     self.mode = crate::app::state::AppMode::Normal;
-                    self.calculate_monthly_summaries();
-                    self.calculate_category_summaries();
+                    
+                    // If this was a recurring transaction, regenerate all recurring instances
+                    if was_recurring {
+                        self.generate_recurring_transactions();
+                    } else {
+                        self.calculate_monthly_summaries();
+                        self.calculate_category_summaries();
+                    }
                 }
                 Err(e) => {
                     self.status_message = Some(format!("Error saving after delete: {}", e));
