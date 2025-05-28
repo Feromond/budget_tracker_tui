@@ -1,4 +1,6 @@
 use super::state::App;
+use crate::model::DATE_FORMAT;
+use chrono::NaiveDate;
 
 impl App {
     // --- Input Handling ---
@@ -31,47 +33,31 @@ impl App {
     pub(crate) fn insert_char_add_edit(&mut self, c: char) {
         let current_field = self.current_add_edit_field;
         let field_content = &mut self.add_edit_fields[current_field];
-        // Special handling for the Date field (index 0)
-        if current_field == 0 {
-            if let Some(new_content) =
-                crate::app::util::validate_and_insert_date_char(field_content, c)
-            {
-                *field_content = new_content;
+        
+        match current_field {
+            0 => {
+                // Date field - use centralized validation
+                if let Some(new_content) = crate::validation::validate_and_insert_date_char(field_content, c) {
+                    *field_content = new_content;
+                }
             }
-        } else if current_field == 2 {
-            // Only allow digits and one decimal point for Amount field
-            if c.is_ascii_digit() || (c == '.' && !field_content.contains('.')) {
+            2 => {
+                // Amount field - use centralized validation
+                crate::validation::insert_amount_char(field_content, c);
+            }
+            _ => {
+                // Default behavior for other fields
                 field_content.push(c);
             }
-        } else {
-            // Default behavior for other fields
-            field_content.push(c);
         }
     }
     pub(crate) fn delete_char_add_edit(&mut self) {
         let current_field = self.current_add_edit_field;
         let field_content = &mut self.add_edit_fields[current_field];
-        // Special handling for the Date field (index 0)
+        
         if current_field == 0 {
-            let len = field_content.len();
-            // If the last character is a hyphen that we likely auto-inserted,
-            // remove it and the preceding digit.
-            if (len == 5 || len == 8) && field_content.ends_with('-') {
-                // Check if the character before the hyphen is a digit (sanity check)
-                if field_content
-                    .chars()
-                    .nth(len - 2)
-                    .is_some_and(|ch| ch.is_ascii_digit())
-                {
-                    field_content.pop(); // Remove the hyphen
-                    field_content.pop(); // Remove the preceding digit
-                } else {
-                    // Should not happen with current logic, but handle gracefully
-                    field_content.pop(); // Just remove the hyphen
-                }
-            } else if !field_content.is_empty() {
-                field_content.pop();
-            }
+            // Date field - use centralized backspace handling
+            crate::validation::handle_date_backspace(field_content);
         } else if !field_content.is_empty() {
             // Default behavior for other fields
             field_content.pop();
@@ -94,6 +80,8 @@ impl App {
         self.input_field_content.clear();
         self.input_field_cursor = 0;
     }
+    
+    // --- Settings Input ---
     pub(crate) fn next_settings_field(&mut self) {
         let next_field = (self.current_settings_field + 1) % self.settings_fields.len();
         self.current_settings_field = next_field;
@@ -125,17 +113,18 @@ impl App {
     }
     pub(crate) fn insert_char_settings(&mut self, c: char) {
         let idx = self.current_settings_field;
-        if idx == 1 {
-            // Target Budget: only allow digits and one decimal point
-            let field = &mut self.settings_fields[1];
-            if c.is_ascii_digit() || (c == '.' && !field.contains('.')) {
-                field.push(c);
+        
+        match idx {
+            1 => {
+                // Target Budget - use centralized amount validation
+                crate::validation::insert_amount_char(&mut self.settings_fields[1], c);
             }
-        } else {
-            // Data File Path: insert at cursor
-            let field = &mut self.settings_fields[0];
-            field.insert(self.input_field_cursor, c);
-            self.input_field_cursor += 1;
+            _ => {
+                // Data File Path: insert at cursor
+                let field = &mut self.settings_fields[0];
+                field.insert(self.input_field_cursor, c);
+                self.input_field_cursor += 1;
+            }
         }
     }
     pub(crate) fn delete_char_settings(&mut self) {
@@ -159,4 +148,62 @@ impl App {
             self.input_field_cursor = 0;
         }
     }
-}
+
+    // --- Date Navigation ---
+    // Date field navigation utilities for input fields - public for use by other modules
+    pub fn increment_date_field(&self, field: &str) -> Option<String> {
+        if field.is_empty() {
+            let today = chrono::Local::now().date_naive();
+            return Some(today.format(DATE_FORMAT).to_string());
+        }
+        
+        if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
+            let new_date = date + chrono::Duration::days(1);
+            Some(new_date.format(DATE_FORMAT).to_string())
+        } else {
+            None
+        }
+    }
+
+    pub fn decrement_date_field(&self, field: &str) -> Option<String> {
+        if field.is_empty() {
+            let today = chrono::Local::now().date_naive();
+            return Some(today.format(DATE_FORMAT).to_string());
+        }
+        
+        if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
+            let new_date = date - chrono::Duration::days(1);
+            Some(new_date.format(DATE_FORMAT).to_string())
+        } else {
+            None
+        }
+    }
+
+    pub fn increment_month_field(&self, field: &str) -> Option<String> {
+        if field.is_empty() {
+            let today = chrono::Local::now().date_naive();
+            return Some(today.format(DATE_FORMAT).to_string());
+        }
+        
+        if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
+            let new_date = crate::validation::add_months(date, 1);
+            Some(new_date.format(DATE_FORMAT).to_string())
+        } else {
+            None
+        }
+    }
+
+    pub fn decrement_month_field(&self, field: &str) -> Option<String> {
+        if field.is_empty() {
+            let today = chrono::Local::now().date_naive();
+            return Some(today.format(DATE_FORMAT).to_string());
+        }
+        
+        if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
+            let new_date = crate::validation::add_months(date, -1);
+            Some(new_date.format(DATE_FORMAT).to_string())
+        } else {
+            None
+        }
+    }
+} 
