@@ -41,14 +41,14 @@ impl App {
                 // Select the original transaction in the table
                 self.table_state.select(Some(original_view_index));
                 self.status_message = Some(action.message().to_string());
-                return Some(original_recurring_index);
+                Some(original_recurring_index)
             } else {
                 self.status_message = Some("Original recurring transaction not visible in current filter.".to_string());
-                return None;
+                None
             }
         } else {
             self.status_message = Some("Could not find original recurring transaction.".to_string());
-            return None;
+            None
         }
     }
 

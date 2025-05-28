@@ -59,7 +59,7 @@ pub enum RecurrenceFrequency {
 }
 
 impl RecurrenceFrequency {
-    pub fn to_string(&self) -> &'static str {
+    pub fn to_string(self) -> &'static str {
         match self {
             RecurrenceFrequency::Daily => "Daily",
             RecurrenceFrequency::Weekly => "Weekly",

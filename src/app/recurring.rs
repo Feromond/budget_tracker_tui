@@ -50,7 +50,7 @@ impl App {
                         .unwrap_or(String::from("Monthly"));
                     self.recurring_settings_fields[2] = target_tx.recurrence_end_date
                         .map(|d| d.format(crate::model::DATE_FORMAT).to_string())
-                        .unwrap_or(String::new());
+                        .unwrap_or_default();
                     
                     // Only clear status message if we didn't jump (to preserve jump message)
                     if target_index == original_index {
