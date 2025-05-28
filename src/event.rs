@@ -35,8 +35,8 @@ pub(crate) fn run_app<B: Backend>(
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Char in Adding and Editing modes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
-                                // Allow Shift+Arrow in Adding, Editing, and AdvancedFiltering modes for month changes
-                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering)
+                                // Allow Shift+Arrow in Adding, Editing, AdvancedFiltering, and RecurringSettings modes for month changes
+                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering || app.mode == AppMode::RecurringSettings)
                                     && key.modifiers == KeyModifiers::SHIFT
                                     && matches!(key.code, KeyCode::Left | KeyCode::Right))
                                 // Allow Ctrl+F/R in simple Filtering mode
@@ -77,6 +77,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
                 KeyCode::Char('d') => app.prepare_for_delete(),
                 KeyCode::Char('e') => app.start_editing(),
                 KeyCode::Char('f') => app.start_filtering(),
+                KeyCode::Char('r') => app.start_recurring_settings(),
                 KeyCode::Char('s') => app.enter_summary_mode(),
                 KeyCode::Char('c') => app.enter_category_summary_mode(),
                 KeyCode::Char('o') => app.enter_settings_mode(),
@@ -318,6 +319,63 @@ fn update(app: &mut App, key_event: KeyEvent) {
             }
             (KeyCode::Backspace, KeyModifiers::NONE) => app.delete_char_settings(),
             (KeyCode::Delete, KeyModifiers::NONE) => app.clear_settings_field(),
+            _ => {}
+        },
+        AppMode::RecurringSettings => match (key_event.modifiers, key_code) {
+            (KeyModifiers::NONE, KeyCode::Esc) => app.exit_recurring_settings(true),
+            (KeyModifiers::NONE, KeyCode::Enter) => match app.current_recurring_field {
+                1 => app.start_frequency_selection(),
+                _ => app.save_recurring_settings(),
+            },
+            (KeyModifiers::NONE, KeyCode::Tab) | (KeyModifiers::NONE, KeyCode::Down) => app.next_recurring_field(),
+            (KeyModifiers::NONE, KeyCode::BackTab) | (KeyModifiers::NONE, KeyCode::Up) => app.previous_recurring_field(),
+            (KeyModifiers::NONE, KeyCode::Left) => match app.current_recurring_field {
+                0 => app.toggle_recurring_enabled(),
+                2 => app.decrement_date_recurring(),
+                _ => {}
+            },
+            (KeyModifiers::NONE, KeyCode::Right) => match app.current_recurring_field {
+                0 => app.toggle_recurring_enabled(),
+                2 => app.increment_date_recurring(),
+                _ => {}
+            },
+            (KeyModifiers::SHIFT, KeyCode::Left) => {
+                if app.current_recurring_field == 2 {
+                    app.decrement_month_recurring();
+                }
+            },
+            (KeyModifiers::SHIFT, KeyCode::Right) => {
+                if app.current_recurring_field == 2 {
+                    app.increment_month_recurring();
+                }
+            },
+            (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_recurring_field {
+                2 if c == '+' || c == '=' => app.increment_date_recurring(),
+                2 if c == '-' => app.decrement_date_recurring(),
+                2 if c.is_ascii_digit() => app.insert_char_recurring(c),
+                _ => {}
+            },
+            (KeyModifiers::NONE, KeyCode::Backspace) => {
+                if app.current_recurring_field == 2 {
+                    app.delete_char_recurring();
+                }
+            },
+            _ => {}
+        },
+        AppMode::SelectingRecurrenceFrequency => match key_code {
+            KeyCode::Esc => {
+                app.mode = crate::app::state::AppMode::RecurringSettings;
+            }
+            KeyCode::Enter => {
+                if let Some(selected) = app.selection_list_state.selected() {
+                    if let Some(frequency) = app.current_selection_list.get(selected) {
+                        app.recurring_settings_fields[1] = frequency.clone();
+                    }
+                }
+                app.mode = crate::app::state::AppMode::RecurringSettings;
+            }
+            KeyCode::Down => app.select_next_list_item(),
+            KeyCode::Up => app.select_previous_list_item(),
             _ => {}
         },
     }
