@@ -50,8 +50,7 @@ pub(crate) fn save_settings(settings: &AppSettings) -> Result<(), Error> {
     let config_path = get_config_file_path()?;
 
     let contents = serde_json::to_string_pretty(settings).map_err(|e| {
-        Error::new(
-            ErrorKind::Other,
+        Error::other(
             format!("Failed to serialize settings: {}", e),
         )
     })?;
