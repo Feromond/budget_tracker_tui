@@ -28,6 +28,8 @@ pub enum AppMode {
     SelectingSubcategory,
     CategorySummary,
     Settings,
+    RecurringSettings,
+    SelectingRecurrenceFrequency,
 }
 
 #[derive(Debug)]
@@ -80,6 +82,10 @@ pub struct App {
     pub(crate) current_settings_field: usize,
     // Budget
     pub(crate) target_budget: Option<f64>,
+    // Recurring transaction state
+    pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
+    pub(crate) current_recurring_field: usize,
+    pub(crate) recurring_transaction_index: Option<usize>,
 }
 
 impl App {
@@ -213,6 +219,9 @@ impl App {
             settings_fields: Default::default(),
             current_settings_field: 0,
             target_budget: loaded_settings.target_budget,
+            recurring_settings_fields: Default::default(),
+            current_recurring_field: 0,
+            recurring_transaction_index: None,
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
@@ -222,6 +231,10 @@ impl App {
         if !app.transactions.is_empty() {
             app.table_state.select(Some(0));
         }
+        
+        // Generate recurring transactions up to today
+        app.generate_recurring_transactions();
+        
         app
     }
     pub fn quit(&mut self) {
