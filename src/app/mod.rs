@@ -4,7 +4,6 @@ pub mod filter;
 pub mod input;
 pub mod recurring;
 pub mod settings;
-pub mod sort;
 pub mod state;
 pub mod summary;
 pub mod util;
