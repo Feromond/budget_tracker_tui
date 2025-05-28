@@ -5,6 +5,7 @@ mod model;
 mod persistence;
 mod recurring;
 mod ui;
+mod validation;
 
 use crate::app::state::App;
 use event::run_app;
