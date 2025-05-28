@@ -1,10 +1,9 @@
 /// App-specific utility functions
-/// 
+///
 /// This module contains utilities that are specific to app state management
 /// and operations, as opposed to general validation or business logic.
 use crate::model::*;
 use std::cmp::Ordering;
-
 
 /// Sorts transactions by the selected column and order
 pub fn sort_transactions_impl(
@@ -42,8 +41,12 @@ impl JumpToOriginalAction {
     pub fn message(&self) -> &'static str {
         match self {
             JumpToOriginalAction::Edit => "Jumped to original recurring transaction for editing.",
-            JumpToOriginalAction::Delete => "Jumped to original recurring transaction for deletion.",
-            JumpToOriginalAction::RecurringSettings => "Jumped to original recurring transaction for settings.",
+            JumpToOriginalAction::Delete => {
+                "Jumped to original recurring transaction for deletion."
+            }
+            JumpToOriginalAction::RecurringSettings => {
+                "Jumped to original recurring transaction for settings."
+            }
         }
     }
 }

@@ -88,7 +88,9 @@ impl App {
         match idx {
             0 | 1 => {
                 // Date fields: use centralized date validation
-                if let Some(new_content) = crate::validation::validate_and_insert_date_char(field, c) {
+                if let Some(new_content) =
+                    crate::validation::validate_and_insert_date_char(field, c)
+                {
                     *field = new_content;
                 }
                 // Note: No error message here since this is filter input, not form validation

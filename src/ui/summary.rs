@@ -1,6 +1,6 @@
 use crate::app::state::App;
-use crate::validation::days_in_month;
 use crate::ui::helpers::month_to_short_str;
+use crate::validation::days_in_month;
 use chrono::Datelike;
 use ratatui::prelude::*;
 use ratatui::text::Line;

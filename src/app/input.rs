@@ -33,11 +33,13 @@ impl App {
     pub(crate) fn insert_char_add_edit(&mut self, c: char) {
         let current_field = self.current_add_edit_field;
         let field_content = &mut self.add_edit_fields[current_field];
-        
+
         match current_field {
             0 => {
                 // Date field - use centralized validation
-                if let Some(new_content) = crate::validation::validate_and_insert_date_char(field_content, c) {
+                if let Some(new_content) =
+                    crate::validation::validate_and_insert_date_char(field_content, c)
+                {
                     *field_content = new_content;
                 }
             }
@@ -54,7 +56,7 @@ impl App {
     pub(crate) fn delete_char_add_edit(&mut self) {
         let current_field = self.current_add_edit_field;
         let field_content = &mut self.add_edit_fields[current_field];
-        
+
         if current_field == 0 {
             // Date field - use centralized backspace handling
             crate::validation::handle_date_backspace(field_content);
@@ -80,7 +82,7 @@ impl App {
         self.input_field_content.clear();
         self.input_field_cursor = 0;
     }
-    
+
     // --- Settings Input ---
     pub(crate) fn next_settings_field(&mut self) {
         let next_field = (self.current_settings_field + 1) % self.settings_fields.len();
@@ -113,7 +115,7 @@ impl App {
     }
     pub(crate) fn insert_char_settings(&mut self, c: char) {
         let idx = self.current_settings_field;
-        
+
         match idx {
             1 => {
                 // Target Budget - use centralized amount validation
@@ -156,7 +158,7 @@ impl App {
             let today = chrono::Local::now().date_naive();
             return Some(today.format(DATE_FORMAT).to_string());
         }
-        
+
         if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
             let new_date = date + chrono::Duration::days(1);
             Some(new_date.format(DATE_FORMAT).to_string())
@@ -170,7 +172,7 @@ impl App {
             let today = chrono::Local::now().date_naive();
             return Some(today.format(DATE_FORMAT).to_string());
         }
-        
+
         if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
             let new_date = date - chrono::Duration::days(1);
             Some(new_date.format(DATE_FORMAT).to_string())
@@ -184,7 +186,7 @@ impl App {
             let today = chrono::Local::now().date_naive();
             return Some(today.format(DATE_FORMAT).to_string());
         }
-        
+
         if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
             let new_date = crate::validation::add_months(date, 1);
             Some(new_date.format(DATE_FORMAT).to_string())
@@ -198,7 +200,7 @@ impl App {
             let today = chrono::Local::now().date_naive();
             return Some(today.format(DATE_FORMAT).to_string());
         }
-        
+
         if let Ok(date) = NaiveDate::parse_from_str(field, DATE_FORMAT) {
             let new_date = crate::validation::add_months(date, -1);
             Some(new_date.format(DATE_FORMAT).to_string())
@@ -206,4 +208,4 @@ impl App {
             None
         }
     }
-} 
+}

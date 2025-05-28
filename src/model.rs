@@ -117,8 +117,7 @@ where
     let opt = Option::<String>::deserialize(deserializer)?;
     match opt {
         Some(s) if !s.is_empty() => {
-            deserialize_flexible_date(serde::de::value::StrDeserializer::new(&s))
-                .map(Some)
+            deserialize_flexible_date(serde::de::value::StrDeserializer::new(&s)).map(Some)
         }
         _ => Ok(None),
     }

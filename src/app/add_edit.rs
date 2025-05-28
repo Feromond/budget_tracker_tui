@@ -6,15 +6,18 @@ use chrono::NaiveDate;
 
 impl App {
     // Helper function to find the original recurring transaction for a generated one
-    pub(crate) fn find_original_recurring_transaction(&self, generated_tx: &crate::model::Transaction) -> Option<usize> {
+    pub(crate) fn find_original_recurring_transaction(
+        &self,
+        generated_tx: &crate::model::Transaction,
+    ) -> Option<usize> {
         if !generated_tx.is_generated_from_recurring {
             return None; // Not a generated transaction
         }
-        
+
         // Find the original transaction that matches this generated one
         for (index, tx) in self.transactions.iter().enumerate() {
-            if tx.is_recurring 
-                && !tx.is_generated_from_recurring 
+            if tx.is_recurring
+                && !tx.is_generated_from_recurring
                 && tx.description == generated_tx.description
                 && tx.amount == generated_tx.amount
                 && tx.transaction_type == generated_tx.transaction_type
@@ -30,24 +33,36 @@ impl App {
     }
 
     // Shared function for jumping to original recurring transaction
-    pub(crate) fn jump_to_original_if_needed(&mut self, tx: &crate::model::Transaction, original_index: usize, action: crate::app::util::JumpToOriginalAction) -> Option<usize> {
+    pub(crate) fn jump_to_original_if_needed(
+        &mut self,
+        tx: &crate::model::Transaction,
+        original_index: usize,
+        action: crate::app::util::JumpToOriginalAction,
+    ) -> Option<usize> {
         if !tx.is_generated_from_recurring {
             return Some(original_index); // Not generated, use current index
         }
-        
+
         if let Some(original_recurring_index) = self.find_original_recurring_transaction(tx) {
             // Find the view index for the original transaction
-            if let Some(original_view_index) = self.filtered_indices.iter().position(|&idx| idx == original_recurring_index) {
+            if let Some(original_view_index) = self
+                .filtered_indices
+                .iter()
+                .position(|&idx| idx == original_recurring_index)
+            {
                 // Select the original transaction in the table
                 self.table_state.select(Some(original_view_index));
                 self.status_message = Some(action.message().to_string());
                 Some(original_recurring_index)
             } else {
-                self.status_message = Some("Original recurring transaction not visible in current filter.".to_string());
+                self.status_message = Some(
+                    "Original recurring transaction not visible in current filter.".to_string(),
+                );
                 None
             }
         } else {
-            self.status_message = Some("Could not find original recurring transaction.".to_string());
+            self.status_message =
+                Some("Could not find original recurring transaction.".to_string());
             None
         }
     }
@@ -81,13 +96,13 @@ impl App {
         let type_str = self.add_edit_fields[3].trim().to_lowercase();
         let category = self.add_edit_fields[4].trim();
         let subcategory = self.add_edit_fields[5].trim();
-        
+
         let transaction_type = if type_str.starts_with('i') {
             TransactionType::Income
         } else {
             TransactionType::Expense
         };
-        
+
         let amount = match crate::validation::validate_amount_string(amount_str) {
             Ok(amount) => amount,
             Err(msg) => {
@@ -95,25 +110,33 @@ impl App {
                 return;
             }
         };
-        
+
         let date = match date_res {
             Ok(date) => date,
             Err(_) => {
-                self.status_message = Some(format!("Error: Invalid Date Format (Expected {})", DATE_FORMAT));
+                self.status_message = Some(format!(
+                    "Error: Invalid Date Format (Expected {})",
+                    DATE_FORMAT
+                ));
                 return;
             }
         };
-        
+
         if description.is_empty() {
             self.status_message = Some("Error: Description cannot be empty".to_string());
             return;
         }
-        
-        if let Err(cat_err) = crate::validation::validate_category(&self.categories, transaction_type, category, subcategory) {
+
+        if let Err(cat_err) = crate::validation::validate_category(
+            &self.categories,
+            transaction_type,
+            category,
+            subcategory,
+        ) {
             self.status_message = Some(format!("Error: {}", cat_err));
             return;
         }
-        
+
         let new_transaction = crate::model::Transaction {
             date,
             description: description.to_string(),
@@ -126,13 +149,13 @@ impl App {
             recurrence_end_date: None,
             is_generated_from_recurring: false,
         };
-        
+
         self.transactions.push(new_transaction);
         self.sort_transactions();
         self.apply_filter();
         self.calculate_monthly_summaries();
         self.calculate_category_summaries();
-        
+
         match save_transactions(&self.transactions, &self.data_file_path) {
             Ok(_) => {
                 self.status_message = Some("Transaction added successfully.".to_string());
@@ -150,11 +173,15 @@ impl App {
         if let Some(view_index) = self.table_state.selected() {
             if let Some(original_index) = self.get_original_index(view_index) {
                 let tx = self.transactions[original_index].clone();
-                
+
                 // Jump to original if this is a generated transaction, or use current if not
-                if let Some(target_index) = self.jump_to_original_if_needed(&tx, original_index, crate::app::util::JumpToOriginalAction::Edit) {
+                if let Some(target_index) = self.jump_to_original_if_needed(
+                    &tx,
+                    original_index,
+                    crate::app::util::JumpToOriginalAction::Edit,
+                ) {
                     let target_tx = &self.transactions[target_index];
-                    
+
                     self.mode = crate::app::state::AppMode::Editing;
                     self.editing_index = Some(target_index);
                     self.current_add_edit_field = 0;
@@ -170,7 +197,7 @@ impl App {
                         target_tx.category.clone(),
                         target_tx.subcategory.clone(),
                     ];
-                    
+
                     if target_index == original_index {
                         self.status_message = None;
                     }
@@ -202,13 +229,13 @@ impl App {
             let type_str = self.add_edit_fields[3].trim().to_lowercase();
             let category = self.add_edit_fields[4].trim();
             let subcategory = self.add_edit_fields[5].trim();
-            
+
             let transaction_type = if type_str.starts_with('i') {
                 TransactionType::Income
             } else {
                 TransactionType::Expense
             };
-            
+
             // Validate amount using centralized utility
             let amount = match crate::validation::validate_amount_string(amount_str) {
                 Ok(amount) => amount,
@@ -217,32 +244,40 @@ impl App {
                     return;
                 }
             };
-            
+
             // Validate date and description
             let date = match date_res {
                 Ok(date) => date,
                 Err(_) => {
-                    self.status_message = Some(format!("Error: Invalid Date Format (Expected {})", DATE_FORMAT));
+                    self.status_message = Some(format!(
+                        "Error: Invalid Date Format (Expected {})",
+                        DATE_FORMAT
+                    ));
                     return;
                 }
             };
-            
+
             if description.is_empty() {
                 self.status_message = Some("Error: Description cannot be empty".to_string());
                 return;
             }
-            
+
             // Validate category using centralized utility
-            if let Err(cat_err) = crate::validation::validate_category(&self.categories, transaction_type, category, subcategory) {
+            if let Err(cat_err) = crate::validation::validate_category(
+                &self.categories,
+                transaction_type,
+                category,
+                subcategory,
+            ) {
                 self.status_message = Some(format!("Error: {}", cat_err));
                 return;
             }
-            
+
             // Update transaction
             if index < self.transactions.len() {
                 let existing_tx = &self.transactions[index];
                 let was_recurring = existing_tx.is_recurring;
-                
+
                 self.transactions[index] = crate::model::Transaction {
                     date,
                     description: description.to_string(),
@@ -255,11 +290,11 @@ impl App {
                     recurrence_end_date: existing_tx.recurrence_end_date,
                     is_generated_from_recurring: existing_tx.is_generated_from_recurring,
                 };
-                
+
                 match save_transactions(&self.transactions, &self.data_file_path) {
                     Ok(_) => {
                         self.status_message = Some("Transaction updated successfully.".to_string());
-                        
+
                         // If this was a recurring transaction, regenerate all recurring instances
                         if was_recurring {
                             self.generate_recurring_transactions();
@@ -267,11 +302,12 @@ impl App {
                             self.apply_filter();
                             self.calculate_monthly_summaries();
                         }
-                        
+
                         self.exit_editing(false);
                     }
                     Err(e) => {
-                        self.status_message = Some(format!("Error saving updated transaction: {}", e));
+                        self.status_message =
+                            Some(format!("Error saving updated transaction: {}", e));
                     }
                 }
             } else {
@@ -303,12 +339,16 @@ impl App {
             if let Some(original_index) = self.get_original_index(view_index) {
                 // Clone the transaction to avoid borrowing issues
                 let tx = self.transactions[original_index].clone();
-                
+
                 // Jump to original if this is a generated transaction, or use current if not
-                if let Some(target_index) = self.jump_to_original_if_needed(&tx, original_index, crate::app::util::JumpToOriginalAction::Delete) {
+                if let Some(target_index) = self.jump_to_original_if_needed(
+                    &tx,
+                    original_index,
+                    crate::app::util::JumpToOriginalAction::Delete,
+                ) {
                     self.delete_index = Some(target_index);
                     self.mode = crate::app::state::AppMode::ConfirmDelete;
-                    
+
                     // Only show delete confirmation if we didn't jump (to preserve jump message)
                     if target_index == original_index {
                         self.status_message = Some("Confirm Delete? (y/n)".to_string());
@@ -325,7 +365,7 @@ impl App {
     pub(crate) fn confirm_delete(&mut self) {
         if let Some(original_index) = self.delete_index {
             let was_recurring = self.transactions[original_index].is_recurring;
-            
+
             self.transactions.remove(original_index);
             self.apply_filter();
             if let Some(selected) = self.table_state.selected() {
@@ -339,7 +379,7 @@ impl App {
                     self.status_message = Some("Transaction deleted successfully.".to_string());
                     self.delete_index = None;
                     self.mode = crate::app::state::AppMode::Normal;
-                    
+
                     // If this was a recurring transaction, regenerate all recurring instances
                     if was_recurring {
                         self.generate_recurring_transactions();

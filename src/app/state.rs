@@ -231,10 +231,10 @@ impl App {
         if !app.transactions.is_empty() {
             app.table_state.select(Some(0));
         }
-        
+
         // Generate recurring transactions up to today
         app.generate_recurring_transactions();
-        
+
         app
     }
     pub fn quit(&mut self) {
@@ -426,11 +426,14 @@ impl App {
             self.sort_by = column;
             self.sort_order = SortOrder::Ascending;
         }
-        
+
         // Preserve the current filter type when sorting
         // Check if any advanced filter fields are active
-        let has_advanced_filters = self.advanced_filter_fields.iter().any(|field| !field.is_empty());
-        
+        let has_advanced_filters = self
+            .advanced_filter_fields
+            .iter()
+            .any(|field| !field.is_empty());
+
         if has_advanced_filters {
             self.apply_advanced_filter();
         } else {

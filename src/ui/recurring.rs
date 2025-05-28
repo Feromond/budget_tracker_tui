@@ -12,7 +12,10 @@ pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {
     let field_definitions = [
         ("Is Recurring", "(◀/▶ to toggle)"),
         ("Frequency", "(Enter to select)"),
-        ("End Date (YYYY-MM-DD)", "(Optional - ◀/▶ days, Shift+◀/▶ months, jumps to today if empty)"),
+        (
+            "End Date (YYYY-MM-DD)",
+            "(Optional - ◀/▶ days, Shift+◀/▶ months, jumps to today if empty)",
+        ),
     ];
 
     let input_widgets: Vec<_> = app
@@ -23,20 +26,24 @@ pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {
         .map(|(i, (text, (base_title, hint)))| {
             let is_focused = app.current_recurring_field == i;
             let title = format!("{} {}", base_title, hint).trim_end().to_string();
-            
+
             let content = match i {
                 0 => {
                     // Is Recurring field - show as toggle
                     Span::styled(
                         format!(" < {} > ", text),
-                        Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
                     )
                 }
                 1 => {
                     // Frequency field - show as selection
                     Span::styled(
                         format!("  {}  ", text),
-                        Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
                     )
                 }
                 2 => {
@@ -44,7 +51,9 @@ pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {
                     if text.is_empty() {
                         Span::styled(
                             " (Optional - leave empty for no end date) ",
-                            Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC),
+                            Style::default()
+                                .fg(Color::DarkGray)
+                                .add_modifier(Modifier::ITALIC),
                         )
                     } else {
                         Span::raw(text.as_str())
@@ -118,10 +127,10 @@ pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {
             let visible_idx = field_idx - scroll_offset;
             if let Some(chunk) = form_chunks.get(visible_idx) {
                 f.set_cursor_position(ratatui::layout::Position::new(
-                    chunk.x + text_len + 1, 
-                    chunk.y + 1
+                    chunk.x + text_len + 1,
+                    chunk.y + 1,
                 ));
             }
         }
     }
-} 
+}

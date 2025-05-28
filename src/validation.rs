@@ -1,11 +1,9 @@
 /// Input validation utilities
-/// 
+///
 /// This module provides centralized validation for user input across the application.
 /// All input validation logic should be placed here for consistency and reusability.
-use crate::model::{TransactionType, CategoryInfo};
-use chrono::{NaiveDate, Datelike};
-
-
+use crate::model::{CategoryInfo, TransactionType};
+use chrono::{Datelike, NaiveDate};
 
 /// Validates and inserts a date character with proper formatting
 /// Returns the new field content with auto-inserted hyphens and validation
@@ -96,13 +94,17 @@ pub fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
 /// Handles backspace for date fields with special hyphen logic
 pub fn handle_date_backspace(field: &mut String) {
     let len = field.len();
-    
+
     if field.ends_with('-') && (len == 5 || len == 8) {
-        if field.chars().nth(len - 2).is_some_and(|ch| ch.is_ascii_digit()) {
+        if field
+            .chars()
+            .nth(len - 2)
+            .is_some_and(|ch| ch.is_ascii_digit())
+        {
             field.pop(); // Remove the hyphen
             field.pop(); // Remove the preceding digit
         } else {
-            field.pop(); 
+            field.pop();
         }
     } else if !field.is_empty() {
         field.pop();
@@ -145,10 +147,10 @@ pub fn validate_category(
     if category.is_empty() || category.eq_ignore_ascii_case("Uncategorized") {
         return Ok(());
     }
-    
+
     let category_lower = category.to_lowercase();
     let subcategory_lower = subcategory.to_lowercase();
-    
+
     if subcategory.is_empty() {
         let category_exists = categories.iter().any(|cat_info| {
             cat_info.transaction_type == transaction_type
@@ -167,7 +169,7 @@ pub fn validate_category(
             return Ok(());
         }
     }
-    
+
     Err(format!(
         "Invalid Category/Subcategory: '{}' / '{}' for {:?}",
         category, subcategory, transaction_type
@@ -210,7 +212,7 @@ pub fn days_in_month(year: i32, month: u32) -> u32 {
 pub fn add_months(date: NaiveDate, months_to_add: i32) -> NaiveDate {
     let mut year = date.year();
     let mut month = date.month() as i32 + months_to_add;
-    
+
     // Handle year overflow/underflow
     while month > 12 {
         year += 1;
@@ -220,11 +222,11 @@ pub fn add_months(date: NaiveDate, months_to_add: i32) -> NaiveDate {
         year -= 1;
         month += 12;
     }
-    
+
     let day = date.day();
     let days_in_target_month = days_in_month(year, month as u32);
     let actual_day = day.min(days_in_target_month);
-    
+
     NaiveDate::from_ymd_opt(year, month as u32, actual_day)
         .unwrap_or_else(|| NaiveDate::from_ymd_opt(year, month as u32, 28).unwrap())
-} 
+}

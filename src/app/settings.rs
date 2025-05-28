@@ -29,7 +29,7 @@ impl App {
         // Save the new data file path in config and reload transactions from the new path.
         let new_path_str = self.settings_fields[0].trim();
         let target_budget_str = self.settings_fields[1].trim();
-        
+
         let target_budget = if target_budget_str.is_empty() {
             None
         } else {
@@ -41,7 +41,7 @@ impl App {
                 }
             }
         };
-        
+
         if new_path_str.is_empty() {
             self.status_message = Some("Error: Path cannot be empty.".to_string());
             return;
