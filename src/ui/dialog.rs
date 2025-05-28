@@ -25,6 +25,7 @@ pub fn render_selection_popup(f: &mut Frame, app: &mut App, area: Rect) {
     let popup_title = match app.mode {
         crate::app::state::AppMode::SelectingCategory => "Select Category (Enter/Esc)",
         crate::app::state::AppMode::SelectingSubcategory => "Select Subcategory (Enter/Esc)",
+        crate::app::state::AppMode::SelectingRecurrenceFrequency => "Select Frequency (Enter/Esc)",
         _ => "Select Option",
     };
 
