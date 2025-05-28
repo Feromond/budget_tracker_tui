@@ -3,6 +3,7 @@ mod config;
 mod event;
 mod model;
 mod persistence;
+mod recurring;
 mod ui;
 
 use crate::app::state::App;
