@@ -1,12 +1,11 @@
-use crate::model::{TransactionType, CategoryInfo};
-use chrono::{NaiveDate, Datelike};
-
 /// Input validation utilities
 /// 
 /// This module provides centralized validation for user input across the application.
 /// All input validation logic should be placed here for consistency and reusability.
+use crate::model::{TransactionType, CategoryInfo};
+use chrono::{NaiveDate, Datelike};
 
-// --- Date Validation ---
+
 
 /// Validates and inserts a date character with proper formatting
 /// Returns the new field content with auto-inserted hyphens and validation

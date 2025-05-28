@@ -1,12 +1,10 @@
-use crate::model::*;
-use std::cmp::Ordering;
-
 /// App-specific utility functions
 /// 
 /// This module contains utilities that are specific to app state management
 /// and operations, as opposed to general validation or business logic.
+use crate::model::*;
+use std::cmp::Ordering;
 
-// --- Transaction Sorting ---
 
 /// Sorts transactions by the selected column and order
 pub fn sort_transactions_impl(
