@@ -30,7 +30,7 @@ pub(crate) fn run_app<B: Backend>(
                     match key.kind {
                         KeyEventKind::Press => {
                             if key.modifiers == KeyModifiers::NONE
-                                || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u')))
+                                || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Let Shift+Char pass through for typing capitals/symbols in settings path
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Char in Adding and Editing modes
