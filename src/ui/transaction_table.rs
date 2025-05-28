@@ -58,9 +58,21 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             TransactionType::Income => Style::default().fg(Color::LightGreen),
             TransactionType::Expense => Style::default().fg(Color::LightRed),
         };
+        
+        // Add visual indicators for recurring transactions
+        let description_text = if tx.is_recurring {
+            if tx.is_generated_from_recurring {
+                format!("⟲ {}", tx.description) // Generated from recurring
+            } else {
+                format!("⟲* {}", tx.description) // Original recurring transaction
+            }
+        } else {
+            tx.description.clone()
+        };
+        
         let cells = vec![
             Cell::from(tx.date.format(DATE_FORMAT).to_string()),
-            Cell::from(tx.description.as_str()),
+            Cell::from(description_text),
             Cell::from(tx.category.as_str()),
             Cell::from(tx.subcategory.as_str()),
             Cell::from(format!("{:?}", tx.transaction_type)),
