@@ -52,7 +52,6 @@ pub fn generate_recurring_transactions(
                 RecurrenceFrequency::Weekly => current_date + Duration::weeks(1),
                 RecurrenceFrequency::BiWeekly => current_date + Duration::weeks(2),
                 RecurrenceFrequency::Monthly => {
-                    // Use the date arithmetic from validation module
                     crate::validation::add_months(current_date, 1)
                 }
                 RecurrenceFrequency::Yearly => {
