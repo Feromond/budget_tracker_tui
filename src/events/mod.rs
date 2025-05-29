@@ -1,10 +1,10 @@
-mod runner;
-mod normal_mode;
 mod add_edit_mode;
 mod filter_mode;
-mod summary_mode;
+mod normal_mode;
+mod recurring_mode;
+mod runner;
 mod selection_mode;
 mod settings_mode;
-mod recurring_mode;
+mod summary_mode;
 
-pub use runner::run_app; 
+pub use runner::run_app;

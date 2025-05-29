@@ -77,8 +77,10 @@ fn update(app: &mut App, key_event: KeyEvent) {
         | AppMode::SelectingSubcategory
         | AppMode::SelectingFilterCategory
         | AppMode::SelectingFilterSubcategory
-        | AppMode::SelectingRecurrenceFrequency => selection_mode::handle_selection_mode(app, key_event),
+        | AppMode::SelectingRecurrenceFrequency => {
+            selection_mode::handle_selection_mode(app, key_event)
+        }
         AppMode::Settings => settings_mode::handle_settings_mode(app, key_event),
         AppMode::RecurringSettings => recurring_mode::handle_recurring_mode(app, key_event),
     }
-} 
+}

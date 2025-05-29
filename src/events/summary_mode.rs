@@ -27,9 +27,7 @@ fn handle_category_summary(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('q') | KeyCode::Esc => app.exit_category_summary_mode(),
         KeyCode::Down => app.next_category_summary_item(),
         KeyCode::Up => app.previous_category_summary_item(),
-        KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => {
-            app.next_category_summary_year()
-        }
+        KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_category_summary_year(),
         KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => {
             app.previous_category_summary_year()
         }
@@ -61,4 +59,4 @@ fn handle_category_summary(app: &mut App, key_event: KeyEvent) {
         }
         _ => {}
     }
-} 
+}

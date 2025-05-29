@@ -83,4 +83,4 @@ pub fn handle_confirm_delete(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => app.cancel_delete(),
         _ => {}
     }
-} 
+}

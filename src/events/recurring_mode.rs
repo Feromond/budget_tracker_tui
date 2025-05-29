@@ -47,4 +47,4 @@ pub fn handle_recurring_mode(app: &mut App, key_event: KeyEvent) {
         }
         _ => {}
     }
-} 
+}

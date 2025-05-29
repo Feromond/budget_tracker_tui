@@ -79,4 +79,4 @@ fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
         (KeyModifiers::NONE, KeyCode::Delete) => app.delete_char_advanced_filter(),
         _ => {}
     }
-} 
+}

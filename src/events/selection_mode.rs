@@ -9,7 +9,9 @@ pub fn handle_selection_mode(app: &mut App, key_event: KeyEvent) {
         AppMode::SelectingFilterCategory | AppMode::SelectingFilterSubcategory => {
             handle_filter_selection(app, key_event)
         }
-        AppMode::SelectingRecurrenceFrequency => handle_recurrence_frequency_selection(app, key_event),
+        AppMode::SelectingRecurrenceFrequency => {
+            handle_recurrence_frequency_selection(app, key_event)
+        }
         _ => {}
     }
 }
@@ -53,4 +55,4 @@ fn handle_recurrence_frequency_selection(app: &mut App, key_event: KeyEvent) {
         KeyCode::Up => app.select_previous_list_item(),
         _ => {}
     }
-} 
+}

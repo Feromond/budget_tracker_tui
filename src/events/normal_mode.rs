@@ -26,4 +26,4 @@ pub fn handle_normal_mode(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('6') | KeyCode::F(6) => app.set_sort_column(SortColumn::Amount),
         _ => {}
     }
-} 
+}

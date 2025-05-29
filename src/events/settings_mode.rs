@@ -22,4 +22,4 @@ pub fn handle_settings_mode(app: &mut App, key_event: KeyEvent) {
         (KeyCode::Delete, KeyModifiers::NONE) => app.clear_settings_field(),
         _ => {}
     }
-} 
+}
