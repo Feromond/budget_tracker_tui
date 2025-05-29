@@ -21,11 +21,14 @@ pub fn generate_recurring_transactions(
     let mut generated = Vec::new();
 
     for recurring_tx in recurring_transactions {
-        if !recurring_tx.is_recurring || recurring_tx.recurrence_frequency.is_none() {
+        if !recurring_tx.is_recurring {
             continue;
         }
-
-        let frequency = recurring_tx.recurrence_frequency.unwrap();
+        
+        // Safely handle missing frequency
+        let Some(frequency) = recurring_tx.recurrence_frequency else {
+            continue; // Skip malformed recurring transactions
+        };
 
         match frequency {
             RecurrenceFrequency::SemiMonthly => {
@@ -70,12 +73,15 @@ pub fn generate_recurring_transactions(
                             if current_date.month() == 2 && current_date.day() == 29 {
                                 // If it's Feb 29 and next year is not a leap year, use Feb 28
                                 if !crate::validation::is_leap_year(next_year) {
-                                    NaiveDate::from_ymd_opt(next_year, 2, 28).unwrap()
+                                    NaiveDate::from_ymd_opt(next_year, 2, 28)
+                                        .unwrap_or(current_date + Duration::days(365))
                                 } else {
-                                    current_date.with_year(next_year).unwrap()
+                                    current_date.with_year(next_year)
+                                        .unwrap_or(current_date + Duration::days(365))
                                 }
                             } else {
-                                current_date.with_year(next_year).unwrap()
+                                current_date.with_year(next_year)
+                                    .unwrap_or(current_date + Duration::days(365))
                             }
                         }
                         RecurrenceFrequency::SemiMonthly => unreachable!(), // Handled above

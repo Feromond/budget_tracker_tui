@@ -213,14 +213,25 @@ pub fn add_months(date: NaiveDate, months_to_add: i32) -> NaiveDate {
     let mut year = date.year();
     let mut month = date.month() as i32 + months_to_add;
 
+    // Prevent infinite loops with extreme values
+    if months_to_add.abs() > 120000 { // ~10000 years
+        return date; // Return original date for extreme values
+    }
+
     // Handle year overflow/underflow
     while month > 12 {
-        year += 1;
+        year = year.saturating_add(1);
         month -= 12;
+        if year > 3000 { // Reasonable upper bound
+            return date;
+        }
     }
     while month < 1 {
-        year -= 1;
+        year = year.saturating_sub(1);
         month += 12;
+        if year < 1000 { // Reasonable lower bound  
+            return date;
+        }
     }
 
     let day = date.day();
@@ -228,5 +239,7 @@ pub fn add_months(date: NaiveDate, months_to_add: i32) -> NaiveDate {
     let actual_day = day.min(days_in_target_month);
 
     NaiveDate::from_ymd_opt(year, month as u32, actual_day)
-        .unwrap_or_else(|| NaiveDate::from_ymd_opt(year, month as u32, 28).unwrap())
+        .or_else(|| NaiveDate::from_ymd_opt(year, month as u32, 28))
+        .or_else(|| NaiveDate::from_ymd_opt(year, month as u32, 1))
+        .unwrap_or(date) // Final fallback: return original date
 }
