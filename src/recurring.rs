@@ -24,7 +24,7 @@ pub fn generate_recurring_transactions(
         if !recurring_tx.is_recurring {
             continue;
         }
-        
+
         // Safely handle missing frequency
         let Some(frequency) = recurring_tx.recurrence_frequency else {
             continue; // Skip malformed recurring transactions
@@ -76,11 +76,13 @@ pub fn generate_recurring_transactions(
                                     NaiveDate::from_ymd_opt(next_year, 2, 28)
                                         .unwrap_or(current_date + Duration::days(365))
                                 } else {
-                                    current_date.with_year(next_year)
+                                    current_date
+                                        .with_year(next_year)
                                         .unwrap_or(current_date + Duration::days(365))
                                 }
                             } else {
-                                current_date.with_year(next_year)
+                                current_date
+                                    .with_year(next_year)
                                     .unwrap_or(current_date + Duration::days(365))
                             }
                         }
