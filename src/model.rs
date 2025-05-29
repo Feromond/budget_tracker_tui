@@ -54,6 +54,7 @@ pub enum RecurrenceFrequency {
     Daily,
     Weekly,
     BiWeekly,
+    SemiMonthly,
     Monthly,
     Yearly,
 }
@@ -64,6 +65,7 @@ impl RecurrenceFrequency {
             RecurrenceFrequency::Daily => "Daily",
             RecurrenceFrequency::Weekly => "Weekly",
             RecurrenceFrequency::BiWeekly => "Bi-Weekly",
+            RecurrenceFrequency::SemiMonthly => "Semi-Monthly",
             RecurrenceFrequency::Monthly => "Monthly",
             RecurrenceFrequency::Yearly => "Yearly",
         }
@@ -74,6 +76,7 @@ impl RecurrenceFrequency {
             RecurrenceFrequency::Daily,
             RecurrenceFrequency::Weekly,
             RecurrenceFrequency::BiWeekly,
+            RecurrenceFrequency::SemiMonthly,
             RecurrenceFrequency::Monthly,
             RecurrenceFrequency::Yearly,
         ]

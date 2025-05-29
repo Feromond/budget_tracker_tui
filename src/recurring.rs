@@ -26,50 +26,128 @@ pub fn generate_recurring_transactions(
         }
 
         let frequency = recurring_tx.recurrence_frequency.unwrap();
-        let mut current_date = recurring_tx.date;
 
-        // Generate transactions from the original date up to the specified date
-        while current_date <= up_to_date {
-            // Skip the original transaction date (it's already in the list)
-            if current_date != recurring_tx.date {
-                // Check if we've exceeded the end date (if specified)
-                if let Some(end_date) = recurring_tx.recurrence_end_date {
-                    if current_date > end_date {
-                        break;
-                    }
-                }
-
-                let mut new_tx = recurring_tx.clone();
-                new_tx.date = current_date;
-                new_tx.is_generated_from_recurring = true;
-                generated.push(new_tx);
+        match frequency {
+            RecurrenceFrequency::SemiMonthly => {
+                // Handle semi-monthly separately since it follows a different pattern
+                let semi_monthly_instances =
+                    generate_semi_monthly_instances(recurring_tx, up_to_date);
+                generated.extend(semi_monthly_instances);
             }
+            _ => {
+                // Handle other frequencies with the existing logic
+                let mut current_date = recurring_tx.date;
 
-            // Calculate next occurrence
-            current_date = match frequency {
-                RecurrenceFrequency::Daily => current_date + Duration::days(1),
-                RecurrenceFrequency::Weekly => current_date + Duration::weeks(1),
-                RecurrenceFrequency::BiWeekly => current_date + Duration::weeks(2),
-                RecurrenceFrequency::Monthly => crate::validation::add_months(current_date, 1),
-                RecurrenceFrequency::Yearly => {
-                    // Handle leap year edge case for Feb 29
-                    let next_year = current_date.year() + 1;
-                    if current_date.month() == 2 && current_date.day() == 29 {
-                        // If it's Feb 29 and next year is not a leap year, use Feb 28
-                        if !crate::validation::is_leap_year(next_year) {
-                            NaiveDate::from_ymd_opt(next_year, 2, 28).unwrap()
-                        } else {
-                            current_date.with_year(next_year).unwrap()
+                // Generate transactions from the original date up to the specified date
+                while current_date <= up_to_date {
+                    // Skip the original transaction date (it's already in the list)
+                    if current_date != recurring_tx.date {
+                        if let Some(new_tx) = create_generated_transaction(
+                            recurring_tx,
+                            current_date,
+                            recurring_tx.date,
+                            up_to_date,
+                        ) {
+                            generated.push(new_tx);
+                        } else if current_date
+                            > recurring_tx.recurrence_end_date.unwrap_or(NaiveDate::MAX)
+                        {
+                            break;
                         }
-                    } else {
-                        current_date.with_year(next_year).unwrap()
                     }
+
+                    // Calculate next occurrence
+                    current_date = match frequency {
+                        RecurrenceFrequency::Daily => current_date + Duration::days(1),
+                        RecurrenceFrequency::Weekly => current_date + Duration::weeks(1),
+                        RecurrenceFrequency::BiWeekly => current_date + Duration::weeks(2),
+                        RecurrenceFrequency::Monthly => {
+                            crate::validation::add_months(current_date, 1)
+                        }
+                        RecurrenceFrequency::Yearly => {
+                            // Handle leap year edge case for Feb 29
+                            let next_year = current_date.year() + 1;
+                            if current_date.month() == 2 && current_date.day() == 29 {
+                                // If it's Feb 29 and next year is not a leap year, use Feb 28
+                                if !crate::validation::is_leap_year(next_year) {
+                                    NaiveDate::from_ymd_opt(next_year, 2, 28).unwrap()
+                                } else {
+                                    current_date.with_year(next_year).unwrap()
+                                }
+                            } else {
+                                current_date.with_year(next_year).unwrap()
+                            }
+                        }
+                        RecurrenceFrequency::SemiMonthly => unreachable!(), // Handled above
+                    };
                 }
-            };
+            }
         }
     }
 
     generated
+}
+
+/// Generates semi-monthly transaction instances (15th and last day of each month)
+fn generate_semi_monthly_instances(
+    recurring_tx: &Transaction,
+    up_to_date: NaiveDate,
+) -> Vec<Transaction> {
+    let mut generated = Vec::new();
+    let start_date = recurring_tx.date;
+
+    // Start from the month of the original transaction
+    let mut current_date =
+        NaiveDate::from_ymd_opt(start_date.year(), start_date.month(), 1).unwrap_or(start_date);
+
+    while current_date <= up_to_date {
+        let year = current_date.year();
+        let month = current_date.month();
+
+        // Try to generate transactions for 15th and last day of the month
+        for day in [15, crate::validation::days_in_month(year, month)] {
+            if let Some(target_date) = NaiveDate::from_ymd_opt(year, month, day) {
+                if let Some(new_tx) =
+                    create_generated_transaction(recurring_tx, target_date, start_date, up_to_date)
+                {
+                    generated.push(new_tx);
+                } else if target_date > recurring_tx.recurrence_end_date.unwrap_or(NaiveDate::MAX) {
+                    return generated;
+                }
+            }
+        }
+
+        current_date = crate::validation::add_months(current_date, 1);
+
+        if current_date > up_to_date {
+            break;
+        }
+    }
+
+    generated
+}
+
+/// Helper function to create a generated transaction if it meets the criteria
+fn create_generated_transaction(
+    recurring_tx: &Transaction,
+    target_date: NaiveDate,
+    start_date: NaiveDate,
+    up_to_date: NaiveDate,
+) -> Option<Transaction> {
+    if target_date <= start_date || target_date > up_to_date {
+        return None;
+    }
+
+    if let Some(end_date) = recurring_tx.recurrence_end_date {
+        if target_date > end_date {
+            return None;
+        }
+    }
+
+    let mut new_tx = recurring_tx.clone();
+    new_tx.date = target_date;
+    new_tx.is_generated_from_recurring = true;
+    Some(new_tx)
 }
 
 /// Removes all generated recurring transactions from a transaction list
