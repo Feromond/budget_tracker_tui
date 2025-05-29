@@ -29,6 +29,43 @@ impl App {
         // Save the new data file path in config and reload transactions from the new path.
         let new_path_str = self.settings_fields[0].trim();
         let target_budget_str = self.settings_fields[1].trim();
+        let necessary_expenses_percentage_str = self.settings_fields[2].trim();
+        let discretionary_expenses_percentage_str = self.settings_fields[3].trim();
+        let savings_or_investment_percentage_str = self.settings_fields[4].trim();
+        let tax_setaside_percentage_str = self.settings_fields[5].trim();
+        let necessary_expenses_percentage = if necessary_expenses_percentage_str.is_empty() {
+            None
+        } else {
+            match necessary_expenses_percentage_str.parse::<u8>() {
+                Ok(val) => Some(val),
+                _ => None,
+            }
+        };
+        let discretionary_expenses_percentage = if discretionary_expenses_percentage_str.is_empty()
+        {
+            None
+        } else {
+            match discretionary_expenses_percentage_str.parse::<u8>() {
+                Ok(val) => Some(val),
+                _ => None,
+            }
+        };
+        let saving_or_investment_percentage = if savings_or_investment_percentage_str.is_empty() {
+            None
+        } else {
+            match savings_or_investment_percentage_str.parse::<u8>() {
+                Ok(val) => Some(val),
+                _ => None,
+            }
+        };
+        let tax_setaside_percentage = if tax_setaside_percentage_str.is_empty() {
+            None
+        } else {
+            match tax_setaside_percentage_str.parse::<u8>() {
+                Ok(val) => Some(val),
+                _ => None,
+            }
+        };
         let target_budget = if target_budget_str.is_empty() {
             None
         } else {
@@ -57,10 +94,25 @@ impl App {
                 return;
             }
         }
+        // Return an error if the spending goals' total does not add up to 100 %
+        let percentage: u8 = necessary_expenses_percentage.unwrap_or(0)
+            + discretionary_expenses_percentage.unwrap_or(0)
+            + saving_or_investment_percentage.unwrap_or(0)
+            + tax_setaside_percentage.unwrap_or(0);
+        if percentage != 100 && percentage != 0 {
+            self.status_message = Some(String::from(
+                "The percentages of your spending goals do not add up to 100%!",
+            ));
+            return;
+        }
         // Save the new data file path and target budget in config (future: add to AppSettings)
         let settings = AppSettings {
             data_file_path: Some(new_path_str.to_string()),
             target_budget,
+            necessary_expenses_percentage,
+            discretionary_expenses_percentage,
+            saving_or_investment_percentage,
+            tax_setaside_percentage,
         };
         if let Err(e) = save_settings(&settings) {
             self.status_message = Some(format!("Error saving config file: {}", e));
