@@ -1,7 +1,7 @@
 use super::state::App;
 use crate::app::state::DateUnit;
 use crate::model::{TransactionType, DATE_FORMAT};
-use chrono::{Datelike, NaiveDate};
+use chrono::NaiveDate;
 use ratatui::widgets::ListState;
 use std::collections::HashSet;
 
@@ -87,18 +87,18 @@ impl App {
         let field = &mut self.advanced_filter_fields[idx];
         match idx {
             0 | 1 => {
-                // Date fields: use date validation helper
-                if let Some(new_content) = crate::app::util::validate_and_insert_date_char(field, c)
+                // Date fields: use centralized date validation
+                if let Some(new_content) =
+                    crate::validation::validate_and_insert_date_char(field, c)
                 {
                     *field = new_content;
                 }
+                // Note: No error message here since this is filter input, not form validation
             }
             5 => { /* Type field: toggle only via arrows/enter */ }
             6 | 7 => {
-                // Amount fields: only digits and one decimal point
-                if c.is_ascii_digit() || (c == '.' && !field.contains('.')) {
-                    field.push(c);
-                }
+                // Amount fields: use centralized amount validation
+                crate::validation::insert_amount_char(field, c);
             }
             3 | 4 => { /* Category/Subcategory: selections only, no free text */ }
             _ => {
@@ -112,23 +112,8 @@ impl App {
         let field = &mut self.advanced_filter_fields[idx];
         match idx {
             0 | 1 => {
-                // Date fields: special backspace logic for hyphens
-                let len = field.len();
-                if (len == 5 || len == 8) && field.ends_with('-') {
-                    if field
-                        .chars()
-                        .nth(len - 2)
-                        .map(|ch| ch.is_ascii_digit())
-                        .unwrap_or(false)
-                    {
-                        field.pop();
-                        field.pop();
-                    } else {
-                        field.pop();
-                    }
-                } else if !field.is_empty() {
-                    field.pop();
-                }
+                // Date fields: use centralized date backspace handling
+                crate::validation::handle_date_backspace(field);
             }
             5 => { /* Type field: nothing */ }
             6 | 7 => {
@@ -301,25 +286,8 @@ impl App {
                         }
                     }
                     DateUnit::Month => {
-                        let mut year = current_date.year();
-                        let mut month = current_date.month() as i32 + amount as i32;
-                        while month > 12 {
-                            month -= 12;
-                            year += 1;
-                        }
-                        while month < 1 {
-                            month += 12;
-                            year -= 1;
-                        }
-                        let day = current_date.day();
-                        NaiveDate::from_ymd_opt(year, month as u32, day).unwrap_or_else(|| {
-                            let last_day = if month == 12 {
-                                NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
-                            } else {
-                                NaiveDate::from_ymd_opt(year, month as u32 + 1, 1).unwrap()
-                            };
-                            last_day - chrono::Duration::days(1)
-                        })
+                        // Use centralized month arithmetic
+                        crate::validation::add_months(current_date, amount as i32)
                     }
                 };
                 self.advanced_filter_fields[idx] = new_date.format(DATE_FORMAT).to_string();

@@ -3,6 +3,7 @@ pub mod dialog;
 pub mod filter;
 pub mod help;
 pub mod helpers;
+pub mod recurring;
 pub mod settings;
 pub mod status;
 pub mod summary;
@@ -66,6 +67,13 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::Settings => {
             transaction_table::render_transaction_table(f, app, main_area);
             settings::render_settings_form(f, app, main_area);
+        }
+        AppMode::RecurringSettings => {
+            recurring::render_recurring_settings(f, app, main_area);
+        }
+        AppMode::SelectingRecurrenceFrequency => {
+            recurring::render_recurring_settings(f, app, main_area);
+            dialog::render_selection_popup(f, app, main_area);
         }
     }
 

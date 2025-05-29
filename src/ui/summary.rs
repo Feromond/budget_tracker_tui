@@ -1,6 +1,6 @@
 use crate::app::state::App;
-use crate::app::util::days_in_month;
 use crate::ui::helpers::month_to_short_str;
+use crate::validation::days_in_month;
 use chrono::Datelike;
 use ratatui::prelude::*;
 use ratatui::text::Line;
@@ -304,7 +304,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let mut x_labels = vec![];
     let n_ticks = 5;
     for i in 0..n_ticks {
-        let pos = 1.0 + ((x_max - 1.0) * (i as f64) / (n_ticks as f64 - 1.0));
+        let pos: f64 = 1.0 + ((x_max - 1.0) * (i as f64) / (n_ticks as f64 - 1.0));
         x_labels.push(Span::raw(format!("{:.0}", pos.round())));
     }
     // Y-axis ticks: 0, 1/4 max, 1/2 max, 3/4 max, max
