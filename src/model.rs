@@ -49,6 +49,40 @@ impl TryFrom<&str> for TransactionType {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+pub enum RecurrenceFrequency {
+    Daily,
+    Weekly,
+    BiWeekly,
+    SemiMonthly,
+    Monthly,
+    Yearly,
+}
+
+impl RecurrenceFrequency {
+    pub fn to_string(self) -> &'static str {
+        match self {
+            RecurrenceFrequency::Daily => "Daily",
+            RecurrenceFrequency::Weekly => "Weekly",
+            RecurrenceFrequency::BiWeekly => "Bi-Weekly",
+            RecurrenceFrequency::SemiMonthly => "Semi-Monthly",
+            RecurrenceFrequency::Monthly => "Monthly",
+            RecurrenceFrequency::Yearly => "Yearly",
+        }
+    }
+
+    pub fn all() -> Vec<RecurrenceFrequency> {
+        vec![
+            RecurrenceFrequency::Daily,
+            RecurrenceFrequency::Weekly,
+            RecurrenceFrequency::BiWeekly,
+            RecurrenceFrequency::SemiMonthly,
+            RecurrenceFrequency::Monthly,
+            RecurrenceFrequency::Yearly,
+        ]
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Transaction {
     // Apply the custom deserializer for reading dates so it can work on excel edits
@@ -62,10 +96,44 @@ pub struct Transaction {
     pub category: String,
     #[serde(default)]
     pub subcategory: String,
+    // Recurring transaction fields
+    #[serde(default)]
+    pub is_recurring: bool,
+    #[serde(default)]
+    pub recurrence_frequency: Option<RecurrenceFrequency>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_optional_date")]
+    #[serde(serialize_with = "serialize_optional_date")]
+    pub recurrence_end_date: Option<NaiveDate>,
+    #[serde(default)]
+    pub is_generated_from_recurring: bool,
 }
 
 fn default_category() -> String {
     "Uncategorized".to_string()
+}
+
+fn deserialize_optional_date<'de, D>(deserializer: D) -> Result<Option<NaiveDate>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+    match opt {
+        Some(s) if !s.is_empty() => {
+            deserialize_flexible_date(serde::de::value::StrDeserializer::new(&s)).map(Some)
+        }
+        _ => Ok(None),
+    }
+}
+
+fn serialize_optional_date<S>(date: &Option<NaiveDate>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match date {
+        Some(d) => serializer.serialize_str(&d.format(DATE_FORMAT).to_string()),
+        None => serializer.serialize_str(""),
+    }
 }
 
 pub mod date_format {

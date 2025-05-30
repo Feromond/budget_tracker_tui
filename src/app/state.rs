@@ -28,6 +28,8 @@ pub enum AppMode {
     SelectingSubcategory,
     CategorySummary,
     Settings,
+    RecurringSettings,
+    SelectingRecurrenceFrequency,
 }
 
 #[derive(Debug)]
@@ -80,6 +82,10 @@ pub struct App {
     pub(crate) current_settings_field: usize,
     // Budget
     pub(crate) target_budget: Option<f64>,
+    // Recurring transaction state
+    pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
+    pub(crate) current_recurring_field: usize,
+    pub(crate) recurring_transaction_index: Option<usize>,
 }
 
 impl App {
@@ -213,6 +219,9 @@ impl App {
             settings_fields: Default::default(),
             current_settings_field: 0,
             target_budget: loaded_settings.target_budget,
+            recurring_settings_fields: Default::default(),
+            current_recurring_field: 0,
+            recurring_transaction_index: None,
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
@@ -222,6 +231,10 @@ impl App {
         if !app.transactions.is_empty() {
             app.table_state.select(Some(0));
         }
+
+        // Generate recurring transactions up to today
+        app.generate_recurring_transactions();
+
         app
     }
     pub fn quit(&mut self) {
@@ -372,27 +385,8 @@ impl App {
                         }
                     }
                     DateUnit::Month => {
-                        let day = current_date.day();
-                        let month = current_date.month() as i32;
-                        let year = current_date.year();
-                        let new_month = month + amount as i32;
-                        let mut target_year = year + (new_month - 1) / 12;
-                        let mut target_month = ((new_month - 1) % 12) + 1;
-                        if target_month <= 0 {
-                            target_month += 12;
-                            target_year -= 1;
-                        }
-                        NaiveDate::from_ymd_opt(target_year, target_month as u32, day)
-                            .unwrap_or_else(|| {
-                                // Get the last day of the target month
-                                let last_day = if target_month == 12 {
-                                    NaiveDate::from_ymd_opt(target_year + 1, 1, 1).unwrap()
-                                } else {
-                                    NaiveDate::from_ymd_opt(target_year, target_month as u32 + 1, 1)
-                                        .unwrap()
-                                };
-                                last_day - Duration::days(1)
-                            })
+                        // Use centralized month arithmetic
+                        crate::validation::add_months(current_date, amount as i32)
                     }
                 };
                 self.add_edit_fields[0] = new_date.format(crate::model::DATE_FORMAT).to_string();
@@ -419,6 +413,31 @@ impl App {
                 ErrorKind::NotFound,
                 "Could not find user data directory",
             )),
+        }
+    }
+    // --- Sorting Logic ---
+    pub(crate) fn set_sort_column(&mut self, column: SortColumn) {
+        if self.sort_by == column {
+            self.sort_order = match self.sort_order {
+                SortOrder::Ascending => SortOrder::Descending,
+                SortOrder::Descending => SortOrder::Ascending,
+            };
+        } else {
+            self.sort_by = column;
+            self.sort_order = SortOrder::Ascending;
+        }
+
+        // Preserve the current filter type when sorting
+        // Check if any advanced filter fields are active
+        let has_advanced_filters = self
+            .advanced_filter_fields
+            .iter()
+            .any(|field| !field.is_empty());
+
+        if has_advanced_filters {
+            self.apply_advanced_filter();
+        } else {
+            self.apply_filter();
         }
     }
 }

@@ -1,12 +1,14 @@
 mod app;
 mod config;
-mod event;
+mod events;
 mod model;
 mod persistence;
+mod recurring;
 mod ui;
+mod validation;
 
 use crate::app::state::App;
-use event::run_app;
+use events::run_app;
 use persistence::save_transactions;
 
 use crossterm::{

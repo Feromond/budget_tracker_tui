@@ -69,16 +69,15 @@ impl App {
         let target_budget = if target_budget_str.is_empty() {
             None
         } else {
-            match target_budget_str.parse::<f64>() {
-                Ok(val) if val > 0.0 => Some(val),
-                _ => {
-                    self.status_message = Some(
-                        "Error: Target budget must be a positive number or blank.".to_string(),
-                    );
+            match crate::validation::validate_amount_string(target_budget_str) {
+                Ok(val) => Some(val),
+                Err(msg) => {
+                    self.status_message = Some(format!("Error: Target budget - {}", msg));
                     return;
                 }
             }
         };
+
         if new_path_str.is_empty() {
             self.status_message = Some("Error: Path cannot be empty.".to_string());
             return;

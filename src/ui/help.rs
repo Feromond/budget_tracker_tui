@@ -28,6 +28,13 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             ),
             Span::raw(" Del | "),
             Span::styled(
+                "r",
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Recur | "),
+            Span::styled(
                 "f",
                 Style::default()
                     .fg(Color::Cyan)
@@ -192,6 +199,22 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(": Reset | "),
             Span::styled("Ctrl+U", Style::default().fg(Color::LightMagenta)),
             Span::raw(": Clear"),
+        ],
+        AppMode::RecurringSettings => vec![
+            Span::raw("Tab/↑↓ Nav | "),
+            Span::raw("←→ Toggle/Date | "),
+            Span::raw("Shift+←→ Month | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Select/Save | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Cancel"),
+        ],
+        AppMode::SelectingRecurrenceFrequency => vec![
+            Span::raw("↑↓ Nav | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(": Confirm | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(": Cancel"),
         ],
     };
 

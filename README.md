@@ -44,6 +44,7 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 
 - **Intuitive Terminal UI:** Manage your finances directly from your terminal with a clean, responsive interface (TUI).
 - **Transaction Management:** Add, view, edit, and delete income and expenses.
+- **Recurring Transaction:** Setup transactions that automatically recur at select frequencies.
 - **Advanced Filtering:** Filter transactions by date, description, category, type, and amount (including advanced multi-field filters).
 - **Categorization:** Built-in, hierarchical categories and subcategories for all transactions.
 - **Summaries & Charts:** Visualize your spending/income by month and by category, with interactive charts and tables.
@@ -107,7 +108,7 @@ Then, you can just type `bt` to launch the app.
 
 1. **Launch the app:** `Budget_Tracker` (or `bt` if you set up the alias)
 2. **Add a transaction:** Press `a`, fill in the fields, and press `Enter` to save.
-3. **Navigate:** Use `↑`/`↓` to move, `e` to edit, `d` to delete, `f` to filter.
+3. **Navigate:** Use `↑`/`↓` to move, `e` to edit, `d` to delete, `f` to filter, `r` to manage recurring transactions.
 4. **View summaries:** Press `s` for monthly summary, `c` for category summary.
 5. **Change settings:** Press `o` to open settings (change data file path, set target budget).
 6. **Quit:** Press `q` or `Esc`.
