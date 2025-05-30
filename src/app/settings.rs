@@ -6,7 +6,6 @@ use std::path::PathBuf;
 impl App {
     // --- Settings Mode Logic ---
     // Handles entering/exiting settings mode, saving settings, and resetting the data file path.
-    //TODO: check here why percentages are not loaded
     pub(crate) fn enter_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Settings;
         self.settings_fields[0] = self.data_file_path.to_string_lossy().to_string();
@@ -53,7 +52,7 @@ impl App {
         let necessary_expenses_percentage = if necessary_expenses_percentage_str.is_empty() {
             None
         } else {
-            match necessary_expenses_percentage_str.parse::<u8>() {
+            match necessary_expenses_percentage_str.parse::<f64>() {
                 Ok(val) => Some(val),
                 _ => None,
             }
@@ -62,7 +61,7 @@ impl App {
         {
             None
         } else {
-            match discretionary_expenses_percentage_str.parse::<u8>() {
+            match discretionary_expenses_percentage_str.parse::<f64>() {
                 Ok(val) => Some(val),
                 _ => None,
             }
@@ -70,7 +69,7 @@ impl App {
         let saving_or_investment_percentage = if savings_or_investment_percentage_str.is_empty() {
             None
         } else {
-            match savings_or_investment_percentage_str.parse::<u8>() {
+            match savings_or_investment_percentage_str.parse::<f64>() {
                 Ok(val) => Some(val),
                 _ => None,
             }
@@ -78,7 +77,7 @@ impl App {
         let tax_setaside_percentage = if tax_setaside_percentage_str.is_empty() {
             None
         } else {
-            match tax_setaside_percentage_str.parse::<u8>() {
+            match tax_setaside_percentage_str.parse::<f64>() {
                 Ok(val) => Some(val),
                 _ => None,
             }
@@ -111,11 +110,11 @@ impl App {
             }
         }
         // Return an error if the spending goals' total does not add up to 100 %
-        let percentage: u8 = necessary_expenses_percentage.unwrap_or(0)
-            + discretionary_expenses_percentage.unwrap_or(0)
-            + saving_or_investment_percentage.unwrap_or(0)
-            + tax_setaside_percentage.unwrap_or(0);
-        if percentage != 100 && percentage != 0 {
+        let percentage: f64 = necessary_expenses_percentage.unwrap_or(0.0)
+            + discretionary_expenses_percentage.unwrap_or(0.0)
+            + saving_or_investment_percentage.unwrap_or(0.0)
+            + tax_setaside_percentage.unwrap_or(0.0);
+        if percentage != 100.0 && percentage != 0.0 {
             self.status_message = Some(String::from(
                 "The percentages of your spending goals do not add up to 100%!",
             ));

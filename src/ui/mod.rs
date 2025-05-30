@@ -17,6 +17,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     let filter_bar_height = if app.mode == AppMode::Filtering { 3 } else { 0 };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
     let summary_bar_height = 3;
+    let spending_goals_height = 3;
     let help_bar_height = 3;
 
     let main_chunks = ratatui::layout::Layout::default()
@@ -25,6 +26,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             ratatui::layout::Constraint::Min(0),
             ratatui::layout::Constraint::Length(filter_bar_height),
             ratatui::layout::Constraint::Length(summary_bar_height),
+            ratatui::layout::Constraint::Length(spending_goals_height),
             ratatui::layout::Constraint::Length(status_bar_height),
             ratatui::layout::Constraint::Length(help_bar_height),
         ])
@@ -33,8 +35,9 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     let main_area = main_chunks[0];
     let filter_area = main_chunks[1];
     let summary_area = main_chunks[2];
-    let status_area = main_chunks[3];
-    let help_area = main_chunks[4];
+    let spending_goals_area = main_chunks[3];
+    let status_area = main_chunks[4];
+    let help_area = main_chunks[5];
 
     match app.mode {
         AppMode::Normal | AppMode::Filtering => {
@@ -82,6 +85,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     }
 
     summary::render_summary_bar(f, app, summary_area);
+    summary::render_spending_goals_bar(f, app, spending_goals_area);
 
     if let Some(msg) = &app.status_message {
         status::render_status_bar(f, msg, status_area);
