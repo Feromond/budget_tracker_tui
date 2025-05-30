@@ -6,12 +6,29 @@ use std::path::PathBuf;
 impl App {
     // --- Settings Mode Logic ---
     // Handles entering/exiting settings mode, saving settings, and resetting the data file path.
+    //TODO: check here why percentages are not loaded
     pub(crate) fn enter_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Settings;
         self.settings_fields[0] = self.data_file_path.to_string_lossy().to_string();
         let loaded_settings = crate::config::load_settings().unwrap_or_default();
         self.settings_fields[1] = loaded_settings
             .target_budget
+            .map(|v| v.to_string())
+            .unwrap_or_default();
+        self.settings_fields[2] = loaded_settings
+            .necessary_expenses_percentage
+            .map(|v| v.to_string())
+            .unwrap_or_default();
+        self.settings_fields[3] = loaded_settings
+            .discretionary_expenses_percentage
+            .map(|v| v.to_string())
+            .unwrap_or_default();
+        self.settings_fields[4] = loaded_settings
+            .saving_or_investment_percentage
+            .map(|v| v.to_string())
+            .unwrap_or_default();
+        self.settings_fields[5] = loaded_settings
+            .tax_setaside_percentage
             .map(|v| v.to_string())
             .unwrap_or_default();
         self.current_settings_field = 0;
