@@ -7,6 +7,10 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
     let field_definitions = [
         ("Data File Path", ""),
         ("Target Budget", "(optional, numeric)"),
+        ("Necessary expenses %", "(optional, numeric)"),
+        ("Discretionary expenses %", "(optional, numeric)"),
+        ("Savings or investments %", "(optional, numeric)"),
+        ("Tax set aside %", "(optional, numeric)"),
     ];
     let input_width = area.width.saturating_sub(8).max(10); // leave margin for borders
     let mut scroll_offsets = [0u16; 2];
