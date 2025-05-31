@@ -52,35 +52,23 @@ impl App {
         let necessary_expenses_percentage = if necessary_expenses_percentage_str.is_empty() {
             None
         } else {
-            match necessary_expenses_percentage_str.parse::<f64>() {
-                Ok(val) => Some(val),
-                _ => None,
-            }
+            necessary_expenses_percentage_str.parse::<f64>().ok()
         };
         let discretionary_expenses_percentage = if discretionary_expenses_percentage_str.is_empty()
         {
             None
         } else {
-            match discretionary_expenses_percentage_str.parse::<f64>() {
-                Ok(val) => Some(val),
-                _ => None,
-            }
+            discretionary_expenses_percentage_str.parse::<f64>().ok()
         };
         let saving_or_investment_percentage = if savings_or_investment_percentage_str.is_empty() {
             None
         } else {
-            match savings_or_investment_percentage_str.parse::<f64>() {
-                Ok(val) => Some(val),
-                _ => None,
-            }
+            savings_or_investment_percentage_str.parse::<f64>().ok()
         };
         let tax_setaside_percentage = if tax_setaside_percentage_str.is_empty() {
             None
         } else {
-            match tax_setaside_percentage_str.parse::<f64>() {
-                Ok(val) => Some(val),
-                _ => None,
-            }
+            tax_setaside_percentage_str.parse::<f64>().ok()
         };
         let target_budget = if target_budget_str.is_empty() {
             None
