@@ -463,15 +463,16 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 pub fn render_spending_goals_bar(f: &mut Frame, app: &App, area: Rect) {
-    let (total_income, _) = app
-        .filtered_indices
-        .iter()
-        .filter_map(|&idx| app.transactions.get(idx))
-        .fold((0.0, 0.0), |(inc, exp), tx| match tx.transaction_type {
-            crate::model::TransactionType::Income => (inc + tx.amount, exp),
-            crate::model::TransactionType::Expense => (inc, exp + tx.amount),
-        });
+    let now = chrono::Utc::now();
+    let year = now.year();
+    let month = now.month();
 
+    let total_income = app
+        .monthly_summaries
+        .get(&(year, month))
+        .cloned()
+        .unwrap_or_default()
+        .income;
     let settings = load_settings().unwrap_or_default();
     let spending_goals_percentages = (
         settings.necessary_expenses_percentage.unwrap_or_default(),
@@ -481,7 +482,6 @@ pub fn render_spending_goals_bar(f: &mut Frame, app: &App, area: Rect) {
         settings.saving_or_investment_percentage.unwrap_or_default(),
         settings.tax_setaside_percentage.unwrap_or_default(),
     );
-
     let percentages = (
         total_income * (spending_goals_percentages.0 / 100.0),
         total_income * (spending_goals_percentages.1 / 100.0),
@@ -490,27 +490,19 @@ pub fn render_spending_goals_bar(f: &mut Frame, app: &App, area: Rect) {
     );
     let necessary_span = Span::styled(
         format!("Necessary expenses: {:.2}", percentages.0),
-        Style::default()
-            .fg(Color::LightGreen)
-            .add_modifier(Modifier::BOLD),
+        Style::default().add_modifier(Modifier::BOLD),
     );
     let discretionary_span = Span::styled(
         format!("Discretionary expenses: {:.2}", percentages.1),
-        Style::default()
-            .fg(Color::LightGreen)
-            .add_modifier(Modifier::BOLD),
+        Style::default().add_modifier(Modifier::BOLD),
     );
     let savings_span = Span::styled(
         format!("Savings/investments: {:.2}", percentages.2),
-        Style::default()
-            .fg(Color::LightGreen)
-            .add_modifier(Modifier::BOLD),
+        Style::default().add_modifier(Modifier::BOLD),
     );
     let tax_span = Span::styled(
         format!("Tax setaside: {:.2}", percentages.3),
-        Style::default()
-            .fg(Color::LightGreen)
-            .add_modifier(Modifier::BOLD),
+        Style::default().add_modifier(Modifier::BOLD),
     );
     let spending_goals_line = Line::from(vec![
         necessary_span,
@@ -524,7 +516,7 @@ pub fn render_spending_goals_bar(f: &mut Frame, app: &App, area: Rect) {
     .alignment(Alignment::Center);
     let spending_goals_paragraph = Paragraph::new(spending_goals_line).block(
         Block::default().borders(Borders::ALL).title(Span::styled(
-            "Spending goals",
+            format!("Spending goals for {} {}", month_to_short_str(month), year),
             Style::default().add_modifier(Modifier::BOLD),
         )),
     );
