@@ -11,14 +11,19 @@ pub mod transaction_form;
 pub mod transaction_table;
 
 use crate::app::state::{App, AppMode};
+use helpers::should_render_spending_goals_bar;
 use ratatui::Frame;
 
 pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     let filter_bar_height = if app.mode == AppMode::Filtering { 3 } else { 0 };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
     let summary_bar_height = 3;
-    let spending_goals_height = 3;
     let help_bar_height = 3;
+    let spending_goals_height = if should_render_spending_goals_bar() {
+        3
+    } else {
+        0
+    };
 
     let main_chunks = ratatui::layout::Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
@@ -85,7 +90,10 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     }
 
     summary::render_summary_bar(f, app, summary_area);
-    summary::render_spending_goals_bar(f, app, spending_goals_area);
+
+    if should_render_spending_goals_bar() {
+        summary::render_spending_goals_bar(f, app, spending_goals_area);
+    }
 
     if let Some(msg) = &app.status_message {
         status::render_status_bar(f, msg, status_area);

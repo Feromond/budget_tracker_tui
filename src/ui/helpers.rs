@@ -37,3 +37,16 @@ pub fn month_to_short_str(month: u32) -> &'static str {
         _ => "?",
     }
 }
+
+pub fn should_render_spending_goals_bar() -> bool {
+    let set = crate::config::load_settings().unwrap_or_default();
+
+    [
+        set.necessary_expenses_percentage,
+        set.discretionary_expenses_percentage,
+        set.saving_or_investment_percentage,
+        set.tax_setaside_percentage,
+    ]
+    .iter()
+    .all(|&p| p.is_some())
+}
