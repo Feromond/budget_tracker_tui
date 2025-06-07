@@ -117,30 +117,30 @@ impl App {
         let idx = self.current_settings_field;
 
         match idx {
-            1 => {
-                // Target Budget - use centralized amount validation
-                crate::validation::insert_amount_char(&mut self.settings_fields[1], c);
-            }
-            _ => {
+            0 => {
                 // Data File Path: insert at cursor
                 let field = &mut self.settings_fields[0];
                 field.insert(self.input_field_cursor, c);
                 self.input_field_cursor += 1;
             }
+            _ => {
+                // Numeric setting fields
+                crate::validation::insert_amount_char(&mut self.settings_fields[idx], c);
+            }
         }
     }
     pub(crate) fn delete_char_settings(&mut self) {
         let idx = self.current_settings_field;
-        if idx == 1 {
-            let field = &mut self.settings_fields[1];
-            field.pop();
-        } else {
+        if idx == 0 {
             // Data File Path: delete before cursor
             let field = &mut self.settings_fields[0];
             if self.input_field_cursor > 0 && !field.is_empty() {
                 field.remove(self.input_field_cursor - 1);
                 self.input_field_cursor -= 1;
             }
+        } else {
+            let field = &mut self.settings_fields[idx];
+            field.pop();
         }
     }
     pub(crate) fn clear_settings_field(&mut self) {

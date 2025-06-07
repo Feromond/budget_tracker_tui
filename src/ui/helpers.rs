@@ -1,3 +1,4 @@
+use crate::model::Transaction;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
@@ -36,4 +37,45 @@ pub fn month_to_short_str(month: u32) -> &'static str {
         12 => "Dec",
         _ => "?",
     }
+}
+
+pub fn should_render_spending_goals_bar() -> bool {
+    let set = crate::config::load_settings().unwrap_or_default();
+
+    [
+        set.necessary_expenses_percentage,
+        set.discretionary_expenses_percentage,
+        set.saving_or_investment_percentage,
+        set.tax_setaside_percentage,
+    ]
+    .iter()
+    .all(|&p| p.is_some())
+}
+
+pub fn categorize_expenses(expenses: Vec<Transaction>) -> (f64, f64, f64) {
+    let mut necessities: f64 = 0.0;
+    let mut discretionary: f64 = 0.0;
+    let mut svaings_investments: f64 = 0.0;
+
+    for expense in expenses {
+        match expense.category.as_str() {
+            "Housing" | "Utilities" | "Houseold" | "Trasnportation" | "Family & Children"
+            | "Education" | "Debt Payments" | "Health & Wellness" | "Work & Business" => {
+                necessities += expense.amount
+            }
+            "Personal & Other" => match expense.subcategory.as_str() {
+                "Charity/Donations" => discretionary += expense.amount,
+                _ => necessities += expense.amount,
+            },
+            "Digital Services" => match expense.subcategory.as_str() {
+                "App Subscriptions" => discretionary += expense.amount,
+                _ => necessities += expense.amount,
+            },
+            "Entertainment" | "Shopping" | "Pets" => discretionary += expense.amount,
+            "Savings & Investments" => svaings_investments += expense.amount,
+            _ => {}
+        }
+    }
+
+    (necessities, discretionary, svaings_investments)
 }

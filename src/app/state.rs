@@ -78,7 +78,7 @@ pub struct App {
     // Flattened list of visible items for rendering and navigation
     pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
     // Settings form state
-    pub(crate) settings_fields: [String; 2],
+    pub(crate) settings_fields: [String; 6],
     pub(crate) current_settings_field: usize,
     // Budget
     pub(crate) target_budget: Option<f64>,
