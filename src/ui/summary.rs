@@ -1,5 +1,8 @@
+use super::helpers::categorize_expenses;
 use crate::app::state::App;
 use crate::config::load_settings;
+use crate::model::{Transaction, TransactionType};
+use crate::persistence::load_transactions;
 use crate::ui::helpers::month_to_short_str;
 use crate::validation::days_in_month;
 use chrono::Datelike;
@@ -8,6 +11,7 @@ use ratatui::text::Line;
 use ratatui::widgets::{
     Axis, Bar, BarChart, BarGroup, Block, Borders, Chart, Dataset, GraphType, Paragraph,
 };
+use std::path::Path;
 
 pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let summary_chunks = Layout::default()
@@ -467,6 +471,21 @@ pub fn render_spending_goals_bar(f: &mut Frame, app: &App, area: Rect) {
     let year = now.year();
     let month = now.month();
 
+    let expenses: Vec<Transaction> = load_transactions(Path::new(
+        load_settings()
+            .unwrap_or_default()
+            .data_file_path
+            .unwrap_or_default()
+            .as_str(),
+    ))
+    .unwrap_or_default()
+    .into_iter()
+    .filter(|transaction| transaction.transaction_type == TransactionType::Expense)
+    .filter(|transaction| (transaction.date.month0() + 1) == month)
+    .collect();
+
+    let actual_expenses = categorize_expenses(expenses.clone());
+
     let total_income = app
         .monthly_summaries
         .get(&(year, month))
@@ -489,27 +508,57 @@ pub fn render_spending_goals_bar(f: &mut Frame, app: &App, area: Rect) {
         total_income * (spending_goals_percentages.3 / 100.0),
     );
     let necessary_span = Span::styled(
-        format!("Necessary expenses: {:.2}", percentages.0),
+        format!("Necessities: {:.2}", percentages.0),
         Style::default().add_modifier(Modifier::BOLD),
     );
+    let necessary_actual = Span::styled(
+        format!(" ({:.2}) ", actual_expenses.0),
+        if actual_expenses.0 <= percentages.0 {
+            Style::default().fg(Color::Green)
+        } else {
+            Style::default().fg(Color::Red)
+        },
+    );
     let discretionary_span = Span::styled(
-        format!("Discretionary expenses: {:.2}", percentages.1),
+        format!("Discretionary: {:.2}", percentages.1),
         Style::default().add_modifier(Modifier::BOLD),
+    );
+    let discretionary_actual = Span::styled(
+        format!(" ({:.2}) ", actual_expenses.1),
+        if actual_expenses.0 <= percentages.1 {
+            Style::default().fg(Color::Green)
+        } else {
+            Style::default().fg(Color::Red)
+        },
     );
     let savings_span = Span::styled(
         format!("Savings/investments: {:.2}", percentages.2),
         Style::default().add_modifier(Modifier::BOLD),
     );
+    let savings_actual = Span::styled(
+        format!(" ({:.2}) ", actual_expenses.2),
+        // NOTE: Here is green if you saved as much you planned or more
+        if actual_expenses.2 >= percentages.2 {
+            Style::default().fg(Color::Green)
+        } else {
+            Style::default().fg(Color::Red)
+        },
+    );
     let tax_span = Span::styled(
         format!("Tax setaside: {:.2}", percentages.3),
-        Style::default().add_modifier(Modifier::BOLD),
+        Style::default()
+            .add_modifier(Modifier::BOLD)
+            .fg(Color::Blue),
     );
     let spending_goals_line = Line::from(vec![
         necessary_span,
+        necessary_actual,
         Span::raw(" | "),
         discretionary_span,
+        discretionary_actual,
         Span::raw(" | "),
         savings_span,
+        savings_actual,
         Span::raw(" | "),
         tax_span,
     ])
