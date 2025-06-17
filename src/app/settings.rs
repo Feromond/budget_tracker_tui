@@ -8,7 +8,8 @@ impl App {
     // Handles entering/exiting settings mode, saving settings, and resetting the data file path.
     pub(crate) fn enter_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Settings;
-        self.settings_fields[0] = self.data_file_path.to_string_lossy().to_string();
+        let path_str = self.data_file_path.to_string_lossy().to_string();
+        self.settings_fields[0] = crate::validation::strip_path_quotes(&path_str);
         let loaded_settings = crate::config::load_settings().unwrap_or_default();
         self.settings_fields[1] = loaded_settings
             .target_budget
@@ -26,6 +27,9 @@ impl App {
         self.status_message = None;
     }
     pub(crate) fn save_settings(&mut self) {
+        // Strip quotes from the path before saving
+        self.settings_fields[0] = crate::validation::strip_path_quotes(&self.settings_fields[0]);
+        
         // Save the new data file path in config and reload transactions from the new path.
         let new_path_str = self.settings_fields[0].trim();
         let target_budget_str = self.settings_fields[1].trim();
@@ -102,7 +106,7 @@ impl App {
         match Self::get_default_data_file_path() {
             Ok(default_path) => {
                 let path_str = default_path.to_string_lossy().to_string();
-                self.settings_fields[0] = path_str;
+                self.settings_fields[0] = crate::validation::strip_path_quotes(&path_str);
                 self.current_settings_field = 0;
                 self.input_field_cursor = self.settings_fields[0].len();
                 self.status_message =
@@ -110,7 +114,7 @@ impl App {
             }
             Err(e) => {
                 let fallback_path = "transactions.csv";
-                self.settings_fields[0] = fallback_path.to_string();
+                self.settings_fields[0] = crate::validation::strip_path_quotes(fallback_path);
                 self.current_settings_field = 0;
                 self.input_field_cursor = self.settings_fields[0].len();
                 self.status_message = Some(format!(

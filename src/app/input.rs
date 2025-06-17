@@ -81,7 +81,20 @@ impl App {
 
 
     // --- Settings Input ---
+    
+    // Helper to strip quotes from path field when focus changes
+    fn strip_quotes_from_path_field(&mut self) {
+        if self.current_settings_field == 0 {
+            let stripped = crate::validation::strip_path_quotes(&self.settings_fields[0]);
+            self.settings_fields[0] = stripped;
+            self.input_field_cursor = self.settings_fields[0].len();
+        }
+    }
+    
     pub(crate) fn next_settings_field(&mut self) {
+        // Strip quotes from current field before moving
+        self.strip_quotes_from_path_field();
+        
         let next_field = (self.current_settings_field + 1) % self.settings_fields.len();
         self.current_settings_field = next_field;
         if self.current_settings_field == 0 {
@@ -89,6 +102,9 @@ impl App {
         }
     }
     pub(crate) fn previous_settings_field(&mut self) {
+        // Strip quotes from current field before moving
+        self.strip_quotes_from_path_field();
+        
         if self.current_settings_field == 0 {
             self.current_settings_field = self.settings_fields.len() - 1;
         } else {
@@ -119,10 +135,31 @@ impl App {
                 crate::validation::insert_amount_char(&mut self.settings_fields[1], c);
             }
             _ => {
-                // Data File Path: insert at cursor
+                // Data File Path: insert at cursor and strip quotes
                 let field = &mut self.settings_fields[0];
                 field.insert(self.input_field_cursor, c);
-                self.input_field_cursor += 1;
+                
+                // Strip quotes from the path and update cursor position accordingly
+                let original_len = field.len();
+                let stripped = crate::validation::strip_path_quotes(field);
+                let new_len = stripped.len();
+                *field = stripped;
+                
+                // Adjust cursor position based on how many characters were removed
+                let chars_removed = original_len - new_len;
+                if chars_removed > 0 {
+                    // If quotes were stripped, adjust cursor position
+                    if self.input_field_cursor > chars_removed {
+                        self.input_field_cursor -= chars_removed;
+                    } else {
+                        self.input_field_cursor = 0;
+                    }
+                    // Position cursor at the end after stripping
+                    self.input_field_cursor = field.len();
+                } else {
+                    // No quotes were stripped, just move cursor right as normal
+                    self.input_field_cursor += 1;
+                }
             }
         }
     }
@@ -132,11 +169,19 @@ impl App {
             let field = &mut self.settings_fields[1];
             field.pop();
         } else {
-            // Data File Path: delete before cursor
+            // Data File Path: delete before cursor and strip quotes
             let field = &mut self.settings_fields[0];
             if self.input_field_cursor > 0 && !field.is_empty() {
                 field.remove(self.input_field_cursor - 1);
                 self.input_field_cursor -= 1;
+                
+                let stripped = crate::validation::strip_path_quotes(field);
+                *field = stripped;
+                
+                // Ensure cursor doesn't go beyond field length
+                if self.input_field_cursor > field.len() {
+                    self.input_field_cursor = field.len();
+                }
             }
         }
     }

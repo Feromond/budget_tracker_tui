@@ -246,3 +246,23 @@ pub fn add_months(date: NaiveDate, months_to_add: i32) -> NaiveDate {
         .or_else(|| NaiveDate::from_ymd_opt(year, month as u32, 1))
         .unwrap_or(date) // Final fallback: return original date
 }
+
+// --- Path Validation ---
+
+/// Strips quotes from file paths to handle copy-paste scenarios
+/// Removes leading and trailing single or double quotes from paths
+pub fn strip_path_quotes(path: &str) -> String {
+    let mut result = path.to_string();
+    
+    // Remove leading quotes
+    if result.starts_with('"') || result.starts_with('\'') {
+        result = result[1..].to_string();
+    }
+    
+    // Remove trailing quotes
+    if result.ends_with('"') || result.ends_with('\'') {
+        result = result[..result.len()-1].to_string();
+    }
+    
+    result
+}
