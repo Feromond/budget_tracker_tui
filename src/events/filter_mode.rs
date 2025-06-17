@@ -12,10 +12,7 @@ pub fn handle_filter_mode(app: &mut App, key_event: KeyEvent) {
 fn handle_simple_filtering(app: &mut App, key_event: KeyEvent) {
     match (key_event.modifiers, key_event.code) {
         (KeyModifiers::CONTROL, KeyCode::Char('f')) => app.start_advanced_filtering(),
-        (KeyModifiers::CONTROL, KeyCode::Char('r')) => {
-            app.clear_input_field();
-            app.apply_filter();
-        }
+        (KeyModifiers::CONTROL, KeyCode::Char('r')) => app.reset_all_filters(),
         (KeyModifiers::NONE, KeyCode::Esc) | (KeyModifiers::NONE, KeyCode::Enter) => {
             app.exit_filtering()
         }
@@ -43,7 +40,7 @@ fn handle_simple_filtering(app: &mut App, key_event: KeyEvent) {
 
 fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
     match (key_event.modifiers, key_event.code) {
-        (KeyModifiers::CONTROL, KeyCode::Char('r')) => app.clear_advanced_filter_fields(),
+        (KeyModifiers::CONTROL, KeyCode::Char('r')) => app.reset_all_filters(),
         (KeyModifiers::NONE, KeyCode::Esc) => app.cancel_advanced_filtering(),
         (KeyModifiers::NONE, KeyCode::Enter) => match app.current_advanced_filter_field {
             3 => app.start_advanced_category_selection(),

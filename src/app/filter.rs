@@ -50,7 +50,6 @@ impl App {
     // Handles advanced filter UI, field navigation, and applying advanced filters to transactions.
     pub(crate) fn start_advanced_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
-        self.advanced_filter_fields = Default::default();
         self.current_advanced_filter_field = 0;
         self.status_message = None;
     }
@@ -63,12 +62,22 @@ impl App {
         self.mode = crate::app::state::AppMode::Normal;
         self.status_message = None;
     }
-    pub(crate) fn clear_advanced_filter_fields(&mut self) {
+
+    pub(crate) fn reset_all_filters(&mut self) {
+        // Clear simple filter field
+        self.input_field_content.clear();
+        self.input_field_cursor = 0;
+        
+        // Clear advanced filter fields
         for f in self.advanced_filter_fields.iter_mut() {
             f.clear();
         }
         self.current_advanced_filter_field = 0;
-        self.apply_advanced_filter();
+        
+        // Apply basic filter (shows all transactions) and return to normal mode
+        self.apply_filter();
+        self.mode = crate::app::state::AppMode::Normal;
+        self.status_message = Some("All filters cleared".to_string());
     }
     pub(crate) fn next_advanced_filter_field(&mut self) {
         self.current_advanced_filter_field =

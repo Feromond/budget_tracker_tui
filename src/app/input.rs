@@ -78,10 +78,7 @@ impl App {
             self.current_add_edit_field -= 1;
         }
     }
-    pub(crate) fn clear_input_field(&mut self) {
-        self.input_field_content.clear();
-        self.input_field_cursor = 0;
-    }
+
 
     // --- Settings Input ---
     pub(crate) fn next_settings_field(&mut self) {
