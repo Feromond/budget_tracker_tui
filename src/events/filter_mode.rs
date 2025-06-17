@@ -73,7 +73,11 @@ fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
             0 | 1 => app.increment_advanced_month(),
             _ => {}
         },
-        (KeyModifiers::NONE, KeyCode::Char(c)) => app.insert_char_advanced_filter(c),
+        (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_advanced_filter_field {
+            0 | 1 if c == '+' || c == '=' => app.increment_advanced_date(),
+            0 | 1 if c == '-' => app.decrement_advanced_date(),
+            _ => app.insert_char_advanced_filter(c),
+        },
         (KeyModifiers::SHIFT, KeyCode::Char(c)) => app.insert_char_advanced_filter(c),
         (KeyModifiers::NONE, KeyCode::Backspace) => app.delete_char_advanced_filter(),
         (KeyModifiers::NONE, KeyCode::Delete) => app.delete_char_advanced_filter(),

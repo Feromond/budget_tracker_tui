@@ -1,5 +1,4 @@
 use super::state::App;
-use crate::app::state::DateUnit;
 use crate::model::{TransactionType, DATE_FORMAT};
 use chrono::NaiveDate;
 use ratatui::widgets::ListState;
@@ -271,39 +270,36 @@ impl App {
         self.calculate_category_summaries();
         self.calculate_monthly_summaries();
     }
-    pub(crate) fn adjust_advanced_date(&mut self, amount: i64, unit: DateUnit) {
+    pub(crate) fn increment_advanced_date(&mut self) {
         let idx = self.current_advanced_filter_field;
         if idx == 0 || idx == 1 {
-            if let Ok(current_date) =
-                NaiveDate::parse_from_str(&self.advanced_filter_fields[idx], DATE_FORMAT)
-            {
-                let new_date = match unit {
-                    DateUnit::Day => {
-                        if amount > 0 {
-                            current_date + chrono::Duration::days(amount)
-                        } else {
-                            current_date - chrono::Duration::days(-amount)
-                        }
-                    }
-                    DateUnit::Month => {
-                        // Use centralized month arithmetic
-                        crate::validation::add_months(current_date, amount as i32)
-                    }
-                };
-                self.advanced_filter_fields[idx] = new_date.format(DATE_FORMAT).to_string();
+            if let Some(new_date) = self.increment_date_field(&self.advanced_filter_fields[idx]) {
+                self.advanced_filter_fields[idx] = new_date;
             }
         }
     }
-    pub(crate) fn increment_advanced_date(&mut self) {
-        self.adjust_advanced_date(1, DateUnit::Day);
-    }
     pub(crate) fn decrement_advanced_date(&mut self) {
-        self.adjust_advanced_date(-1, DateUnit::Day);
+        let idx = self.current_advanced_filter_field;
+        if idx == 0 || idx == 1 {
+            if let Some(new_date) = self.decrement_date_field(&self.advanced_filter_fields[idx]) {
+                self.advanced_filter_fields[idx] = new_date;
+            }
+        }
     }
     pub(crate) fn increment_advanced_month(&mut self) {
-        self.adjust_advanced_date(1, DateUnit::Month);
+        let idx = self.current_advanced_filter_field;
+        if idx == 0 || idx == 1 {
+            if let Some(new_date) = self.increment_month_field(&self.advanced_filter_fields[idx]) {
+                self.advanced_filter_fields[idx] = new_date;
+            }
+        }
     }
     pub(crate) fn decrement_advanced_month(&mut self) {
-        self.adjust_advanced_date(-1, DateUnit::Month);
+        let idx = self.current_advanced_filter_field;
+        if idx == 0 || idx == 1 {
+            if let Some(new_date) = self.decrement_month_field(&self.advanced_filter_fields[idx]) {
+                self.advanced_filter_fields[idx] = new_date;
+            }
+        }
     }
 }
