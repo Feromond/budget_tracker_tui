@@ -68,13 +68,13 @@ impl App {
         // Clear simple filter field
         self.input_field_content.clear();
         self.input_field_cursor = 0;
-        
+
         // Clear advanced filter fields
         for f in self.advanced_filter_fields.iter_mut() {
             f.clear();
         }
         self.current_advanced_filter_field = 0;
-        
+
         // Apply basic filter (shows all transactions) and return to normal mode
         self.apply_filter();
         self.mode = crate::app::state::AppMode::Normal;
@@ -105,7 +105,7 @@ impl App {
     }
     pub(crate) fn insert_char_advanced_filter(&mut self, c: char) {
         self.clear_simple_filter_field_only();
-        
+
         let idx = self.current_advanced_filter_field;
         let field = &mut self.advanced_filter_fields[idx];
         match idx {
@@ -132,7 +132,7 @@ impl App {
     }
     pub(crate) fn delete_char_advanced_filter(&mut self) {
         self.clear_simple_filter_field_only();
-        
+
         let idx = self.current_advanced_filter_field;
         let field = &mut self.advanced_filter_fields[idx];
         match idx {

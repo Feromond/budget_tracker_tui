@@ -29,7 +29,7 @@ impl App {
     pub(crate) fn save_settings(&mut self) {
         // Strip quotes from the path before saving
         self.settings_fields[0] = crate::validation::strip_path_quotes(&self.settings_fields[0]);
-        
+
         // Save the new data file path in config and reload transactions from the new path.
         let new_path_str = self.settings_fields[0].trim();
         let target_budget_str = self.settings_fields[1].trim();

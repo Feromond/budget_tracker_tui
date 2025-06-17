@@ -253,16 +253,16 @@ pub fn add_months(date: NaiveDate, months_to_add: i32) -> NaiveDate {
 /// Removes leading and trailing single or double quotes from paths
 pub fn strip_path_quotes(path: &str) -> String {
     let mut result = path.to_string();
-    
+
     // Remove leading quotes
     if result.starts_with('"') || result.starts_with('\'') {
         result = result[1..].to_string();
     }
-    
+
     // Remove trailing quotes
     if result.ends_with('"') || result.ends_with('\'') {
-        result = result[..result.len()-1].to_string();
+        result = result[..result.len() - 1].to_string();
     }
-    
+
     result
 }
