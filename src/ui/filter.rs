@@ -27,7 +27,7 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
         ("Description", ""),
         ("Category", "(Enter to select)"),
         ("Subcategory", "(Enter to select)"),
-        ("Type", "(◀/▶ or Enter to toggle)"),
+        ("Type", "(◀/▶)"),
         ("Amount From", ""),
         ("Amount To", ""),
     ];

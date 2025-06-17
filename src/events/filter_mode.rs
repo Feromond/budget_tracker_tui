@@ -49,7 +49,6 @@ fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
         (KeyModifiers::NONE, KeyCode::Enter) => match app.current_advanced_filter_field {
             3 => app.start_advanced_category_selection(),
             4 => app.start_advanced_subcategory_selection(),
-            5 => app.toggle_advanced_transaction_type(),
             _ => app.finish_advanced_filtering(),
         },
         (KeyModifiers::NONE, KeyCode::Tab) => app.next_advanced_filter_field(),
