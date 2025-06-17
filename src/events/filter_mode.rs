@@ -17,18 +17,22 @@ fn handle_simple_filtering(app: &mut App, key_event: KeyEvent) {
             app.exit_filtering()
         }
         (KeyModifiers::NONE, KeyCode::Char(c)) => {
+            app.clear_advanced_filter_fields_only();
             app.insert_char_at_cursor(c);
             app.apply_filter();
         }
         (KeyModifiers::SHIFT, KeyCode::Char(c)) => {
+            app.clear_advanced_filter_fields_only();
             app.insert_char_at_cursor(c);
             app.apply_filter();
         }
         (KeyModifiers::NONE, KeyCode::Backspace) => {
+            app.clear_advanced_filter_fields_only();
             app.delete_char_before_cursor();
             app.apply_filter();
         }
         (KeyModifiers::NONE, KeyCode::Delete) => {
+            app.clear_advanced_filter_fields_only();
             app.delete_char_after_cursor();
             app.apply_filter();
         }

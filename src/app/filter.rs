@@ -58,6 +58,7 @@ impl App {
         self.status_message = None;
     }
     pub(crate) fn finish_advanced_filtering(&mut self) {
+        self.clear_simple_filter_field_only();
         self.apply_advanced_filter();
         self.mode = crate::app::state::AppMode::Normal;
         self.status_message = None;
@@ -79,6 +80,18 @@ impl App {
         self.mode = crate::app::state::AppMode::Normal;
         self.status_message = Some("All filters cleared".to_string());
     }
+    pub(crate) fn clear_advanced_filter_fields_only(&mut self) {
+        // Clear advanced filter fields without changing mode
+        for f in self.advanced_filter_fields.iter_mut() {
+            f.clear();
+        }
+        self.current_advanced_filter_field = 0;
+    }
+    pub(crate) fn clear_simple_filter_field_only(&mut self) {
+        // Clear simple filter field without changing mode
+        self.input_field_content.clear();
+        self.input_field_cursor = 0;
+    }
     pub(crate) fn next_advanced_filter_field(&mut self) {
         self.current_advanced_filter_field =
             (self.current_advanced_filter_field + 1) % self.advanced_filter_fields.len();
@@ -91,6 +104,8 @@ impl App {
         }
     }
     pub(crate) fn insert_char_advanced_filter(&mut self, c: char) {
+        self.clear_simple_filter_field_only();
+        
         let idx = self.current_advanced_filter_field;
         let field = &mut self.advanced_filter_fields[idx];
         match idx {
@@ -116,6 +131,8 @@ impl App {
         }
     }
     pub(crate) fn delete_char_advanced_filter(&mut self) {
+        self.clear_simple_filter_field_only();
+        
         let idx = self.current_advanced_filter_field;
         let field = &mut self.advanced_filter_fields[idx];
         match idx {
@@ -134,6 +151,7 @@ impl App {
         }
     }
     pub(crate) fn toggle_advanced_transaction_type(&mut self) {
+        self.clear_simple_filter_field_only();
         let ft = self.advanced_filter_fields[5].trim();
         let new_val = if ft.is_empty() {
             "Income"
@@ -181,10 +199,12 @@ impl App {
         if let Some(idx) = self.selection_list_state.selected() {
             if let Some(fi) = self.selecting_field_index {
                 if let Some(val) = self.current_selection_list.get(idx) {
-                    let v = if fi == 4 && val == "(None)" {
+                    let val_clone = val.clone();
+                    self.clear_simple_filter_field_only();
+                    let v = if fi == 4 && val_clone == "(None)" {
                         ""
                     } else {
-                        val.as_str()
+                        val_clone.as_str()
                     };
                     self.advanced_filter_fields[fi] = v.to_string();
                     if fi == 3 {
@@ -282,6 +302,7 @@ impl App {
     pub(crate) fn increment_advanced_date(&mut self) {
         let idx = self.current_advanced_filter_field;
         if idx == 0 || idx == 1 {
+            self.clear_simple_filter_field_only();
             if let Some(new_date) = self.increment_date_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
             }
@@ -290,6 +311,7 @@ impl App {
     pub(crate) fn decrement_advanced_date(&mut self) {
         let idx = self.current_advanced_filter_field;
         if idx == 0 || idx == 1 {
+            self.clear_simple_filter_field_only();
             if let Some(new_date) = self.decrement_date_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
             }
@@ -298,6 +320,7 @@ impl App {
     pub(crate) fn increment_advanced_month(&mut self) {
         let idx = self.current_advanced_filter_field;
         if idx == 0 || idx == 1 {
+            self.clear_simple_filter_field_only();
             if let Some(new_date) = self.increment_month_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
             }
@@ -306,6 +329,7 @@ impl App {
     pub(crate) fn decrement_advanced_month(&mut self) {
         let idx = self.current_advanced_filter_field;
         if idx == 0 || idx == 1 {
+            self.clear_simple_filter_field_only();
             if let Some(new_date) = self.decrement_month_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
             }
