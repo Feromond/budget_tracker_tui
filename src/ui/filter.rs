@@ -18,16 +18,16 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
     let field_definitions = [
         (
             "Date From (YYYY-MM-DD)",
-            "(◀/▶ or +/- for days, Shift+◀/▶ for months, Digits to enter)",
+            "(◀/▶ or +/- days, Shift+◀/▶ months (jumps to today if empty), Digits to enter)",
         ),
         (
             "Date To (YYYY-MM-DD)",
-            "(◀/▶ or +/- for days, Shift+◀/▶ for months, Digits to enter)",
+            "(◀/▶ or +/- days, Shift+◀/▶ months (jumps to today if empty), Digits to enter)",
         ),
         ("Description", ""),
         ("Category", "(Enter to select)"),
         ("Subcategory", "(Enter to select)"),
-        ("Type", "(◀/▶ or Enter to toggle)"),
+        ("Type", "(◀/▶)"),
         ("Amount From", ""),
         ("Amount To", ""),
     ];

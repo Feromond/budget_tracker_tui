@@ -42,8 +42,10 @@ pub fn run_app<B: Backend>(
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering || app.mode == AppMode::RecurringSettings)
                                     && key.modifiers == KeyModifiers::SHIFT
                                     && matches!(key.code, KeyCode::Left | KeyCode::Right))
-                                // Allow Ctrl+F/R in simple Filtering mode
-                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r'))) || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_))))
+                                // Allow Ctrl+F/R in simple Filtering mode and Ctrl+R in AdvancedFiltering mode
+                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r')))
+                                || (app.mode == AppMode::AdvancedFiltering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('r')))
+                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_))))
                     {
                         if app.mode != AppMode::ConfirmDelete
                             && app.mode != AppMode::SelectingCategory

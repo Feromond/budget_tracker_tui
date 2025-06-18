@@ -95,6 +95,7 @@ Expense,Shopping,Home Goods
 Expense,Shopping,Tools & Hardware
 Expense,Shopping,Books & Music (Physical)
 Expense,Shopping,Jewelry
+Expense,Shopping,Beauty & Personal Care
 Expense,Shopping,Thrift/Secondhand
 Expense,Work & Business,Professional Fees
 Expense,Work & Business,Work Travel
@@ -107,6 +108,7 @@ Expense,Personal & Other,Charity/Donations
 Expense,Personal & Other,Bank Fees
 Expense,Personal & Other,ATM Fees
 Expense,Personal & Other,Cash Withdrawals
+Expense,Personal & Other,E-Transfer
 Expense,Personal & Other,Postage & Shipping
 Expense,Personal & Other,Taxes (Other)
 Expense,Personal & Other,Legal Fees
