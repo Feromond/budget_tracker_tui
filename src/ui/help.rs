@@ -171,6 +171,13 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" Year | "),
+            Span::styled(
+                "PgUp/PgDn",
+                Style::default()
+                    .fg(Color::LightGreen)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Month Jump | "),
             Span::styled("Enter", Style::default().fg(Color::Magenta)),
             Span::raw(" ▶ Expand ▼ Collapse | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
