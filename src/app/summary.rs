@@ -297,4 +297,50 @@ impl App {
         }
         items
     }
+
+    /// Jump to the next month in CategorySummary mode
+    /// Finds the next Month item in the visible items list
+    pub(crate) fn next_category_summary_month(&mut self) {
+        let current_selection = self.category_summary_table_state.selected().unwrap_or(0);
+        let items = &self.cached_visible_category_items;
+        
+        // Find the next month item after the current selection
+        for (index, item) in items.iter().enumerate().skip(current_selection + 1) {
+            if matches!(item, CategorySummaryItem::Month(_, _)) {
+                self.category_summary_table_state.select(Some(index));
+                return;
+            }
+        }
+        
+        // If no month found after current selection, wrap to first month
+        for (index, item) in items.iter().enumerate() {
+            if matches!(item, CategorySummaryItem::Month(_, _)) {
+                self.category_summary_table_state.select(Some(index));
+                return;
+            }
+        }
+    }
+
+    /// Jump to the previous month in CategorySummary mode
+    /// Finds the previous Month item in the visible items list
+    pub(crate) fn previous_category_summary_month(&mut self) {
+        let current_selection = self.category_summary_table_state.selected().unwrap_or(0);
+        let items = &self.cached_visible_category_items;
+        
+        // Find the previous month item before the current selection
+        for (index, item) in items.iter().enumerate().take(current_selection).rev() {
+            if matches!(item, CategorySummaryItem::Month(_, _)) {
+                self.category_summary_table_state.select(Some(index));
+                return;
+            }
+        }
+        
+        // If no month found before current selection, wrap to last month
+        for (index, item) in items.iter().enumerate().rev() {
+            if matches!(item, CategorySummaryItem::Month(_, _)) {
+                self.category_summary_table_state.select(Some(index));
+                return;
+            }
+        }
+    }
 }
