@@ -303,7 +303,7 @@ impl App {
     pub(crate) fn next_category_summary_month(&mut self) {
         let current_selection = self.category_summary_table_state.selected().unwrap_or(0);
         let items = &self.cached_visible_category_items;
-        
+
         // Find the next month item after the current selection
         for (index, item) in items.iter().enumerate().skip(current_selection + 1) {
             if matches!(item, CategorySummaryItem::Month(_, _)) {
@@ -311,7 +311,7 @@ impl App {
                 return;
             }
         }
-        
+
         // If no month found after current selection, wrap to first month
         for (index, item) in items.iter().enumerate() {
             if matches!(item, CategorySummaryItem::Month(_, _)) {
@@ -326,7 +326,7 @@ impl App {
     pub(crate) fn previous_category_summary_month(&mut self) {
         let current_selection = self.category_summary_table_state.selected().unwrap_or(0);
         let items = &self.cached_visible_category_items;
-        
+
         // Find the previous month item before the current selection
         for (index, item) in items.iter().enumerate().take(current_selection).rev() {
             if matches!(item, CategorySummaryItem::Month(_, _)) {
@@ -334,7 +334,7 @@ impl App {
                 return;
             }
         }
-        
+
         // If no month found before current selection, wrap to last month
         for (index, item) in items.iter().enumerate().rev() {
             if matches!(item, CategorySummaryItem::Month(_, _)) {

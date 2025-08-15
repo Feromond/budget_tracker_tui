@@ -83,15 +83,17 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
 
     // Determine year filter based on current mode
     let year_filter = match app.mode {
-        AppMode::Summary => {
-            app.summary_years.get(app.selected_summary_year_index).copied()
-        }
-        AppMode::CategorySummary => {
-            app.category_summary_years.get(app.category_summary_year_index).copied()
-        }
+        AppMode::Summary => app
+            .summary_years
+            .get(app.selected_summary_year_index)
+            .copied(),
+        AppMode::CategorySummary => app
+            .category_summary_years
+            .get(app.category_summary_year_index)
+            .copied(),
         _ => None, // No year filter for other modes - show all transactions as before
     };
-    
+
     summary::render_summary_bar(f, app, summary_area, year_filter);
 
     if let Some(msg) = &app.status_message {

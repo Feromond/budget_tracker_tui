@@ -27,9 +27,13 @@ pub fn handle_normal_mode(app: &mut App, key_event: KeyEvent) {
         (KeyCode::Char('o'), _) => app.enter_settings_mode(),
         // Sorting
         (KeyCode::Char('1'), _) | (KeyCode::F(1), _) => app.set_sort_column(SortColumn::Date),
-        (KeyCode::Char('2'), _) | (KeyCode::F(2), _) => app.set_sort_column(SortColumn::Description),
+        (KeyCode::Char('2'), _) | (KeyCode::F(2), _) => {
+            app.set_sort_column(SortColumn::Description)
+        }
         (KeyCode::Char('3'), _) | (KeyCode::F(3), _) => app.set_sort_column(SortColumn::Category),
-        (KeyCode::Char('4'), _) | (KeyCode::F(4), _) => app.set_sort_column(SortColumn::Subcategory),
+        (KeyCode::Char('4'), _) | (KeyCode::F(4), _) => {
+            app.set_sort_column(SortColumn::Subcategory)
+        }
         (KeyCode::Char('5'), _) | (KeyCode::F(5), _) => app.set_sort_column(SortColumn::Type),
         (KeyCode::Char('6'), _) | (KeyCode::F(6), _) => app.set_sort_column(SortColumn::Amount),
         _ => {}
