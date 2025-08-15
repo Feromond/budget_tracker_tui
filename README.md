@@ -121,6 +121,7 @@ Then, you can just type `bt` to launch the app.
   - The path to your `transactions.csv` file is configurable in-app (press `o` for settings).
   - Default locations: - **Linux:** `$XDG_DATA_HOME/BudgetTracker/transactions.csv` (usually `~/.local/share/BudgetTracker/transactions.csv`) - **macOS:** `~/Library/Application Support/BudgetTracker/transactions.csv` - **Windows:** `%APPDATA%\BudgetTracker\transactions.csv` (e.g.,
     `C:\Users\<YourUsername>\AppData\Roaming\BudgetTracker\transactions.csv`)
+  - **Cross-Device Sync:** You can set your data file path to a cloud-synced folder (iCloud, Google Drive, Dropbox, OneDrive, etc.) to automatically sync your budget data across multiple devices. Just point the data file path to a location within your cloud storage folder!
 - **Target Budget:**
   - Set a monthly target budget in settings. This will show a budget line in summary charts.
 - **Config File:**
