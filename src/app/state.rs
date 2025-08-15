@@ -288,6 +288,78 @@ impl App {
     pub fn increment_month(&mut self) {
         self.adjust_date(1, DateUnit::Month);
     }
+
+    /// Jump to the very first item in the transaction list
+    /// Only works in Normal and Filtering modes
+    pub fn jump_to_first(&mut self) {
+        match self.mode {
+            AppMode::Normal | AppMode::Filtering => {
+                let list_len = self.filtered_indices.len();
+                if list_len > 0 {
+                    self.table_state.select(Some(0));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Jump to the very last item in the transaction list
+    /// Only works in Normal and Filtering modes
+    pub fn jump_to_last(&mut self) {
+        match self.mode {
+            AppMode::Normal | AppMode::Filtering => {
+                let list_len = self.filtered_indices.len();
+                if list_len > 0 {
+                    let last_index = list_len - 1;
+                    self.table_state.select(Some(last_index));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Page size for transaction navigation (PageUp/PageDown)
+    const TRANSACTION_PAGE_SIZE: usize = 20;
+
+    /// Jump up by approximately one page worth of transactions
+    /// Only works in Normal and Filtering modes
+    pub fn page_up(&mut self) {
+        match self.mode {
+            AppMode::Normal | AppMode::Filtering => {
+                let list_len = self.filtered_indices.len();
+                if list_len == 0 {
+                    return;
+                }
+
+                let page_size = Self::TRANSACTION_PAGE_SIZE;
+                let current_selection = self.table_state.selected().unwrap_or(0);
+                let new_selection = current_selection.saturating_sub(page_size);
+
+                self.table_state.select(Some(new_selection));
+            }
+            _ => {}
+        }
+    }
+
+    /// Jump down by approximately one page worth of transactions
+    /// Only works in Normal and Filtering modes
+    pub fn page_down(&mut self) {
+        match self.mode {
+            AppMode::Normal | AppMode::Filtering => {
+                let list_len = self.filtered_indices.len();
+                if list_len == 0 {
+                    return;
+                }
+
+                let page_size = Self::TRANSACTION_PAGE_SIZE;
+                let current_selection = self.table_state.selected().unwrap_or(0);
+                let new_selection = (current_selection + page_size).min(list_len - 1);
+
+                self.table_state.select(Some(new_selection));
+            }
+            _ => {}
+        }
+    }
     pub(crate) fn get_original_index(&self, filtered_view_index: usize) -> Option<usize> {
         self.filtered_indices.get(filtered_view_index).copied()
     }
