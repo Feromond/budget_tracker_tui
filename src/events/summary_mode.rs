@@ -27,10 +27,12 @@ fn handle_category_summary(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('q') | KeyCode::Esc => app.exit_category_summary_mode(),
         KeyCode::Down => app.next_category_summary_item(),
         KeyCode::Up => app.previous_category_summary_item(),
-        KeyCode::Char(']') | KeyCode::PageDown | KeyCode::Right => app.next_category_summary_year(),
-        KeyCode::Char('[') | KeyCode::PageUp | KeyCode::Left => {
-            app.previous_category_summary_year()
-        }
+        // PageUp/PageDown for month jumping
+        KeyCode::PageUp => app.previous_category_summary_month(),
+        KeyCode::PageDown => app.next_category_summary_month(),
+        // Brackets and Left/Right for year navigation
+        KeyCode::Char(']') | KeyCode::Right => app.next_category_summary_year(),
+        KeyCode::Char('[') | KeyCode::Left => app.previous_category_summary_year(),
         KeyCode::Enter => {
             let items = app.get_visible_category_summary_items();
             if let Some(selected_index) = app.category_summary_table_state.selected() {
