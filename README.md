@@ -4,7 +4,7 @@
   <img src="budget_tracker_icon.png" alt="Budget Tracker Logo" width="150"/>
 </p>
 
-A fast, modern, and efficient Terminal User Interface (TUI) application for tracking your personal budget, built with Rust and Ratatui.
+A fast, modern, and efficient Terminal User Interface (TUI) application for tracking your personal budget, built with [Rust](https://www.rust-lang.org) and [Ratatui](https://ratatui.rs).
 
 ## 📚 Table of Contents
 
