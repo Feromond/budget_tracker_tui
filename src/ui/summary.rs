@@ -461,11 +461,18 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_widget(bar_chart, bar_chart_area);
 }
 
-pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
+pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Option<i32>) {
     let (total_income, total_expense) = app
         .filtered_indices
         .iter()
         .filter_map(|&idx| app.transactions.get(idx))
+        .filter(|tx| {
+            // Apply year filter if specified, otherwise include all transactions
+            match year_filter {
+                Some(year) => tx.date.year() == year,
+                None => true,
+            }
+        })
         .fold((0.0, 0.0), |(inc, exp), tx| match tx.transaction_type {
             crate::model::TransactionType::Income => (inc + tx.amount, exp),
             crate::model::TransactionType::Expense => (inc, exp + tx.amount),
@@ -510,10 +517,11 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect) {
     .alignment(Alignment::Center);
 
     let is_filtered = app.filtered_indices.len() != app.transactions.len();
-    let title = if is_filtered {
-        "Grand Total (Filtered)"
-    } else {
-        "Grand Total (All Transactions)"
+    let title = match (year_filter, is_filtered) {
+        (Some(year), true) => format!("Grand Total - {} (Filtered)", year),
+        (Some(year), false) => format!("Grand Total - {}", year),
+        (None, true) => "Grand Total (Filtered)".to_string(),
+        (None, false) => "Grand Total (All Transactions)".to_string(),
     };
 
     let summary_paragraph =
