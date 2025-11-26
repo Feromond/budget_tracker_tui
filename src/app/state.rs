@@ -30,6 +30,8 @@ pub enum AppMode {
     Settings,
     RecurringSettings,
     SelectingRecurrenceFrequency,
+    KeybindingsInfo,
+    KeybindingDetail,
 }
 
 #[derive(Debug)]
@@ -86,6 +88,9 @@ pub struct App {
     pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
     pub(crate) current_recurring_field: usize,
     pub(crate) recurring_transaction_index: Option<usize>,
+    // Help/Keybindings
+    pub(crate) previous_mode: Option<AppMode>,
+    pub(crate) help_table_state: TableState,
 }
 
 impl App {
@@ -222,6 +227,8 @@ impl App {
             recurring_settings_fields: Default::default(),
             current_recurring_field: 0,
             recurring_transaction_index: None,
+            previous_mode: None,
+            help_table_state: TableState::default(),
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
