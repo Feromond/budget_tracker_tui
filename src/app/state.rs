@@ -3,6 +3,7 @@ use crate::model::*;
 use crate::persistence::{load_categories, load_transactions};
 use chrono::{Datelike, Duration, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
+use rust_decimal::Decimal;
 use std::collections::{HashMap, HashSet};
 use std::fs::create_dir_all;
 use std::io::{Error, ErrorKind};
@@ -83,8 +84,8 @@ pub struct App {
     // Settings form state
     pub(crate) settings_state: crate::app::settings_types::SettingsState,
     // Budget
-    pub(crate) target_budget: Option<f64>,
-    pub(crate) hourly_rate: Option<f64>,
+    pub(crate) target_budget: Option<Decimal>,
+    pub(crate) hourly_rate: Option<Decimal>,
     pub(crate) show_hours: bool,
     pub(crate) fuzzy_search_mode: bool,
     pub(crate) search_query: String,

@@ -7,6 +7,8 @@ use ratatui::text::Line;
 use ratatui::widgets::{
     Axis, Bar, BarChart, BarGroup, Block, Borders, Chart, Dataset, GraphType, Paragraph,
 };
+use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
 pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let summary_chunks = Layout::default()
@@ -49,13 +51,13 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     ];
     let mut all_line_data: Vec<Vec<(f64, f64)>> = vec![];
     let mut legend_labels = vec![];
-    let mut max_expense = 0.0;
+    let mut max_expense = Decimal::ZERO;
     let mut datasets = vec![];
     if app.summary_multi_month_mode {
         for &month in &months {
             let year = current_year.unwrap_or(0);
             let num_days = days_in_month(year, month) as usize;
-            let mut daily_expenses = vec![0.0; num_days];
+            let mut daily_expenses = vec![Decimal::ZERO; num_days];
             for &idx in &app.filtered_indices {
                 let tx = &app.transactions[idx];
                 if tx.date.year() == year && tx.date.month() == month {
@@ -68,7 +70,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 }
             }
             let line_data: Vec<(f64, f64)> = if app.summary_cumulative_mode {
-                let mut cum = 0.0;
+                let mut cum = Decimal::ZERO;
                 daily_expenses
                     .iter()
                     .enumerate()
@@ -77,7 +79,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         if cum > max_expense {
                             max_expense = cum;
                         }
-                        ((i + 1) as f64, cum)
+                        ((i + 1) as f64, cum.to_f64().unwrap_or(0.0))
                     })
                     .collect()
             } else {
@@ -88,7 +90,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         if amt > max_expense {
                             max_expense = amt;
                         }
-                        ((i + 1) as f64, amt)
+                        ((i + 1) as f64, amt.to_f64().unwrap_or(0.0))
                     })
                     .collect()
             };
@@ -112,7 +114,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         all_line_data.clear();
         if let (Some(year), Some(month)) = (current_year, app.selected_summary_month) {
             let num_days = days_in_month(year, month) as usize;
-            let mut daily_expenses = vec![0.0; num_days];
+            let mut daily_expenses = vec![Decimal::ZERO; num_days];
             for &idx in &app.filtered_indices {
                 let tx = &app.transactions[idx];
                 if tx.date.year() == year && tx.date.month() == month {
@@ -125,7 +127,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 }
             }
             let line_data: Vec<(f64, f64)> = if app.summary_cumulative_mode {
-                let mut cum = 0.0;
+                let mut cum = Decimal::ZERO;
                 daily_expenses
                     .iter()
                     .enumerate()
@@ -134,7 +136,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         if cum > max_expense {
                             max_expense = cum;
                         }
-                        ((i + 1) as f64, cum)
+                        ((i + 1) as f64, cum.to_f64().unwrap_or(0.0))
                     })
                     .collect()
             } else {
@@ -145,7 +147,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         if amt > max_expense {
                             max_expense = amt;
                         }
-                        ((i + 1) as f64, amt)
+                        ((i + 1) as f64, amt.to_f64().unwrap_or(0.0))
                     })
                     .collect()
             };
@@ -308,7 +310,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         x_labels.push(Span::raw(format!("{:.0}", pos.round())));
     }
     // Y-axis ticks: 0, 1/4 max, 1/2 max, 3/4 max, max
-    let y_max = max_expense.max(10.0);
+    let y_max = max_expense.to_f64().unwrap_or(0.0).max(10.0);
     let y_labels = vec![
         Span::raw("0"),
         Span::raw(format!("{:.0}", y_max * 0.25)),
@@ -324,9 +326,9 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             let num_days = days_in_month(year, month) as usize;
             let budget = app.target_budget.unwrap();
             if num_days > 0 {
-                let daily_budget = budget / num_days as f64;
+                let daily_budget = budget / Decimal::from(num_days);
                 let budget_line: Vec<(f64, f64)> = (1..=num_days)
-                    .map(|d| (d as f64, daily_budget * d as f64))
+                    .map(|d| (d as f64, (daily_budget * Decimal::from(d)).to_f64().unwrap_or(0.0)))
                     .collect();
                 cumulative_budget_line = Some(budget_line);
                 legend_labels.push(Span::styled(
@@ -425,12 +427,12 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 .cloned()
                 .unwrap_or_default();
             let net = summary.income - summary.expense;
-            let net_i64 = net.round() as i64;
+            let net_i64 = net.round().to_i64().unwrap_or(0);
             chart_data_styled.push(
                 Bar::default()
                     .label(month_to_short_str(month).into())
                     .value(net_i64.unsigned_abs())
-                    .style(if net >= 0.0 {
+                    .style(if net >= Decimal::ZERO {
                         Style::default().fg(Color::LightGreen)
                     } else {
                         Style::default().fg(Color::LightRed)
@@ -473,25 +475,25 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
                 None => true,
             }
         })
-        .fold((0.0, 0.0), |(inc, exp), tx| match tx.transaction_type {
+        .fold((Decimal::ZERO, Decimal::ZERO), |(inc, exp), tx| match tx.transaction_type {
             crate::model::TransactionType::Income => (inc + tx.amount, exp),
             crate::model::TransactionType::Expense => (inc, exp + tx.amount),
         });
     let net_balance = total_income - total_expense;
 
     let income_span = Span::styled(
-        format!("Income: {:.2}", total_income),
+        format!("Income: {:.2}", total_income.to_f64().unwrap_or(0.0)),
         Style::default()
             .fg(Color::LightGreen)
             .add_modifier(Modifier::BOLD),
     );
     let expense_span = Span::styled(
-        format!("Expenses: {:.2}", total_expense),
+        format!("Expenses: {:.2}", total_expense.to_f64().unwrap_or(0.0)),
         Style::default()
             .fg(Color::LightRed)
             .add_modifier(Modifier::BOLD),
     );
-    let net_style = if net_balance >= 0.0 {
+    let net_style = if net_balance >= Decimal::ZERO {
         Style::default()
             .fg(Color::LightGreen)
             .add_modifier(Modifier::BOLD)
@@ -500,10 +502,10 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
             .fg(Color::LightRed)
             .add_modifier(Modifier::BOLD)
     };
-    let net_str = if net_balance >= 0.0 {
-        format!("+{:.2}", net_balance)
+    let net_str = if net_balance >= Decimal::ZERO {
+        format!("+{:.2}", net_balance.to_f64().unwrap_or(0.0))
     } else {
-        format!("{:.2}", net_balance)
+        format!("{:.2}", net_balance.to_f64().unwrap_or(0.0))
     };
     let net_span = Span::styled(format!("Net: {}", net_str), net_style);
 

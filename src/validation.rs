@@ -4,6 +4,7 @@
 /// All input validation logic should be placed here for consistency and reusability.
 use crate::model::{CategoryInfo, TransactionType};
 use chrono::{Datelike, NaiveDate};
+use rust_decimal::Decimal;
 
 /// Validates and inserts a date character with proper formatting
 /// Returns the new field content with auto-inserted hyphens and validation
@@ -126,9 +127,9 @@ pub fn insert_amount_char(field: &mut String, c: char) {
 }
 
 /// Validates and parses an amount string
-pub fn validate_amount_string(amount_str: &str) -> Result<f64, String> {
-    match amount_str.parse::<f64>() {
-        Ok(amount) if amount > 0.0 => Ok(amount),
+pub fn validate_amount_string(amount_str: &str) -> Result<Decimal, String> {
+    match amount_str.parse::<Decimal>() {
+        Ok(amount) if amount > Decimal::ZERO => Ok(amount),
         Ok(_) => Err("Amount must be positive".to_string()),
         Err(_) => Err("Invalid amount format".to_string()),
     }

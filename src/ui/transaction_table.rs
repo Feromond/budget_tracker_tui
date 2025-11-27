@@ -2,6 +2,8 @@ use crate::app::state::App;
 use crate::model::{SortColumn, SortOrder, TransactionType, DATE_FORMAT};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 
 pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
     let header_titles = [
@@ -72,16 +74,16 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
 
         let amount_cell_text = if app.show_hours {
             if let Some(rate) = app.hourly_rate {
-                if rate > 0.0 {
-                    format!("{:.1}h", tx.amount / rate)
+                if rate > Decimal::ZERO {
+                    format!("{:.1}h", (tx.amount / rate).to_f64().unwrap_or(0.0))
                 } else {
-                    format!("{:.2}", tx.amount)
+                    format!("{:.2}", tx.amount.to_f64().unwrap_or(0.0))
                 }
             } else {
-                format!("{:.2}", tx.amount)
+                format!("{:.2}", tx.amount.to_f64().unwrap_or(0.0))
             }
         } else {
-            format!("{:.2}", tx.amount)
+            format!("{:.2}", tx.amount.to_f64().unwrap_or(0.0))
         };
 
         let cells = vec![

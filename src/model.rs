@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use serde::de::Error as SerdeError;
@@ -90,7 +91,7 @@ pub struct Transaction {
     #[serde(serialize_with = "date_format::serialize")]
     pub date: NaiveDate,
     pub description: String,
-    pub amount: f64,
+    pub amount: Decimal,
     pub transaction_type: TransactionType,
     #[serde(default = "default_category")]
     pub category: String,
@@ -169,8 +170,8 @@ pub enum SortOrder {
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MonthlySummary {
-    pub income: f64,
-    pub expense: f64,
+    pub income: Decimal,
+    pub expense: Decimal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
