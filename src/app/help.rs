@@ -113,6 +113,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Target Budget", "Monthly Budget Goal", "Fields", Some("Set a target monthly budget amount for reference in summaries.")),
             KeyBindingInfo::new("Hourly Rate", "Hourly Earning Rate", "Fields", Some("Optional. Enter your hourly rate to enable viewing transaction amounts as equivalent hours worked.")),
             KeyBindingInfo::new("Show Hours", "Toggle Hours View", "Fields", Some("Enable to display transaction amounts in equivalent hours based on your hourly rate.")),
+            KeyBindingInfo::new("Fuzzy Search", "Toggle Fuzzy Search", "Fields", Some("Toggle to enable fuzzy searching for categories/subcategories. When enabled, selecting 'Category' opens a search bar to filter both category and subcategory at once.")),
             KeyBindingInfo::new("←/→", "Toggle Options", "Navigation", Some("Use Left/Right arrow keys to change toggle settings (e.g. Yes/No).")),
             KeyBindingInfo::new("Ctrl+D", "Reset to Default", "Actions", None),
             KeyBindingInfo::new("Ctrl+U", "Clear Field", "Actions", None),
@@ -137,6 +138,13 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("↑/↓", "Navigate options", "Navigation", None),
             KeyBindingInfo::new("Enter", "Confirm Selection", "Actions", None),
             KeyBindingInfo::new("Esc", "Cancel Selection", "Actions", None),
+            KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
+        ],
+        AppMode::FuzzyFinding => vec![
+            KeyBindingInfo::new("Any Char", "Type to search", "Input", Some("Type to filter the list of categories and subcategories.")),
+            KeyBindingInfo::new("↑/↓", "Navigate results", "Navigation", None),
+            KeyBindingInfo::new("Enter", "Select Category", "Actions", Some("Confirm selection. Auto-fills both Category and Subcategory fields.")),
+            KeyBindingInfo::new("Esc", "Cancel", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         _ => vec![

@@ -6,6 +6,12 @@ use std::collections::HashSet;
 impl App {
     // --- Category/Subcategory Selection Logic ---
     pub(crate) fn start_category_selection(&mut self) {
+        // If fuzzy search is enabled, redirect to that mode
+        if self.fuzzy_search_mode {
+            self.start_fuzzy_selection();
+            return;
+        }
+
         self.selecting_field_index = Some(4);
         self.mode = crate::app::state::AppMode::SelectingCategory;
         let current_type_str = self.add_edit_fields[3].trim();

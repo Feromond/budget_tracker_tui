@@ -32,6 +32,7 @@ pub enum AppMode {
     SelectingRecurrenceFrequency,
     KeybindingsInfo,
     KeybindingDetail,
+    FuzzyFinding,
 }
 
 #[derive(Debug)]
@@ -85,6 +86,8 @@ pub struct App {
     pub(crate) target_budget: Option<f64>,
     pub(crate) hourly_rate: Option<f64>,
     pub(crate) show_hours: bool,
+    pub(crate) fuzzy_search_mode: bool,
+    pub(crate) search_query: String,
     // Recurring transaction state
     pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
     pub(crate) current_recurring_field: usize,
@@ -226,6 +229,8 @@ impl App {
             target_budget: loaded_settings.target_budget,
             hourly_rate: loaded_settings.hourly_rate,
             show_hours: loaded_settings.show_hours.unwrap_or(false),
+            fuzzy_search_mode: loaded_settings.fuzzy_search_mode.unwrap_or(false),
+            search_query: String::new(),
             recurring_settings_fields: Default::default(),
             current_recurring_field: 0,
             recurring_transaction_index: None,

@@ -1,5 +1,6 @@
 pub mod add_edit;
 pub mod category_select;
+pub mod fuzzy_search;
 pub mod filter;
 pub mod help;
 pub mod input;
