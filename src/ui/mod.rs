@@ -11,6 +11,7 @@ pub mod status;
 pub mod summary;
 pub mod transaction_form;
 pub mod transaction_table;
+pub mod update_popup;
 
 use crate::app::state::{App, AppMode};
 use ratatui::Frame;
@@ -118,6 +119,10 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
 
     if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {
         help_popup::render_keybindings_popup(f, app, f.area());
+    }
+
+    if app.show_update_popup {
+        update_popup::render_update_popup(f, app, f.area());
     }
 
     if render_mode == AppMode::Filtering {

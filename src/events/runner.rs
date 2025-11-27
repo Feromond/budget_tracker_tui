@@ -16,6 +16,12 @@ pub fn run_app<B: Backend>(
     app: &mut App,
 ) -> StdResult<(), Box<dyn std::error::Error>> {
     while !app.should_quit {
+        // Check for update in background channel
+        if let Ok(Some(version)) = app.update_rx.try_recv() {
+             app.update_available_version = Some(version);
+             app.show_update_popup = true;
+        }
+
         terminal.draw(|f| ui(f, app))?;
 
         if event::poll(Duration::from_millis(250))? {
@@ -83,6 +89,21 @@ pub fn run_app<B: Backend>(
 
 // Main input handler, dispatching based on mode
 fn update(app: &mut App, key_event: KeyEvent) {
+    if app.show_update_popup {
+        if key_event.kind == KeyEventKind::Press {
+             match key_event.code {
+                 KeyCode::Enter | KeyCode::Char('o') => {
+                     let _ = crate::app::util::open_url("https://github.com/Feromond/budget_tracker_tui/releases");
+                     app.show_update_popup = false;
+                 }
+                 _ => {
+                     app.show_update_popup = false;
+                 }
+             }
+        }
+        return;
+    }
+
     // Global Toggle for Keybindings Help
     if key_event.modifiers == KeyModifiers::CONTROL && key_event.code == KeyCode::Char('h') {
         if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {

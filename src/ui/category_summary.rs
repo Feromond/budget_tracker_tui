@@ -5,20 +5,22 @@ use ratatui::prelude::*;
 use ratatui::text::Line;
 use ratatui::widgets::*;
 use std::collections::HashMap;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
-fn cell_income(amount: f64) -> Cell<'static> {
-    Cell::from(format!("{:.2}", amount)).style(Style::default().fg(Color::LightGreen))
+fn cell_income(amount: Decimal) -> Cell<'static> {
+    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).style(Style::default().fg(Color::LightGreen))
 }
-fn cell_expense(amount: f64) -> Cell<'static> {
-    Cell::from(format!("{:.2}", amount)).style(Style::default().fg(Color::LightRed))
+fn cell_expense(amount: Decimal) -> Cell<'static> {
+    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).style(Style::default().fg(Color::LightRed))
 }
-fn cell_net(net: f64) -> Cell<'static> {
-    let s = if net >= 0.0 {
-        format!("+{:.2}", net)
+fn cell_net(net: Decimal) -> Cell<'static> {
+    let s = if net >= Decimal::ZERO {
+        format!("+{:.2}", net.to_f64().unwrap_or(0.0))
     } else {
-        format!("{:.2}", net)
+        format!("{:.2}", net.to_f64().unwrap_or(0.0))
     };
-    let style = if net >= 0.0 {
+    let style = if net >= Decimal::ZERO {
         Style::default().fg(Color::LightGreen)
     } else {
         Style::default().fg(Color::LightRed)
@@ -213,7 +215,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     }
                 }
 
-                let mut category_data_for_chart: Vec<(String, f64)> = category_totals
+                let mut category_data_for_chart: Vec<(String, Decimal)> = category_totals
                     .into_iter()
                     .map(|(cat, summary)| {
                         let net_balance = summary.income - summary.expense;
@@ -228,8 +230,8 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     .iter()
                     .map(|(cat, net)| {
                         let net_val = *net;
-                        let net_i64 = net_val.round() as i64;
-                        let net_style = if net_val >= 0.0 {
+                        let net_i64 = net_val.round().to_i64().unwrap_or(0);
+                        let net_style = if net_val >= Decimal::ZERO {
                             Style::default().fg(Color::LightGreen)
                         } else {
                             Style::default().fg(Color::LightRed)

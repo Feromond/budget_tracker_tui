@@ -2,6 +2,7 @@ use super::state::App;
 use crate::model::{TransactionType, DATE_FORMAT};
 use chrono::NaiveDate;
 use ratatui::widgets::ListState;
+use rust_decimal::Decimal;
 use std::collections::HashSet;
 
 impl App {
@@ -239,8 +240,8 @@ impl App {
         let cat_q = self.advanced_filter_fields[3].to_lowercase();
         let sub_q = self.advanced_filter_fields[4].to_lowercase();
         let type_q = self.advanced_filter_fields[5].trim();
-        let amt_from = self.advanced_filter_fields[6].parse::<f64>().ok();
-        let amt_to = self.advanced_filter_fields[7].parse::<f64>().ok();
+        let amt_from = self.advanced_filter_fields[6].parse::<Decimal>().ok();
+        let amt_to = self.advanced_filter_fields[7].parse::<Decimal>().ok();
         self.filtered_indices = self
             .transactions
             .iter()

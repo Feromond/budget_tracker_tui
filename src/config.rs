@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::{create_dir_all, File};
 use std::io::{Error, ErrorKind, Read, Write};
 use std::path::PathBuf;
+use rust_decimal::Decimal;
 
 const APP_CONFIG_SUBDIR: &str = "BudgetTracker";
 const CONFIG_FILE_NAME: &str = "config.json";
@@ -9,8 +10,8 @@ const CONFIG_FILE_NAME: &str = "config.json";
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub(crate) struct AppSettings {
     pub(crate) data_file_path: Option<String>,
-    pub(crate) target_budget: Option<f64>,
-    pub(crate) hourly_rate: Option<f64>,
+    pub(crate) target_budget: Option<Decimal>,
+    pub(crate) hourly_rate: Option<Decimal>,
     pub(crate) show_hours: Option<bool>,
     pub(crate) fuzzy_search_mode: Option<bool>,
 }

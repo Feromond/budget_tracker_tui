@@ -3,10 +3,14 @@ use crate::model::*;
 use crate::persistence::{load_categories, load_transactions};
 use chrono::{Datelike, Duration, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
+use rust_decimal::Decimal;
 use std::collections::{HashMap, HashSet};
 use std::fs::create_dir_all;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
+use std::sync::mpsc;
+use std::thread;
+use crate::app::update_checker;
 
 pub(crate) enum DateUnit {
     Day,
@@ -83,8 +87,8 @@ pub struct App {
     // Settings form state
     pub(crate) settings_state: crate::app::settings_types::SettingsState,
     // Budget
-    pub(crate) target_budget: Option<f64>,
-    pub(crate) hourly_rate: Option<f64>,
+    pub(crate) target_budget: Option<Decimal>,
+    pub(crate) hourly_rate: Option<Decimal>,
     pub(crate) show_hours: bool,
     pub(crate) fuzzy_search_mode: bool,
     pub(crate) search_query: String,
@@ -95,10 +99,21 @@ pub struct App {
     // Help/Keybindings
     pub(crate) previous_mode: Option<AppMode>,
     pub(crate) help_table_state: TableState,
+    // Update Check
+    pub(crate) update_available_version: Option<String>,
+    pub(crate) show_update_popup: bool,
+    pub(crate) update_rx: mpsc::Receiver<Option<String>>,
 }
 
 impl App {
     pub fn new() -> Self {
+        // --- Start Update Check ---
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let result = update_checker::check_for_updates();
+            let _ = tx.send(result);
+        });
+
         // --- Load Settings ---
         let (loaded_settings, load_settings_error_msg) = match load_settings() {
             Ok(settings) => (settings, None),
@@ -236,6 +251,9 @@ impl App {
             recurring_transaction_index: None,
             previous_mode: None,
             help_table_state: TableState::default(),
+            update_available_version: None,
+            show_update_popup: false,
+            update_rx: rx,
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
