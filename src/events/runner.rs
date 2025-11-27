@@ -7,7 +7,7 @@ use std::result::Result as StdResult;
 use std::time::Duration;
 
 use super::{
-    add_edit_mode, filter_mode, normal_mode, recurring_mode, selection_mode, settings_mode,
+    add_edit_mode, filter_mode, help_mode, normal_mode, recurring_mode, selection_mode, settings_mode,
     summary_mode,
 };
 
@@ -47,11 +47,14 @@ pub fn run_app<B: Backend>(
                                 || (app.mode == AppMode::AdvancedFiltering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('r')))
                                 || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Ctrl+Up/Down for jump navigation in Normal mode
-                                || (app.mode == AppMode::Normal && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down)))
+                                || (app.mode == AppMode::Normal && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down))
+                                // Allow Ctrl+H for Help Toggle
+                                || (key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('h')))
                     {
                         if app.mode != AppMode::ConfirmDelete
                             && app.mode != AppMode::SelectingCategory
                             && app.mode != AppMode::SelectingSubcategory
+                            && app.mode != AppMode::KeybindingsInfo
                         {
                             app.status_message = None;
                         }
@@ -67,7 +70,22 @@ pub fn run_app<B: Backend>(
 
 // Main input handler, dispatching based on mode
 fn update(app: &mut App, key_event: KeyEvent) {
+    // Global Toggle for Keybindings Help
+    if key_event.modifiers == KeyModifiers::CONTROL && key_event.code == KeyCode::Char('h') {
+        if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {
+            let prev = app.previous_mode.unwrap_or(AppMode::Normal);
+            app.mode = prev;
+            app.previous_mode = None;
+        } else {
+            app.previous_mode = Some(app.mode);
+            app.mode = AppMode::KeybindingsInfo;
+            app.help_table_state.select(Some(0));
+        }
+        return;
+    }
+
     match app.mode {
+        AppMode::KeybindingsInfo | AppMode::KeybindingDetail => help_mode::handle_help_mode(app, key_event),
         AppMode::Normal => normal_mode::handle_normal_mode(app, key_event),
         AppMode::Adding | AppMode::Editing => add_edit_mode::handle_add_edit_mode(app, key_event),
         AppMode::ConfirmDelete => add_edit_mode::handle_confirm_delete(app, key_event),

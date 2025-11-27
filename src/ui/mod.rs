@@ -2,6 +2,7 @@ pub mod category_summary;
 pub mod dialog;
 pub mod filter;
 pub mod help;
+pub mod help_popup;
 pub mod helpers;
 pub mod recurring;
 pub mod settings;
@@ -14,7 +15,14 @@ use crate::app::state::{App, AppMode};
 use ratatui::Frame;
 
 pub(crate) fn ui(f: &mut Frame, app: &mut App) {
-    let filter_bar_height = if app.mode == AppMode::Filtering { 3 } else { 0 };
+    // Determine the effective mode for rendering the background (if in help mode)
+    let render_mode = if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {
+        app.previous_mode.unwrap_or(AppMode::Normal)
+    } else {
+        app.mode
+    };
+
+    let filter_bar_height = if render_mode == AppMode::Filtering { 3 } else { 0 };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
     let summary_bar_height = 3;
     let help_bar_height = 3;
@@ -36,7 +44,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     let status_area = main_chunks[3];
     let help_area = main_chunks[4];
 
-    match app.mode {
+    match render_mode {
         AppMode::Normal | AppMode::Filtering => {
             transaction_table::render_transaction_table(f, app, main_area);
         }
@@ -75,14 +83,15 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             recurring::render_recurring_settings(f, app, main_area);
             dialog::render_selection_popup(f, app, main_area);
         }
+        _ => {}
     }
 
-    if app.mode == AppMode::Filtering {
+    if render_mode == AppMode::Filtering {
         filter::render_filter_input(f, app, filter_area);
     }
 
     // Determine year filter based on current mode
-    let year_filter = match app.mode {
+    let year_filter = match render_mode {
         AppMode::Summary => app
             .summary_years
             .get(app.selected_summary_year_index)
@@ -102,7 +111,11 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
 
     help::render_help_bar(f, app, help_area);
 
-    if app.mode == AppMode::Filtering {
+    if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {
+        help_popup::render_keybindings_popup(f, app, f.area());
+    }
+
+    if render_mode == AppMode::Filtering {
         let cursor_x = app.input_field_content[..app.input_field_cursor]
             .chars()
             .count() as u16;
