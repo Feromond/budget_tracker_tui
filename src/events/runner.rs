@@ -22,11 +22,24 @@ pub fn run_app<B: Backend>(
             match event::read()? {
                 // Handle Paste Event
                 Event::Paste(text) => {
-                    if app.mode == AppMode::Settings && app.current_settings_field == 0 {
-                        let field = &mut app.settings_fields[0];
-                        let cursor = app.input_field_cursor;
-                        field.insert_str(cursor, &text);
-                        app.input_field_cursor += text.chars().count();
+                    if app.mode == AppMode::Settings {
+                         let idx = app.settings_state.selected_index;
+                         if let Some(item) = app.settings_state.items.get_mut(idx) {
+                             // Allow paste for Path type
+                             if matches!(item.setting_type, crate::app::settings_types::SettingType::Path) {
+                                 let cursor = app.settings_state.edit_cursor;
+                                 if cursor <= item.value.len() {
+                                     item.value.insert_str(cursor, &text);
+                                     app.settings_state.edit_cursor += text.chars().count();
+                                     
+                                     if item.setting_type == crate::app::settings_types::SettingType::Path {
+                                          let stripped = crate::validation::strip_path_quotes(&item.value);
+                                          item.value = stripped;
+                                          app.settings_state.edit_cursor = item.value.len();
+                                     }
+                                 }
+                             }
+                         }
                     }
                     // Potentially handle paste in other modes later if needed
                 }
