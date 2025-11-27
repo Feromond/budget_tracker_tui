@@ -80,10 +80,11 @@ pub struct App {
     // Flattened list of visible items for rendering and navigation
     pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
     // Settings form state
-    pub(crate) settings_fields: [String; 2],
-    pub(crate) current_settings_field: usize,
+    pub(crate) settings_state: crate::app::settings_types::SettingsState,
     // Budget
     pub(crate) target_budget: Option<f64>,
+    pub(crate) hourly_rate: Option<f64>,
+    pub(crate) show_hours: bool,
     // Recurring transaction state
     pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
     pub(crate) current_recurring_field: usize,
@@ -221,9 +222,10 @@ impl App {
             category_summary_table_state: TableState::default(),
             expanded_category_summary_months: HashSet::new(),
             cached_visible_category_items: Vec::new(),
-            settings_fields: Default::default(),
-            current_settings_field: 0,
+            settings_state: crate::app::settings_types::SettingsState::default(),
             target_budget: loaded_settings.target_budget,
+            hourly_rate: loaded_settings.hourly_rate,
+            show_hours: loaded_settings.show_hours.unwrap_or(false),
             recurring_settings_fields: Default::default(),
             current_recurring_field: 0,
             recurring_transaction_index: None,

@@ -5,6 +5,7 @@ pub mod help;
 pub mod input;
 pub mod recurring;
 pub mod settings;
+pub mod settings_types;
 pub mod state;
 pub mod summary;
 pub mod util;
