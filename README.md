@@ -47,12 +47,15 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 - **Recurring Transaction:** Setup transactions that automatically recur at select frequencies.
 - **Advanced Filtering:** Filter transactions by date, description, category, type, and amount (including advanced multi-field filters).
 - **Categorization:** Built-in, hierarchical categories and subcategories for all transactions.
+- **Fuzzy Search:** Toggleable option to fuzzy search categories/subcategories for quick selection.
 - **Summaries & Charts:** Visualize your spending/income by month and by category, with interactive charts and tables.
 - **Budget Tracking:** Set a monthly target budget and see your progress (including a budget line in summary charts).
 - **Data Persistence:** All data is stored locally in a configurable CSV file. Settings are saved in a config file.
 - **Cross-Platform:** Runs on Windows, macOS, and Linux.
-- **Keyboard-Driven:** Fully operable with keyboard shortcuts for every action and mode.
+- **Keyboard-Driven:** Fully operable with keyboard shortcuts for every action and mode. Press `Ctrl+H` for a help menu.
+- **Update Checker:** Automatically checks for updates on startup and notifies you of new versions.
 - **Robust CSV Support:** Flexible date parsing, easy import/export, and Excel compatibility.
+- **High Precision:** Uses decimal arithmetic (no floating point errors) for accurate financial calculations.
 - **Built with Rust:** Safety, speed, and reliability.
 
 ## 🚀 Getting Started
@@ -114,6 +117,7 @@ Then, you can just type `bt` to launch the app.
 6. **View summaries:** Press `s` for monthly summary, `c` for category summary (use `PageUp`/`PageDown` to jump between months in category view).
 7. **Change settings:** Press `o` to open settings (change data file path, set target budget).
 8. **Quit:** Press `q` or `Esc`.
+9. **Help:** Press `Ctrl+H` at any time to view the keybindings menu for the current mode.
 
 ## ⚙️ Settings & Configuration
 
@@ -124,6 +128,10 @@ Then, you can just type `bt` to launch the app.
   - **Cross-Device Sync:** You can set your data file path to a cloud-synced folder (iCloud, Google Drive, Dropbox, OneDrive, etc.) to automatically sync your budget data across multiple devices. Just point the data file path to a location within your cloud storage folder!
 - **Target Budget:**
   - Set a monthly target budget in settings. This will show a budget line in summary charts.
+- **Hourly Rate:**
+  - (Optional) Set your hourly earning rate to toggle a view that shows transaction costs in "hours worked".
+- **Fuzzy Search:**
+  - Enable or disable the fuzzy search input for category selection.
 - **Config File:**
   - The application's settings are saved in a `config.json` file, which is stored in your OS's **config directory**:
     - **Linux:** `~/.config/BudgetTracker/config.json`
