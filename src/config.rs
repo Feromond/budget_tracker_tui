@@ -10,6 +10,8 @@ const CONFIG_FILE_NAME: &str = "config.json";
 pub(crate) struct AppSettings {
     pub(crate) data_file_path: Option<String>,
     pub(crate) target_budget: Option<f64>,
+    pub(crate) hourly_rate: Option<f64>,
+    pub(crate) show_hours: Option<bool>,
 }
 
 fn get_config_file_path() -> Result<PathBuf, Error> {
