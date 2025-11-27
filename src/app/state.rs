@@ -8,6 +8,9 @@ use std::collections::{HashMap, HashSet};
 use std::fs::create_dir_all;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
+use std::sync::mpsc;
+use std::thread;
+use crate::app::update_checker;
 
 pub(crate) enum DateUnit {
     Day,
@@ -96,10 +99,21 @@ pub struct App {
     // Help/Keybindings
     pub(crate) previous_mode: Option<AppMode>,
     pub(crate) help_table_state: TableState,
+    // Update Check
+    pub(crate) update_available_version: Option<String>,
+    pub(crate) show_update_popup: bool,
+    pub(crate) update_rx: mpsc::Receiver<Option<String>>,
 }
 
 impl App {
     pub fn new() -> Self {
+        // --- Start Update Check ---
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let result = update_checker::check_for_updates();
+            let _ = tx.send(result);
+        });
+
         // --- Load Settings ---
         let (loaded_settings, load_settings_error_msg) = match load_settings() {
             Ok(settings) => (settings, None),
@@ -237,6 +251,9 @@ impl App {
             recurring_transaction_index: None,
             previous_mode: None,
             help_table_state: TableState::default(),
+            update_available_version: None,
+            show_update_popup: false,
+            update_rx: rx,
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();

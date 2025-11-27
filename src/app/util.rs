@@ -28,6 +28,24 @@ pub fn sort_transactions_impl(
     });
 }
 
+/// Opens a URL in the default browser using system commands.
+/// Returns true if successful, false otherwise.
+pub fn open_url(url: &str) -> bool {
+    let result = if cfg!(target_os = "macos") {
+        std::process::Command::new("open").arg(url).spawn()
+    } else if cfg!(target_os = "windows") {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", url])
+            .spawn()
+    } else if cfg!(target_os = "linux") {
+        std::process::Command::new("xdg-open").arg(url).spawn()
+    } else {
+        return false;
+    };
+
+    result.map(|_| true).unwrap_or(false)
+}
+
 // --- Recurring Transaction Utilities ---
 
 /// Action types for jumping to original recurring transactions

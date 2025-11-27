@@ -9,4 +9,5 @@ pub mod settings;
 pub mod settings_types;
 pub mod state;
 pub mod summary;
+pub mod update_checker;
 pub mod util;
