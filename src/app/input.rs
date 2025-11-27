@@ -81,115 +81,174 @@ impl App {
 
     // --- Settings Input ---
 
-    // Helper to strip quotes from path field when focus changes
-    fn strip_quotes_from_path_field(&mut self) {
-        if self.current_settings_field == 0 {
-            let stripped = crate::validation::strip_path_quotes(&self.settings_fields[0]);
-            self.settings_fields[0] = stripped;
-            self.input_field_cursor = self.settings_fields[0].len();
+    fn strip_quotes_from_current_setting(&mut self) {
+        let idx = self.settings_state.selected_index;
+        if let Some(item) = self.settings_state.items.get_mut(idx) {
+            if item.setting_type == crate::app::settings_types::SettingType::Path {
+                let stripped = crate::validation::strip_path_quotes(&item.value);
+                item.value = stripped;
+                self.settings_state.edit_cursor = item.value.len();
+            }
         }
     }
 
     pub(crate) fn next_settings_field(&mut self) {
-        // Strip quotes from current field before moving
-        self.strip_quotes_from_path_field();
+        self.strip_quotes_from_current_setting();
+        
+        let len = self.settings_state.items.len();
+        if len == 0 { return; }
 
-        let next_field = (self.current_settings_field + 1) % self.settings_fields.len();
-        self.current_settings_field = next_field;
-        if self.current_settings_field == 0 {
-            self.input_field_cursor = self.settings_fields[0].len();
+        loop {
+            self.settings_state.selected_index = (self.settings_state.selected_index + 1) % len;
+            let idx = self.settings_state.selected_index;
+            
+            // Skip headers
+            if self.settings_state.items[idx].setting_type != crate::app::settings_types::SettingType::SectionHeader {
+                 self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+                 break;
+            }
         }
     }
+
     pub(crate) fn previous_settings_field(&mut self) {
-        // Strip quotes from current field before moving
-        self.strip_quotes_from_path_field();
-
-        if self.current_settings_field == 0 {
-            self.current_settings_field = self.settings_fields.len() - 1;
-        } else {
-            self.current_settings_field -= 1;
-        }
-        if self.current_settings_field == 0 {
-            self.input_field_cursor = self.settings_fields[0].len();
+        self.strip_quotes_from_current_setting();
+        
+        let len = self.settings_state.items.len();
+        if len == 0 { return; }
+        
+        loop {
+            if self.settings_state.selected_index == 0 {
+                 self.settings_state.selected_index = len - 1;
+            } else {
+                 self.settings_state.selected_index -= 1;
+            }
+            let idx = self.settings_state.selected_index;
+            
+             // Skip headers
+            if self.settings_state.items[idx].setting_type != crate::app::settings_types::SettingType::SectionHeader {
+                 self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+                 break;
+            }
         }
     }
+
     pub(crate) fn move_cursor_left_settings(&mut self) {
-        if self.current_settings_field == 0 && self.input_field_cursor > 0 {
-            self.input_field_cursor -= 1;
+        let idx = self.settings_state.selected_index;
+        if let Some(item) = self.settings_state.items.get_mut(idx) {
+            if item.setting_type == crate::app::settings_types::SettingType::Toggle {
+                // Left sets to No
+                item.value = "< No >".to_string();
+                self.settings_state.edit_cursor = item.value.len();
+                return;
+            }
+        }
+
+        if self.settings_state.edit_cursor > 0 {
+            self.settings_state.edit_cursor -= 1;
         }
     }
+
     pub(crate) fn move_cursor_right_settings(&mut self) {
-        if self.current_settings_field == 0
-            && self.input_field_cursor < self.settings_fields[0].len()
-        {
-            self.input_field_cursor += 1;
+        let idx = self.settings_state.selected_index;
+        if let Some(item) = self.settings_state.items.get_mut(idx) {
+            if item.setting_type == crate::app::settings_types::SettingType::Toggle {
+                // Right sets to Yes
+                item.value = "< Yes >".to_string();
+                self.settings_state.edit_cursor = item.value.len();
+                return;
+            }
+            if self.settings_state.edit_cursor < item.value.len() {
+                self.settings_state.edit_cursor += 1;
+            }
         }
     }
+
     pub(crate) fn insert_char_settings(&mut self, c: char) {
-        let idx = self.current_settings_field;
-
-        match idx {
-            1 => {
-                // Target Budget - use centralized amount validation
-                crate::validation::insert_amount_char(&mut self.settings_fields[1], c);
-            }
-            _ => {
-                // Data File Path: insert at cursor and strip quotes
-                let field = &mut self.settings_fields[0];
-                field.insert(self.input_field_cursor, c);
-
-                // Strip quotes from the path and update cursor position accordingly
-                let original_len = field.len();
-                let stripped = crate::validation::strip_path_quotes(field);
+        let idx = self.settings_state.selected_index;
+        if idx >= self.settings_state.items.len() { return; }
+        
+        let setting_type = self.settings_state.items[idx].setting_type.clone();
+        
+        match setting_type {
+            crate::app::settings_types::SettingType::SectionHeader => {
+                 // Do nothing
+            },
+            crate::app::settings_types::SettingType::Number => {
+                 crate::validation::insert_amount_char(&mut self.settings_state.items[idx].value, c);
+                 self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+            },
+            crate::app::settings_types::SettingType::Path => {
+                let item = &mut self.settings_state.items[idx];
+                item.value.insert(self.settings_state.edit_cursor, c);
+                
+                let original_len = item.value.len();
+                let stripped = crate::validation::strip_path_quotes(&item.value);
                 let new_len = stripped.len();
-                *field = stripped;
-
-                // Adjust cursor position based on how many characters were removed
-                let chars_removed = original_len - new_len;
+                item.value = stripped;
+                
+                 let chars_removed = original_len - new_len;
                 if chars_removed > 0 {
-                    // If quotes were stripped, adjust cursor position
-                    if self.input_field_cursor > chars_removed {
-                        self.input_field_cursor -= chars_removed;
+                    if self.settings_state.edit_cursor > chars_removed {
+                         self.settings_state.edit_cursor -= chars_removed;
                     } else {
-                        self.input_field_cursor = 0;
+                         self.settings_state.edit_cursor = 0;
                     }
-                    // Position cursor at the end after stripping
-                    self.input_field_cursor = field.len();
+                    self.settings_state.edit_cursor = item.value.len();
                 } else {
-                    // No quotes were stripped, just move cursor right as normal
-                    self.input_field_cursor += 1;
+                    self.settings_state.edit_cursor += 1;
                 }
+            },
+            crate::app::settings_types::SettingType::Toggle => {
+                // Removed char input for toggle to reduce confusion, as per user request.
+                // Use Left/Right arrows instead.
             }
         }
     }
+
     pub(crate) fn delete_char_settings(&mut self) {
-        let idx = self.current_settings_field;
-        if idx == 1 {
-            let field = &mut self.settings_fields[1];
-            field.pop();
-        } else {
-            // Data File Path: delete before cursor and strip quotes
-            let field = &mut self.settings_fields[0];
-            if self.input_field_cursor > 0 && !field.is_empty() {
-                field.remove(self.input_field_cursor - 1);
-                self.input_field_cursor -= 1;
+        let idx = self.settings_state.selected_index;
+        if idx >= self.settings_state.items.len() { return; }
 
-                let stripped = crate::validation::strip_path_quotes(field);
-                *field = stripped;
-
-                // Ensure cursor doesn't go beyond field length
-                if self.input_field_cursor > field.len() {
-                    self.input_field_cursor = field.len();
-                }
-            }
+        let setting_type = self.settings_state.items[idx].setting_type.clone();
+        
+        match setting_type {
+             crate::app::settings_types::SettingType::SectionHeader => {},
+             crate::app::settings_types::SettingType::Number => {
+                 self.settings_state.items[idx].value.pop();
+                 self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+             },
+             crate::app::settings_types::SettingType::Toggle => {
+                 // No-op for delete on toggle
+             },
+             _ => {
+                 let cursor = self.settings_state.edit_cursor;
+                 let item = &mut self.settings_state.items[idx];
+                 if cursor > 0 && !item.value.is_empty() {
+                     if cursor <= item.value.len() {
+                         item.value.remove(cursor - 1);
+                         self.settings_state.edit_cursor -= 1;
+                     }
+                     
+                     if setting_type == crate::app::settings_types::SettingType::Path {
+                         let stripped = crate::validation::strip_path_quotes(&item.value);
+                         item.value = stripped;
+                         if self.settings_state.edit_cursor > item.value.len() {
+                             self.settings_state.edit_cursor = item.value.len();
+                         }
+                     }
+                 }
+             }
         }
     }
+
     pub(crate) fn clear_settings_field(&mut self) {
-        let idx = self.current_settings_field;
-        self.settings_fields[idx].clear();
-        if idx == 0 {
-            self.input_field_cursor = 0;
-        }
+         let idx = self.settings_state.selected_index;
+         if let Some(item) = self.settings_state.items.get_mut(idx) {
+             if item.setting_type != crate::app::settings_types::SettingType::SectionHeader {
+                 item.value.clear();
+                 self.settings_state.edit_cursor = 0;
+             }
+         }
     }
 
     // --- Date Navigation ---
