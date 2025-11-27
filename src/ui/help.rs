@@ -230,6 +230,14 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::styled("Enter", Style::default().fg(Color::LightGreen)),
             Span::raw(": Details"),
         ],
+        AppMode::FuzzyFinding => vec![
+            Span::raw("Type to Search | "),
+            Span::raw("↑↓ Nav | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(": Select | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(": Cancel"),
+        ],
     };
 
     let help_paragraph = Paragraph::new(Line::from(help_spans))

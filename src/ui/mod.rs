@@ -1,6 +1,7 @@
 pub mod category_summary;
 pub mod dialog;
 pub mod filter;
+pub mod fuzzy_search;
 pub mod help;
 pub mod help_popup;
 pub mod helpers;
@@ -69,6 +70,10 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             transaction_form::render_transaction_form(f, app, main_area);
             dialog::render_selection_popup(f, app, main_area);
         }
+        AppMode::FuzzyFinding => {
+            transaction_form::render_transaction_form(f, app, main_area);
+            fuzzy_search::render_fuzzy_search(f, app, main_area);
+        }
         AppMode::CategorySummary => {
             category_summary::render_category_summary_view(f, app, main_area);
         }
@@ -122,6 +127,28 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         f.set_cursor_position(ratatui::layout::Position::new(
             filter_area.x + cursor_x + 1,
             filter_area.y + 1,
+        ));
+    }
+
+    if app.mode == AppMode::FuzzyFinding {
+        let popup_area = helpers::centered_rect(60, 60, main_area);
+        let chunks = ratatui::layout::Layout::default()
+            .direction(ratatui::layout::Direction::Vertical)
+            .constraints([
+                ratatui::layout::Constraint::Length(3),
+                ratatui::layout::Constraint::Min(0),
+            ])
+            .split(popup_area);
+        
+        let search_area = chunks[0];
+        let cursor_x = app.search_query.chars().count() as u16;
+        // Ensure cursor doesn't exceed width
+        let max_width = search_area.width.saturating_sub(2);
+        let displayed_cursor = cursor_x.min(max_width);
+        
+        f.set_cursor_position(ratatui::layout::Position::new(
+            search_area.x + displayed_cursor + 1,
+            search_area.y + 1,
         ));
     }
 }
