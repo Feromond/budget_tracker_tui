@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum SettingType {
     SectionHeader,
@@ -16,13 +15,12 @@ pub struct SettingItem {
     pub help: String,
 }
 
-
 #[derive(Debug, Default)]
 pub struct SettingsState {
     pub items: Vec<SettingItem>,
     pub selected_index: usize,
     // For text editing:
-    pub edit_cursor: usize, 
+    pub edit_cursor: usize,
 }
 
 impl SettingsState {
@@ -35,12 +33,12 @@ impl SettingsState {
     }
 
     pub fn add_setting(
-        &mut self, 
-        key: &str, 
-        label: &str, 
-        value: String, 
-        setting_type: SettingType, 
-        help: &str
+        &mut self,
+        key: &str,
+        label: &str,
+        value: String,
+        setting_type: SettingType,
+        help: &str,
     ) {
         self.items.push(SettingItem {
             key: key.to_string(),
@@ -50,8 +48,11 @@ impl SettingsState {
             help: help.to_string(),
         });
     }
-    
+
     pub fn get_value(&self, key: &str) -> Option<&String> {
-        self.items.iter().find(|item| item.key == key).map(|item| &item.value)
+        self.items
+            .iter()
+            .find(|item| item.key == key)
+            .map(|item| &item.value)
     }
 }

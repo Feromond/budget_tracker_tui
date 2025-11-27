@@ -7,8 +7,8 @@ use ratatui::text::Line;
 use ratatui::widgets::{
     Axis, Bar, BarChart, BarGroup, Block, Borders, Chart, Dataset, GraphType, Paragraph,
 };
-use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
+use rust_decimal::Decimal;
 
 pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let summary_chunks = Layout::default()
@@ -328,7 +328,12 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             if num_days > 0 {
                 let daily_budget = budget / Decimal::from(num_days);
                 let budget_line: Vec<(f64, f64)> = (1..=num_days)
-                    .map(|d| (d as f64, (daily_budget * Decimal::from(d)).to_f64().unwrap_or(0.0)))
+                    .map(|d| {
+                        (
+                            d as f64,
+                            (daily_budget * Decimal::from(d)).to_f64().unwrap_or(0.0),
+                        )
+                    })
                     .collect();
                 cumulative_budget_line = Some(budget_line);
                 legend_labels.push(Span::styled(
@@ -475,9 +480,11 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
                 None => true,
             }
         })
-        .fold((Decimal::ZERO, Decimal::ZERO), |(inc, exp), tx| match tx.transaction_type {
-            crate::model::TransactionType::Income => (inc + tx.amount, exp),
-            crate::model::TransactionType::Expense => (inc, exp + tx.amount),
+        .fold((Decimal::ZERO, Decimal::ZERO), |(inc, exp), tx| {
+            match tx.transaction_type {
+                crate::model::TransactionType::Income => (inc + tx.amount, exp),
+                crate::model::TransactionType::Expense => (inc, exp + tx.amount),
+            }
         });
     let net_balance = total_income - total_expense;
 

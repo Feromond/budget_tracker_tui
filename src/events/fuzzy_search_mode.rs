@@ -22,11 +22,10 @@ pub fn handle_fuzzy_search_mode(app: &mut App, key: KeyEvent) {
             }
         }
         KeyCode::Char(c) => {
-             // Allow normal typing
-             app.search_query.push(c);
-             app.update_fuzzy_search_results();
+            // Allow normal typing
+            app.search_query.push(c);
+            app.update_fuzzy_search_results();
         }
         _ => {}
     }
 }
-

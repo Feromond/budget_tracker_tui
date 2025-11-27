@@ -7,8 +7,8 @@ use std::result::Result as StdResult;
 use std::time::Duration;
 
 use super::{
-    add_edit_mode, filter_mode, fuzzy_search_mode, help_mode, normal_mode, recurring_mode, selection_mode, settings_mode,
-    summary_mode,
+    add_edit_mode, filter_mode, fuzzy_search_mode, help_mode, normal_mode, recurring_mode,
+    selection_mode, settings_mode, summary_mode,
 };
 
 pub fn run_app<B: Backend>(
@@ -18,8 +18,8 @@ pub fn run_app<B: Backend>(
     while !app.should_quit {
         // Check for update in background channel
         if let Ok(Some(version)) = app.update_rx.try_recv() {
-             app.update_available_version = Some(version);
-             app.show_update_popup = true;
+            app.update_available_version = Some(version);
+            app.show_update_popup = true;
         }
 
         terminal.draw(|f| ui(f, app))?;
@@ -29,23 +29,29 @@ pub fn run_app<B: Backend>(
                 // Handle Paste Event
                 Event::Paste(text) => {
                     if app.mode == AppMode::Settings {
-                         let idx = app.settings_state.selected_index;
-                         if let Some(item) = app.settings_state.items.get_mut(idx) {
-                             // Allow paste for Path type
-                             if matches!(item.setting_type, crate::app::settings_types::SettingType::Path) {
-                                 let cursor = app.settings_state.edit_cursor;
-                                 if cursor <= item.value.len() {
-                                     item.value.insert_str(cursor, &text);
-                                     app.settings_state.edit_cursor += text.chars().count();
-                                     
-                                     if item.setting_type == crate::app::settings_types::SettingType::Path {
-                                          let stripped = crate::validation::strip_path_quotes(&item.value);
-                                          item.value = stripped;
-                                          app.settings_state.edit_cursor = item.value.len();
-                                     }
-                                 }
-                             }
-                         }
+                        let idx = app.settings_state.selected_index;
+                        if let Some(item) = app.settings_state.items.get_mut(idx) {
+                            // Allow paste for Path type
+                            if matches!(
+                                item.setting_type,
+                                crate::app::settings_types::SettingType::Path
+                            ) {
+                                let cursor = app.settings_state.edit_cursor;
+                                if cursor <= item.value.len() {
+                                    item.value.insert_str(cursor, &text);
+                                    app.settings_state.edit_cursor += text.chars().count();
+
+                                    if item.setting_type
+                                        == crate::app::settings_types::SettingType::Path
+                                    {
+                                        let stripped =
+                                            crate::validation::strip_path_quotes(&item.value);
+                                        item.value = stripped;
+                                        app.settings_state.edit_cursor = item.value.len();
+                                    }
+                                }
+                            }
+                        }
                     }
                     // Potentially handle paste in other modes later if needed
                 }
@@ -91,15 +97,17 @@ pub fn run_app<B: Backend>(
 fn update(app: &mut App, key_event: KeyEvent) {
     if app.show_update_popup {
         if key_event.kind == KeyEventKind::Press {
-             match key_event.code {
-                 KeyCode::Enter | KeyCode::Char('o') => {
-                     let _ = crate::app::util::open_url("https://github.com/Feromond/budget_tracker_tui/releases");
-                     app.show_update_popup = false;
-                 }
-                 _ => {
-                     app.show_update_popup = false;
-                 }
-             }
+            match key_event.code {
+                KeyCode::Enter | KeyCode::Char('o') => {
+                    let _ = crate::app::util::open_url(
+                        "https://github.com/Feromond/budget_tracker_tui/releases",
+                    );
+                    app.show_update_popup = false;
+                }
+                _ => {
+                    app.show_update_popup = false;
+                }
+            }
         }
         return;
     }
@@ -119,7 +127,9 @@ fn update(app: &mut App, key_event: KeyEvent) {
     }
 
     match app.mode {
-        AppMode::KeybindingsInfo | AppMode::KeybindingDetail => help_mode::handle_help_mode(app, key_event),
+        AppMode::KeybindingsInfo | AppMode::KeybindingDetail => {
+            help_mode::handle_help_mode(app, key_event)
+        }
         AppMode::Normal => normal_mode::handle_normal_mode(app, key_event),
         AppMode::Adding | AppMode::Editing => add_edit_mode::handle_add_edit_mode(app, key_event),
         AppMode::ConfirmDelete => add_edit_mode::handle_confirm_delete(app, key_event),

@@ -1,11 +1,11 @@
+use crate::app::state::App;
+use crate::ui::helpers::centered_rect;
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
     Frame,
 };
-use crate::app::state::App;
-use crate::ui::helpers::centered_rect;
 
 pub fn render_update_popup(f: &mut Frame, app: &App, area: Rect) {
     if !app.show_update_popup {
@@ -37,4 +37,3 @@ pub fn render_update_popup(f: &mut Frame, app: &App, area: Rect) {
 
     f.render_widget(paragraph, inner_area);
 }
-

@@ -18,13 +18,18 @@ use ratatui::Frame;
 
 pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     // Determine the effective mode for rendering the background (if in help mode)
-    let render_mode = if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {
-        app.previous_mode.unwrap_or(AppMode::Normal)
-    } else {
-        app.mode
-    };
+    let render_mode =
+        if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {
+            app.previous_mode.unwrap_or(AppMode::Normal)
+        } else {
+            app.mode
+        };
 
-    let filter_bar_height = if render_mode == AppMode::Filtering { 3 } else { 0 };
+    let filter_bar_height = if render_mode == AppMode::Filtering {
+        3
+    } else {
+        0
+    };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
     let summary_bar_height = 3;
     let help_bar_height = 3;
@@ -144,13 +149,13 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
                 ratatui::layout::Constraint::Min(0),
             ])
             .split(popup_area);
-        
+
         let search_area = chunks[0];
         let cursor_x = app.search_query.chars().count() as u16;
         // Ensure cursor doesn't exceed width
         let max_width = search_area.width.saturating_sub(2);
         let displayed_cursor = cursor_x.min(max_width);
-        
+
         f.set_cursor_position(ratatui::layout::Position::new(
             search_area.x + displayed_cursor + 1,
             search_area.y + 1,

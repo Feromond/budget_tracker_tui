@@ -9,7 +9,7 @@ impl App {
     // Handles entering/exiting settings mode, saving settings, and resetting the data file path.
     pub(crate) fn enter_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Settings;
-        
+
         // Initialize Settings State
         self.settings_state = SettingsState::new();
 
@@ -22,7 +22,7 @@ impl App {
             "Data Management",
             "".to_string(),
             SettingType::SectionHeader,
-            ""
+            "",
         );
 
         // 1. Data File Path
@@ -33,7 +33,7 @@ impl App {
             "Data File Path",
             path_val,
             SettingType::Path,
-            "Absolute path to your transactions CSV file."
+            "Absolute path to your transactions CSV file.",
         );
 
         // --- Monthly Summary View Section ---
@@ -42,7 +42,7 @@ impl App {
             "Monthly Summary View",
             "".to_string(),
             SettingType::SectionHeader,
-            ""
+            "",
         );
 
         // 2. Target Budget
@@ -55,7 +55,7 @@ impl App {
             "Target Budget",
             budget_val,
             SettingType::Number,
-            "Monthly spending goal. Displayed in Monthly Summary view only when cumulative mode."
+            "Monthly spending goal. Displayed in Monthly Summary view only when cumulative mode.",
         );
 
         // --- Transaction View Section ---
@@ -64,7 +64,7 @@ impl App {
             "Transaction View",
             "".to_string(),
             SettingType::SectionHeader,
-            ""
+            "",
         );
 
         // 3. Hourly Rate
@@ -77,19 +77,23 @@ impl App {
             "Hourly Rate ($)",
             hourly_rate_val.clone(),
             SettingType::Number,
-            "Optional. Enter your hourly earning rate to see costs in hours."
+            "Optional. Enter your hourly earning rate to see costs in hours.",
         );
 
         // 4. Show Hours Toggle
         // Only show this if hourly rate is present
         if !hourly_rate_val.is_empty() {
-             let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) { "< Yes >" } else { "< No >" };
-             self.settings_state.add_setting(
+            let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) {
+                "< Yes >"
+            } else {
+                "< No >"
+            };
+            self.settings_state.add_setting(
                 "show_hours",
                 "Show Costs in Hours",
                 show_hours_val.to_string(),
                 SettingType::Toggle,
-                "Toggle to display transaction amounts as hours worked."
+                "Toggle to display transaction amounts as hours worked.",
             );
         }
 
@@ -99,32 +103,42 @@ impl App {
             "Input Preferences",
             "".to_string(),
             SettingType::SectionHeader,
-            ""
+            "",
         );
 
         // 5. Fuzzy Search Mode
-        let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) { "< Yes >" } else { "< No >" };
+        let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) {
+            "< Yes >"
+        } else {
+            "< No >"
+        };
         self.settings_state.add_setting(
             "fuzzy_search_mode",
             "Fuzzy Search Categories",
             fuzzy_search_val.to_string(),
             SettingType::Toggle,
-            "Toggle to enable fuzzy searching for categories/subcategories."
+            "Toggle to enable fuzzy searching for categories/subcategories.",
         );
 
         // Select first valid item (skip headers)
         self.settings_state.selected_index = 0;
         while self.settings_state.selected_index < self.settings_state.items.len() {
-            if self.settings_state.items[self.settings_state.selected_index].setting_type != SettingType::SectionHeader {
+            if self.settings_state.items[self.settings_state.selected_index].setting_type
+                != SettingType::SectionHeader
+            {
                 break;
             }
             self.settings_state.selected_index += 1;
         }
 
-        if let Some(item) = self.settings_state.items.get(self.settings_state.selected_index) {
+        if let Some(item) = self
+            .settings_state
+            .items
+            .get(self.settings_state.selected_index)
+        {
             self.settings_state.edit_cursor = item.value.len();
         }
-        
+
         self.status_message = None;
     }
 
@@ -230,7 +244,7 @@ impl App {
         self.transactions = txs;
 
         self.exit_settings_mode();
-        
+
         // Re-init app state (sorting, summaries)
         self.sort_transactions();
         self.filtered_indices = (0..self.transactions.len()).collect();
@@ -241,7 +255,7 @@ impl App {
         }
         self.calculate_monthly_summaries();
         self.calculate_category_summaries();
-        
+
         self.status_message = Some(format!(
             "Settings saved. Data file set to: {}",
             self.data_file_path.display()
@@ -257,26 +271,38 @@ impl App {
             Ok(default_path) => {
                 let path_str = default_path.to_string_lossy().to_string();
                 let clean_path = crate::validation::strip_path_quotes(&path_str);
-                
+
                 // Find index
-                if let Some(idx) = self.settings_state.items.iter().position(|i| i.key == "data_file_path") {
-                     self.settings_state.items[idx].value = clean_path;
-                     if self.settings_state.selected_index == idx {
-                         self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
-                     }
+                if let Some(idx) = self
+                    .settings_state
+                    .items
+                    .iter()
+                    .position(|i| i.key == "data_file_path")
+                {
+                    self.settings_state.items[idx].value = clean_path;
+                    if self.settings_state.selected_index == idx {
+                        self.settings_state.edit_cursor =
+                            self.settings_state.items[idx].value.len();
+                    }
                 }
-                
+
                 self.status_message =
                     Some("Path reset to default. Press Enter to save.".to_string());
             }
             Err(e) => {
                 let fallback_path = "transactions.csv";
-                
-                if let Some(idx) = self.settings_state.items.iter().position(|i| i.key == "data_file_path") {
-                     self.settings_state.items[idx].value = fallback_path.to_string();
-                     if self.settings_state.selected_index == idx {
-                         self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
-                     }
+
+                if let Some(idx) = self
+                    .settings_state
+                    .items
+                    .iter()
+                    .position(|i| i.key == "data_file_path")
+                {
+                    self.settings_state.items[idx].value = fallback_path.to_string();
+                    if self.settings_state.selected_index == idx {
+                        self.settings_state.edit_cursor =
+                            self.settings_state.items[idx].value.len();
+                    }
                 }
 
                 self.status_message = Some(format!(

@@ -1,3 +1,4 @@
+use crate::app::update_checker;
 use crate::config::{load_settings, AppSettings};
 use crate::model::*;
 use crate::persistence::{load_categories, load_transactions};
@@ -10,7 +11,6 @@ use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
-use crate::app::update_checker;
 
 pub(crate) enum DateUnit {
     Day,

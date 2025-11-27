@@ -11,7 +11,7 @@ impl App {
         self.mode = crate::app::state::AppMode::FuzzyFinding;
         self.search_query = String::new();
         self.update_fuzzy_search_results();
-        
+
         // Reset list state
         self.selection_list_state = ListState::default();
         if !self.current_selection_list.is_empty() {
@@ -27,11 +27,11 @@ impl App {
         };
 
         let query = self.search_query.to_lowercase();
-        
+
         // Collect all (Category, Subcategory) pairs for the transaction type
         // If subcategory is empty, just use category
         // Format in list: "Category > Subcategory" or just "Category"
-        
+
         let mut options: Vec<String> = Vec::new();
         let mut unique_pairs: HashSet<(String, String)> = HashSet::new();
 
@@ -55,12 +55,12 @@ impl App {
 
         options.sort_unstable();
         self.current_selection_list = options;
-        
+
         // Adjust selection if out of bounds
         let len = self.current_selection_list.len();
         if len > 0 {
             let current = self.selection_list_state.selected().unwrap_or(0);
-             if current >= len {
+            if current >= len {
                 self.selection_list_state.select(Some(len - 1));
             } else {
                 self.selection_list_state.select(Some(current));
@@ -82,21 +82,21 @@ impl App {
                 // Index 4 is Category, 5 is Subcategory
                 self.add_edit_fields[4] = category.to_string();
                 self.add_edit_fields[5] = subcategory.to_string();
-                self.current_add_edit_field = 0; 
+                self.current_add_edit_field = 0;
             }
         }
-        
+
         self.exit_fuzzy_mode();
     }
 
     pub(crate) fn cancel_fuzzy_selection(&mut self) {
         self.exit_fuzzy_mode();
         // Return to category field focus
-         self.current_add_edit_field = 4;
+        self.current_add_edit_field = 4;
     }
-    
+
     fn exit_fuzzy_mode(&mut self) {
-         self.mode = if self.editing_index.is_some() {
+        self.mode = if self.editing_index.is_some() {
             crate::app::state::AppMode::Editing
         } else {
             crate::app::state::AppMode::Adding

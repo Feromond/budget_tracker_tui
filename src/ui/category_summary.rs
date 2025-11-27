@@ -4,15 +4,17 @@ use crate::ui::helpers::month_to_short_str;
 use ratatui::prelude::*;
 use ratatui::text::Line;
 use ratatui::widgets::*;
-use std::collections::HashMap;
-use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
+use rust_decimal::Decimal;
+use std::collections::HashMap;
 
 fn cell_income(amount: Decimal) -> Cell<'static> {
-    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).style(Style::default().fg(Color::LightGreen))
+    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0)))
+        .style(Style::default().fg(Color::LightGreen))
 }
 fn cell_expense(amount: Decimal) -> Cell<'static> {
-    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).style(Style::default().fg(Color::LightRed))
+    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0)))
+        .style(Style::default().fg(Color::LightRed))
 }
 fn cell_net(net: Decimal) -> Cell<'static> {
     let s = if net >= Decimal::ZERO {
