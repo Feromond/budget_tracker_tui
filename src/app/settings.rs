@@ -93,6 +93,16 @@ impl App {
             );
         }
 
+        // 5. Fuzzy Search Mode
+        let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) { "< Yes >" } else { "< No >" };
+        self.settings_state.add_setting(
+            "fuzzy_search_mode",
+            "Fuzzy Search Categories",
+            fuzzy_search_val.to_string(),
+            SettingType::Toggle,
+            "Toggle to enable fuzzy searching for categories/subcategories."
+        );
+
         // Select first valid item (skip headers)
         self.settings_state.selected_index = 0;
         while self.settings_state.selected_index < self.settings_state.items.len() {
@@ -121,6 +131,7 @@ impl App {
         let mut target_budget_str = String::new();
         let mut hourly_rate_str = String::new();
         let mut show_hours_val = None;
+        let mut fuzzy_search_val = None;
 
         if let Some(val) = self.settings_state.get_value("data_file_path") {
             new_path_str = crate::validation::strip_path_quotes(val);
@@ -133,6 +144,9 @@ impl App {
         }
         if let Some(val) = self.settings_state.get_value("show_hours") {
             show_hours_val = Some(val.to_lowercase().contains("yes"));
+        }
+        if let Some(val) = self.settings_state.get_value("fuzzy_search_mode") {
+            fuzzy_search_val = Some(val.to_lowercase().contains("yes"));
         }
 
         // Validate Target Budget
@@ -184,6 +198,7 @@ impl App {
             target_budget,
             hourly_rate,
             show_hours: show_hours_val,
+            fuzzy_search_mode: fuzzy_search_val,
         };
         if let Err(e) = save_settings(&settings) {
             self.status_message = Some(format!("Error saving config file: {}", e));
@@ -225,6 +240,7 @@ impl App {
         self.target_budget = target_budget;
         self.hourly_rate = hourly_rate;
         self.show_hours = show_hours_val.unwrap_or(false);
+        self.fuzzy_search_mode = fuzzy_search_val.unwrap_or(false);
     }
 
     pub(crate) fn reset_settings_path_to_default(&mut self) {
