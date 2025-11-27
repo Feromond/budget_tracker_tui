@@ -93,6 +93,15 @@ impl App {
             );
         }
 
+        // --- Input Preferences Section ---
+        self.settings_state.add_setting(
+            "header_input",
+            "Input Preferences",
+            "".to_string(),
+            SettingType::SectionHeader,
+            ""
+        );
+
         // 5. Fuzzy Search Mode
         let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) { "< Yes >" } else { "< No >" };
         self.settings_state.add_setting(
