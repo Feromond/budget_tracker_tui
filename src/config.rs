@@ -12,6 +12,7 @@ pub(crate) struct AppSettings {
     pub(crate) target_budget: Option<f64>,
     pub(crate) hourly_rate: Option<f64>,
     pub(crate) show_hours: Option<bool>,
+    pub(crate) fuzzy_search_mode: Option<bool>,
 }
 
 fn get_config_file_path() -> Result<PathBuf, Error> {
