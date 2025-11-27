@@ -2,8 +2,8 @@ use crate::app::state::App;
 use crate::model::{SortColumn, SortOrder, TransactionType, DATE_FORMAT};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 
 pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
     let header_titles = [
@@ -12,7 +12,11 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         "Category",
         "Subcategory",
         "Type",
-        if app.show_hours && app.hourly_rate.is_some() { "Hours" } else { "Amount" },
+        if app.show_hours && app.hourly_rate.is_some() {
+            "Hours"
+        } else {
+            "Amount"
+        },
     ];
     let sort_columns = [
         SortColumn::Date,

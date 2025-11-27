@@ -1,8 +1,8 @@
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::fs::{create_dir_all, File};
 use std::io::{Error, ErrorKind, Read, Write};
 use std::path::PathBuf;
-use rust_decimal::Decimal;
 
 const APP_CONFIG_SUBDIR: &str = "BudgetTracker";
 const CONFIG_FILE_NAME: &str = "config.json";

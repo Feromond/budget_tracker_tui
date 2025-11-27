@@ -25,19 +25,18 @@ pub fn render_keybindings_popup(f: &mut Frame, app: &mut App, area: Rect) {
             Row::new(vec![
                 Cell::from(Span::styled(
                     b.key,
-                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
                 )),
                 Cell::from(description_cell),
-                Cell::from(Span::styled(
-                    b.group,
-                    Style::default().fg(Color::DarkGray),
-                )),
+                Cell::from(Span::styled(b.group, Style::default().fg(Color::DarkGray))),
             ])
         })
         .collect();
 
     let total_rows = bindings.len();
-    
+
     let table = Table::new(
         rows,
         [
@@ -48,12 +47,19 @@ pub fn render_keybindings_popup(f: &mut Frame, app: &mut App, area: Rect) {
     )
     .header(
         Row::new(vec!["Key", "Action", "Group"])
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .bottom_margin(1),
     )
     .block(
         Block::default()
-            .title(format!(" Keybindings for {:?} (Scroll: ↑/↓, Select: Enter) ", mode))
+            .title(format!(
+                " Keybindings for {:?} (Scroll: ↑/↓, Select: Enter) ",
+                mode
+            ))
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::LightBlue)),
@@ -62,11 +68,11 @@ pub fn render_keybindings_popup(f: &mut Frame, app: &mut App, area: Rect) {
 
     // Render the stateful widget
     f.render_stateful_widget(table, popup_area, &mut app.help_table_state);
-    
+
     // Render scrollbar based on state
     let selected_index = app.help_table_state.selected().unwrap_or(0);
     let mut scrollbar_state = ScrollbarState::new(total_rows).position(selected_index);
-    
+
     let scrollbar = Scrollbar::default()
         .orientation(ScrollbarOrientation::VerticalRight)
         .begin_symbol(Some("↑"))
@@ -74,10 +80,13 @@ pub fn render_keybindings_popup(f: &mut Frame, app: &mut App, area: Rect) {
 
     f.render_stateful_widget(
         scrollbar,
-        popup_area.inner(Margin { vertical: 1, horizontal: 0 }),
+        popup_area.inner(Margin {
+            vertical: 1,
+            horizontal: 0,
+        }),
         &mut scrollbar_state,
     );
-    
+
     // If in detail mode, render the detail popup on top
     if app.mode == AppMode::KeybindingDetail {
         // Ensure we get the same bindings list to index into
@@ -92,17 +101,17 @@ pub fn render_keybindings_popup(f: &mut Frame, app: &mut App, area: Rect) {
 fn render_extended_help_popup(f: &mut Frame, title: &str, description: &str, parent_area: Rect) {
     let area = centered_rect(parent_area, 80, 40);
     f.render_widget(Clear, area);
-    
+
     let block = Block::default()
         .title(format!(" Details: {} ", title))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Green));
-        
+
     let paragraph = Paragraph::new(description)
         .block(block)
         .wrap(Wrap { trim: true })
         .alignment(Alignment::Center);
-        
+
     f.render_widget(paragraph, area);
 }
 

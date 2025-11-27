@@ -242,10 +242,20 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
 
     let help_paragraph = Paragraph::new(Line::from(help_spans))
         .alignment(Alignment::Center)
-        .block(Block::default().borders(Borders::ALL).title(Line::from(vec![
-            Span::styled("Help - ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled("Ctrl+H", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
-            Span::styled(" For More Info", Style::default().add_modifier(Modifier::BOLD)),
-        ])));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Line::from(vec![
+                    Span::styled("Help - ", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "Ctrl+H",
+                        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        " For More Info",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                ])),
+        );
     f.render_widget(help_paragraph, area);
 }
