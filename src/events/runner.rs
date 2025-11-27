@@ -7,7 +7,7 @@ use std::result::Result as StdResult;
 use std::time::Duration;
 
 use super::{
-    add_edit_mode, filter_mode, help_mode, normal_mode, recurring_mode, selection_mode, settings_mode,
+    add_edit_mode, filter_mode, fuzzy_search_mode, help_mode, normal_mode, recurring_mode, selection_mode, settings_mode,
     summary_mode,
 };
 
@@ -105,6 +105,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
         AppMode::Filtering | AppMode::AdvancedFiltering => {
             filter_mode::handle_filter_mode(app, key_event)
         }
+        AppMode::FuzzyFinding => fuzzy_search_mode::handle_fuzzy_search_mode(app, key_event),
         AppMode::Summary | AppMode::CategorySummary => {
             summary_mode::handle_summary_mode(app, key_event)
         }
