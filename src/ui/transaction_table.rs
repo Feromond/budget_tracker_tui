@@ -10,7 +10,7 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         "Category",
         "Subcategory",
         "Type",
-        "Amount",
+        if app.show_hours && app.hourly_rate.is_some() { "Hours" } else { "Amount" },
     ];
     let sort_columns = [
         SortColumn::Date,
@@ -70,13 +70,27 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             tx.description.clone()
         };
 
+        let amount_cell_text = if app.show_hours {
+            if let Some(rate) = app.hourly_rate {
+                if rate > 0.0 {
+                    format!("{:.1}h", tx.amount / rate)
+                } else {
+                    format!("{:.2}", tx.amount)
+                }
+            } else {
+                format!("{:.2}", tx.amount)
+            }
+        } else {
+            format!("{:.2}", tx.amount)
+        };
+
         let cells = vec![
             Cell::from(tx.date.format(DATE_FORMAT).to_string()),
             Cell::from(description_text),
             Cell::from(tx.category.as_str()),
             Cell::from(tx.subcategory.as_str()),
             Cell::from(format!("{:?}", tx.transaction_type)),
-            Cell::from(format!("{:.2}", tx.amount)).style(amount_style),
+            Cell::from(amount_cell_text).style(amount_style),
         ];
         Row::new(cells).height(1).bottom_margin(0)
     });
