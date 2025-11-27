@@ -111,6 +111,9 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Tab/↑/↓", "Navigate settings", "Navigation", None),
             KeyBindingInfo::new("Data Path", "File Location", "Fields", Some("Path to the CSV file where transactions are stored. Tip: You can set this to a file in your iCloud Drive, Google Drive, or Dropbox folder to sync your budget data across multiple devices.")),
             KeyBindingInfo::new("Target Budget", "Monthly Budget Goal", "Fields", Some("Set a target monthly budget amount for reference in summaries.")),
+            KeyBindingInfo::new("Hourly Rate", "Hourly Earning Rate", "Fields", Some("Optional. Enter your hourly rate to enable viewing transaction amounts as equivalent hours worked.")),
+            KeyBindingInfo::new("Show Hours", "Toggle Hours View", "Fields", Some("Enable to display transaction amounts in equivalent hours based on your hourly rate.")),
+            KeyBindingInfo::new("←/→", "Toggle Options", "Navigation", Some("Use Left/Right arrow keys to change toggle settings (e.g. Yes/No).")),
             KeyBindingInfo::new("Ctrl+D", "Reset to Default", "Actions", None),
             KeyBindingInfo::new("Ctrl+U", "Clear Field", "Actions", None),
             KeyBindingInfo::new("Enter", "Save Settings", "Actions", None),
@@ -119,7 +122,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
         ],
         AppMode::RecurringSettings => vec![
             KeyBindingInfo::new("Tab/↑/↓", "Navigate fields", "Navigation", None),
-            KeyBindingInfo::new("Active", "Enable/Disable", "Fields", Some("Toggle if this recurring transaction is active.")),
+            KeyBindingInfo::new("Active", "Enable/Disable", "Fields", Some("Toggle if this transaction will be recurring.")),
             KeyBindingInfo::new("Frequency", "Recurrence Interval", "Fields", Some("Determines the interval for the transaction. 'Daily', 'Weekly', 'Monthly', or 'Yearly'. The app will automatically generate these transactions up to the current date when you open it.")),
             KeyBindingInfo::new("End Date", "Stop Date", "Fields", Some("Optional. If set, the recurring transaction will stop being generated after this date. Leave empty for indefinite recurrence.")),
             KeyBindingInfo::new("Enter", "Select / Save", "Actions", None),
