@@ -1,5 +1,6 @@
 mod add_edit_mode;
 mod filter_mode;
+mod fuzzy_search_mode;
 mod help_mode;
 mod normal_mode;
 mod recurring_mode;
