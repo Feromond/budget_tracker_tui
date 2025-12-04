@@ -70,6 +70,7 @@ impl App {
     }
 
     pub(crate) fn reset_all_filters(&mut self) {
+        let was_active = self.is_filter_active();
         // Clear simple filter field
         self.simple_filter_content.clear();
         self.simple_filter_cursor = 0;
@@ -83,7 +84,11 @@ impl App {
         // Apply basic filter (shows all transactions) and return to normal mode
         self.apply_filter();
         self.mode = crate::app::state::AppMode::Normal;
-        self.status_message = Some("All filters cleared".to_string());
+        if was_active {
+            self.status_message = Some("All filters cleared".to_string());
+        } else {
+            self.status_message = None;
+        }
     }
     pub(crate) fn clear_advanced_filter_fields_only(&mut self) {
         // Clear advanced filter fields without changing mode
