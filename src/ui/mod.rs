@@ -31,7 +31,11 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         0
     };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
-    let summary_bar_height = 3;
+    let summary_bar_height = if render_mode == AppMode::CategorySummary {
+        0
+    } else {
+        3
+    };
     let help_bar_height = 3;
 
     let main_chunks = ratatui::layout::Layout::default()
