@@ -16,6 +16,13 @@ pub fn run_app<B: Backend>(
     app: &mut App,
 ) -> StdResult<(), Box<dyn std::error::Error>> {
     while !app.should_quit {
+        // Check for status expiry
+        if let Some(expiry) = app.status_expiry {
+            if std::time::Instant::now() > expiry {
+                app.clear_status_message();
+            }
+        }
+
         // Check for update in background channel
         if let Ok(Some(version)) = app.update_rx.try_recv() {
             app.update_available_version = Some(version);
@@ -81,7 +88,7 @@ pub fn run_app<B: Backend>(
                             && app.mode != AppMode::SelectingSubcategory
                             && app.mode != AppMode::KeybindingsInfo
                         {
-                            app.status_message = None;
+                            app.clear_status_message();
                         }
                         update(app, key);
                     }

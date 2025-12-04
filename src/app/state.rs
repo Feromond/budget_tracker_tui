@@ -62,6 +62,7 @@ pub struct App {
     pub(crate) delete_index: Option<usize>,
     pub(crate) editing_index: Option<usize>,
     pub(crate) status_message: Option<String>,
+    pub(crate) status_expiry: Option<std::time::Instant>,
     pub(crate) sort_by: SortColumn,
     pub(crate) sort_order: SortOrder,
     // Monthly Summary State
@@ -223,6 +224,7 @@ impl App {
             delete_index: None,
             editing_index: None,
             status_message: load_error_msg,
+            status_expiry: None,
             sort_by: initial_sort_by,
             sort_order: initial_sort_order,
             monthly_summaries: HashMap::new(),
@@ -494,12 +496,12 @@ impl App {
                     }
                 };
                 self.add_edit_fields[0] = new_date.format(crate::model::DATE_FORMAT).to_string();
-                self.status_message = None; // Clear status on successful adjustment
+                self.clear_status_message() // Clear status on successful adjustment
             } else {
-                self.status_message = Some(format!(
+                self.set_status_message(format!(
                     "Error: Could not parse date '{}'. Use YYYY-MM-DD format.",
                     self.add_edit_fields[0]
-                ));
+                ), None);
             }
         }
     }
@@ -543,5 +545,15 @@ impl App {
         } else {
             self.apply_filter();
         }
+    }
+
+    pub fn set_status_message<S: Into<String>>(&mut self, message: S, duration: Option<Duration>) {
+        self.status_message = Some(message.into());
+        self.status_expiry = duration.map(|d| std::time::Instant::now() + std::time::Duration::from_secs(d.num_seconds() as u64));
+    }
+
+    pub fn clear_status_message(&mut self) {
+        self.status_message = None;
+        self.status_expiry = None;
     }
 }
