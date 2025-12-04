@@ -44,7 +44,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("4/F4", "Sort by Subcategory", "Sorting", None),
             KeyBindingInfo::new("5/F5", "Sort by Type", "Sorting", None),
             KeyBindingInfo::new("6/F6", "Sort by Amount", "Sorting", None),
-            KeyBindingInfo::new("q/Esc", "Quit Application", "System", None),
+            KeyBindingInfo::new("q/Esc", "Quit / Clear Filters", "System", Some("If filters are active, clears them. Otherwise, quits the application.")),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", Some("Shows this help menu.")),
         ],
         AppMode::Adding | AppMode::Editing => vec![
@@ -73,7 +73,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Ctrl+F", "Switch to Advanced Filter", "Actions", Some("Switch to advanced filtering mode for more specific criteria.")),
             KeyBindingInfo::new("Ctrl+R", "Clear filter", "Actions", None),
             KeyBindingInfo::new("Enter", "Apply filter", "Actions", None),
-            KeyBindingInfo::new("Esc", "Exit filtering", "Actions", None),
+            KeyBindingInfo::new("Esc", "Clear filter", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         AppMode::AdvancedFiltering => vec![
@@ -88,7 +88,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Desc", "Filter Description", "Fields", Some("Filter by text in description.")),
             KeyBindingInfo::new("Ctrl+R", "Clear all filters", "Actions", None),
             KeyBindingInfo::new("Enter", "Save & Apply", "Actions", None),
-            KeyBindingInfo::new("Esc", "Cancel", "Actions", None),
+            KeyBindingInfo::new("Esc", "Cancel / Back to Simple Filteing", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         AppMode::Summary => vec![
