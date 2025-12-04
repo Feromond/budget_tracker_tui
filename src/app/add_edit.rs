@@ -2,7 +2,7 @@ use super::state::App;
 use crate::model::TransactionType;
 use crate::model::DATE_FORMAT;
 use crate::persistence::save_transactions;
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 
 impl App {
     // Helper function to find the original recurring transaction for a generated one
@@ -52,17 +52,17 @@ impl App {
             {
                 // Select the original transaction in the table
                 self.table_state.select(Some(original_view_index));
-                self.status_message = Some(action.message().to_string());
+                self.set_status_message(action.message(), None);
                 Some(original_recurring_index)
             } else {
-                self.status_message = Some(
-                    "Original recurring transaction not visible in current filter.".to_string(),
+                self.set_status_message(
+                    "Original recurring transaction not visible in current filter.",
+                    None,
                 );
                 None
             }
         } else {
-            self.status_message =
-                Some("Could not find original recurring transaction.".to_string());
+            self.set_status_message("Could not find original recurring transaction.", None);
             None
         }
     }
@@ -77,7 +77,7 @@ impl App {
         let today = chrono::Local::now().date_naive();
         self.add_edit_fields[0] = today.format(DATE_FORMAT).to_string();
         self.add_edit_fields[3] = "Expense".to_string();
-        self.status_message = None;
+        self.clear_status_message();
     }
     pub(crate) fn exit_adding(&mut self, cancelled: bool) {
         self.mode = crate::app::state::AppMode::Normal;
@@ -85,7 +85,7 @@ impl App {
         self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
         if cancelled {
-            self.status_message = Some("Add transaction cancelled.".to_string());
+            self.set_status_message("Add transaction cancelled.", Some(Duration::seconds(3)));
         }
     }
     pub(crate) fn add_transaction(&mut self) {
@@ -106,7 +106,7 @@ impl App {
         let amount = match crate::validation::validate_amount_string(amount_str) {
             Ok(amount) => amount,
             Err(msg) => {
-                self.status_message = Some(format!("Error: {}", msg));
+                self.set_status_message(format!("Error: {}", msg), None);
                 return;
             }
         };
@@ -114,16 +114,16 @@ impl App {
         let date = match date_res {
             Ok(date) => date,
             Err(_) => {
-                self.status_message = Some(format!(
-                    "Error: Invalid Date Format (Expected {})",
-                    DATE_FORMAT
-                ));
+                self.set_status_message(
+                    format!("Error: Invalid Date Format (Expected {})", DATE_FORMAT),
+                    None,
+                );
                 return;
             }
         };
 
         if description.is_empty() {
-            self.status_message = Some("Error: Description cannot be empty".to_string());
+            self.set_status_message("Error: Description cannot be empty", None);
             return;
         }
 
@@ -133,7 +133,7 @@ impl App {
             category,
             subcategory,
         ) {
-            self.status_message = Some(format!("Error: {}", cat_err));
+            self.set_status_message(format!("Error: {}", cat_err), None);
             return;
         }
 
@@ -158,13 +158,13 @@ impl App {
 
         match save_transactions(&self.transactions, &self.data_file_path) {
             Ok(_) => {
-                self.status_message = Some("Transaction added successfully.".to_string());
+                self.set_status_message("Transaction added successfully.", Some(Duration::seconds(3)));
                 // Regenerate recurring transactions after adding a new one
                 self.generate_recurring_transactions();
                 self.exit_adding(false);
             }
             Err(e) => {
-                self.status_message = Some(format!("Error saving transaction: {}", e));
+                self.set_status_message(format!("Error saving transaction: {}", e), None);
             }
         }
     }
@@ -199,15 +199,14 @@ impl App {
                     ];
 
                     if target_index == original_index {
-                        self.status_message = None;
+                        self.clear_status_message();
                     }
                 }
             } else {
-                self.status_message =
-                    Some("Error: Could not map view index to transaction".to_string());
+                self.set_status_message("Error: Could not map view index to transaction", None);
             }
         } else {
-            self.status_message = Some("Select a transaction to edit first".to_string());
+            self.set_status_message("Select a transaction to edit first", None);
         }
     }
     pub(crate) fn exit_editing(&mut self, cancelled: bool) {
@@ -216,9 +215,9 @@ impl App {
         self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
         if cancelled {
-            self.status_message = Some("Edit transaction cancelled.".to_string());
+            self.set_status_message("Edit transaction cancelled.", Some(Duration::seconds(3)));
         } else {
-            self.status_message = None;
+            self.clear_status_message();
         }
     }
     pub(crate) fn update_transaction(&mut self) {
@@ -240,7 +239,7 @@ impl App {
             let amount = match crate::validation::validate_amount_string(amount_str) {
                 Ok(amount) => amount,
                 Err(msg) => {
-                    self.status_message = Some(format!("Error: {}", msg));
+                    self.set_status_message(format!("Error: {}", msg), None);
                     return;
                 }
             };
@@ -249,16 +248,16 @@ impl App {
             let date = match date_res {
                 Ok(date) => date,
                 Err(_) => {
-                    self.status_message = Some(format!(
-                        "Error: Invalid Date Format (Expected {})",
-                        DATE_FORMAT
-                    ));
+                    self.set_status_message(
+                        format!("Error: Invalid Date Format (Expected {})", DATE_FORMAT),
+                        None,
+                    );
                     return;
                 }
             };
 
             if description.is_empty() {
-                self.status_message = Some("Error: Description cannot be empty".to_string());
+                self.set_status_message("Error: Description cannot be empty", None);
                 return;
             }
 
@@ -269,7 +268,7 @@ impl App {
                 category,
                 subcategory,
             ) {
-                self.status_message = Some(format!("Error: {}", cat_err));
+                self.set_status_message(format!("Error: {}", cat_err), None);
                 return;
             }
 
@@ -293,7 +292,10 @@ impl App {
 
                 match save_transactions(&self.transactions, &self.data_file_path) {
                     Ok(_) => {
-                        self.status_message = Some("Transaction updated successfully.".to_string());
+                        self.set_status_message(
+                            "Transaction updated successfully.",
+                            Some(Duration::seconds(3)),
+                        );
 
                         // If this was a recurring transaction, regenerate all recurring instances
                         if was_recurring {
@@ -306,16 +308,15 @@ impl App {
                         self.exit_editing(false);
                     }
                     Err(e) => {
-                        self.status_message =
-                            Some(format!("Error saving updated transaction: {}", e));
+                        self.set_status_message(format!("Error saving updated transaction: {}", e), None);
                     }
                 }
             } else {
-                self.status_message = Some("Error: Invalid index during edit".to_string());
+                self.set_status_message("Error: Invalid index during edit", None);
                 self.exit_editing(true);
             }
         } else {
-            self.status_message = Some("Error: No transaction selected for editing".to_string());
+            self.set_status_message("Error: No transaction selected for editing", None);
             self.exit_editing(true);
         }
     }
@@ -351,15 +352,14 @@ impl App {
 
                     // Only show delete confirmation if we didn't jump (to preserve jump message)
                     if target_index == original_index {
-                        self.status_message = Some("Confirm Delete? (y/n)".to_string());
+                        self.set_status_message("Confirm Delete? (y/n)", None);
                     }
                 }
             } else {
-                self.status_message =
-                    Some("Error: Could not map view index to transaction".to_string());
+                self.set_status_message("Error: Could not map view index to transaction", None);
             }
         } else {
-            self.status_message = Some("Select a transaction to delete first".to_string());
+            self.set_status_message("Select a transaction to delete first", None);
         }
     }
     pub(crate) fn confirm_delete(&mut self) {
@@ -376,7 +376,10 @@ impl App {
             }
             match save_transactions(&self.transactions, &self.data_file_path) {
                 Ok(_) => {
-                    self.status_message = Some("Transaction deleted successfully.".to_string());
+                    self.set_status_message(
+                        "Transaction deleted successfully.",
+                        Some(Duration::seconds(3)),
+                    );
                     self.delete_index = None;
                     self.mode = crate::app::state::AppMode::Normal;
 
@@ -389,7 +392,7 @@ impl App {
                     }
                 }
                 Err(e) => {
-                    self.status_message = Some(format!("Error saving after delete: {}", e));
+                    self.set_status_message(format!("Error saving after delete: {}", e), None);
                 }
             }
         } else {
@@ -399,6 +402,6 @@ impl App {
     pub(crate) fn cancel_delete(&mut self) {
         self.mode = crate::app::state::AppMode::Normal;
         self.delete_index = None;
-        self.status_message = None;
+        self.clear_status_message();
     }
 }

@@ -1,6 +1,6 @@
 use super::state::App;
 use crate::model::{TransactionType, DATE_FORMAT};
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 use ratatui::widgets::ListState;
 use rust_decimal::Decimal;
 use std::collections::HashSet;
@@ -15,11 +15,11 @@ impl App {
     pub(crate) fn start_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::Filtering;
         self.simple_filter_cursor = self.simple_filter_content.len();
-        self.status_message = None;
+        self.clear_status_message();
     }
     pub(crate) fn exit_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::Normal;
-        self.status_message = None;
+        self.clear_status_message();
     }
     pub(crate) fn apply_filter(&mut self) {
         crate::app::util::sort_transactions_impl(
@@ -56,17 +56,17 @@ impl App {
     pub(crate) fn start_advanced_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
         self.current_advanced_filter_field = 0;
-        self.status_message = None;
+        self.clear_status_message()
     }
     pub(crate) fn cancel_advanced_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::Normal;
-        self.status_message = None;
+        self.clear_status_message()
     }
     pub(crate) fn finish_advanced_filtering(&mut self) {
         self.clear_simple_filter_field_only();
         self.apply_advanced_filter();
         self.mode = crate::app::state::AppMode::Normal;
-        self.status_message = None;
+        self.clear_status_message()
     }
 
     pub(crate) fn reset_all_filters(&mut self) {
@@ -85,9 +85,9 @@ impl App {
         self.apply_filter();
         self.mode = crate::app::state::AppMode::Normal;
         if was_active {
-            self.status_message = Some("All filters cleared".to_string());
+            self.set_status_message("All filters cleared", Some(Duration::seconds(3)));
         } else {
-            self.status_message = None;
+            self.clear_status_message();
         }
     }
     pub(crate) fn clear_advanced_filter_fields_only(&mut self) {

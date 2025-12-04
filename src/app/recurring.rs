@@ -1,7 +1,7 @@
 use super::state::App;
 use crate::model::{RecurrenceFrequency, Transaction};
 use crate::recurring::{generate_recurring_transactions, remove_generated_recurring_transactions};
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 
 impl App {
     pub(crate) fn generate_recurring_transactions(&mut self) {
@@ -62,16 +62,17 @@ impl App {
 
                     // Only clear status message if we didn't jump (to preserve jump message)
                     if target_index == original_index {
-                        self.status_message = None;
+                        self.clear_status_message();
                     }
                 }
             } else {
-                self.status_message =
-                    Some("Error: Could not map view index to transaction".to_string());
+                self.set_status_message("Error: Could not map view index to transaction", None);
             }
         } else {
-            self.status_message =
-                Some("Select a transaction to configure recurring settings".to_string());
+            self.set_status_message(
+                "Select a transaction to configure recurring settings",
+                None,
+            );
         }
     }
 
@@ -81,7 +82,7 @@ impl App {
         self.current_recurring_field = 0;
         self.recurring_settings_fields = Default::default();
         if cancelled {
-            self.status_message = Some("Recurring settings cancelled.".to_string());
+            self.set_status_message("Recurring settings cancelled.", Some(Duration::seconds(3)));
         }
     }
 
@@ -112,10 +113,13 @@ impl App {
                     match NaiveDate::parse_from_str(end_date_str, crate::model::DATE_FORMAT) {
                         Ok(date) => Some(date),
                         Err(_) => {
-                            self.status_message = Some(format!(
-                                "Error: Invalid end date format (Expected {})",
-                                crate::model::DATE_FORMAT
-                            ));
+                            self.set_status_message(
+                                format!(
+                                    "Error: Invalid end date format (Expected {})",
+                                    crate::model::DATE_FORMAT
+                                ),
+                                None,
+                            );
                             return;
                         }
                     }
@@ -134,8 +138,10 @@ impl App {
                     &self.data_file_path,
                 ) {
                     Ok(_) => {
-                        self.status_message =
-                            Some("Recurring settings saved successfully.".to_string());
+                        self.set_status_message(
+                            "Recurring settings saved successfully.",
+                            Some(Duration::seconds(3)),
+                        );
 
                         // Regenerate recurring transactions
                         self.generate_recurring_transactions();
@@ -143,17 +149,21 @@ impl App {
                         self.exit_recurring_settings(false);
                     }
                     Err(e) => {
-                        self.status_message =
-                            Some(format!("Error saving recurring settings: {}", e));
+                        self.set_status_message(
+                            format!("Error saving recurring settings: {}", e),
+                            None,
+                        );
                     }
                 }
             } else {
-                self.status_message = Some("Error: Invalid transaction index".to_string());
+                self.set_status_message("Error: Invalid transaction index", None);
                 self.exit_recurring_settings(true);
             }
         } else {
-            self.status_message =
-                Some("Error: No transaction selected for recurring settings".to_string());
+            self.set_status_message(
+                "Error: No transaction selected for recurring settings",
+                None,
+            );
             self.exit_recurring_settings(true);
         }
     }
@@ -199,11 +209,10 @@ impl App {
                 c,
             ) {
                 self.recurring_settings_fields[2] = new_date;
-                self.status_message = None; // Clear any previous error messages
+                self.clear_status_message(); // Clear any previous error messages
             } else {
                 // Invalid character or date, show error message
-                self.status_message =
-                    Some("Invalid date input. Use YYYY-MM-DD format.".to_string());
+                self.set_status_message("Invalid date input. Use YYYY-MM-DD format.", None);
             }
         }
     }
@@ -211,7 +220,7 @@ impl App {
     pub(crate) fn delete_char_recurring(&mut self) {
         if self.current_recurring_field == 2 {
             crate::validation::handle_date_backspace(&mut self.recurring_settings_fields[2]);
-            self.status_message = None;
+            self.clear_status_message();
         }
     }
 
@@ -219,7 +228,7 @@ impl App {
         if self.current_recurring_field == 2 {
             if let Some(new_date) = self.increment_date_field(&self.recurring_settings_fields[2]) {
                 self.recurring_settings_fields[2] = new_date;
-                self.status_message = None;
+                self.clear_status_message();
             }
         }
     }
@@ -228,7 +237,7 @@ impl App {
         if self.current_recurring_field == 2 {
             if let Some(new_date) = self.decrement_date_field(&self.recurring_settings_fields[2]) {
                 self.recurring_settings_fields[2] = new_date;
-                self.status_message = None;
+                self.clear_status_message();
             }
         }
     }
@@ -237,7 +246,7 @@ impl App {
         if self.current_recurring_field == 2 {
             if let Some(new_date) = self.increment_month_field(&self.recurring_settings_fields[2]) {
                 self.recurring_settings_fields[2] = new_date;
-                self.status_message = None;
+                self.clear_status_message();
             }
         }
     }
@@ -246,7 +255,7 @@ impl App {
         if self.current_recurring_field == 2 {
             if let Some(new_date) = self.decrement_month_field(&self.recurring_settings_fields[2]) {
                 self.recurring_settings_fields[2] = new_date;
-                self.status_message = None;
+                self.clear_status_message();
             }
         }
     }

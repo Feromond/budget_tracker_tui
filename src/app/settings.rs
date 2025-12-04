@@ -2,6 +2,7 @@ use super::state::App;
 use crate::app::settings_types::{SettingType, SettingsState};
 use crate::config::{save_settings, AppSettings};
 use crate::persistence::{load_transactions, save_transactions};
+use chrono::Duration;
 use std::path::PathBuf;
 
 impl App {
@@ -139,13 +140,13 @@ impl App {
             self.settings_state.edit_cursor = item.value.len();
         }
 
-        self.status_message = None;
+        self.clear_status_message();
     }
 
     pub(crate) fn exit_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Normal;
         self.settings_state = SettingsState::default();
-        self.status_message = None;
+        self.clear_status_message();
     }
 
     pub(crate) fn save_settings(&mut self) {
@@ -179,7 +180,7 @@ impl App {
             match crate::validation::validate_amount_string(&target_budget_str) {
                 Ok(val) => Some(val),
                 Err(msg) => {
-                    self.status_message = Some(format!("Error: Target budget - {}", msg));
+                    self.set_status_message(format!("Error: Target budget - {}", msg), None);
                     return;
                 }
             }
@@ -192,7 +193,7 @@ impl App {
             match crate::validation::validate_amount_string(&hourly_rate_str) {
                 Ok(val) => Some(val),
                 Err(msg) => {
-                    self.status_message = Some(format!("Error: Hourly rate - {}", msg));
+                    self.set_status_message(format!("Error: Hourly rate - {}", msg), None);
                     return;
                 }
             }
@@ -200,17 +201,20 @@ impl App {
 
         // Validate Path
         if new_path_str.is_empty() {
-            self.status_message = Some("Error: Path cannot be empty.".to_string());
+            self.set_status_message("Error: Path cannot be empty.", None);
             return;
         }
         let new_path = PathBuf::from(&new_path_str);
         if !new_path.exists() {
             if let Err(e) = save_transactions(&self.transactions, &new_path) {
-                self.status_message = Some(format!(
-                    "Error creating transactions file '{}': {}. Check path and permissions.",
-                    new_path.display(),
-                    e
-                ));
+                self.set_status_message(
+                    format!(
+                        "Error creating transactions file '{}': {}. Check path and permissions.",
+                        new_path.display(),
+                        e
+                    ),
+                    None,
+                );
                 return;
             }
         }
@@ -224,7 +228,7 @@ impl App {
             fuzzy_search_mode: fuzzy_search_val,
         };
         if let Err(e) = save_settings(&settings) {
-            self.status_message = Some(format!("Error saving config file: {}", e));
+            self.set_status_message(format!("Error saving config file: {}", e), None);
             return;
         }
 
@@ -233,11 +237,14 @@ impl App {
         let txs = match load_transactions(&self.data_file_path) {
             Ok(tx) => tx,
             Err(e) => {
-                self.status_message = Some(format!(
-                    "Error loading transactions from '{}': {}. Check file format and permissions.",
-                    self.data_file_path.display(),
-                    e
-                ));
+                self.set_status_message(
+                    format!(
+                        "Error loading transactions from '{}': {}. Check file format and permissions.",
+                        self.data_file_path.display(),
+                        e
+                    ),
+                    None,
+                );
                 return;
             }
         };
@@ -256,10 +263,13 @@ impl App {
         self.calculate_monthly_summaries();
         self.calculate_category_summaries();
 
-        self.status_message = Some(format!(
-            "Settings saved. Data file set to: {}",
-            self.data_file_path.display()
-        ));
+        self.set_status_message(
+            format!(
+                "Settings saved. Data file set to: {}",
+                self.data_file_path.display()
+            ),
+            Some(Duration::seconds(3)),
+        );
         self.target_budget = target_budget;
         self.hourly_rate = hourly_rate;
         self.show_hours = show_hours_val.unwrap_or(false);
@@ -286,8 +296,10 @@ impl App {
                     }
                 }
 
-                self.status_message =
-                    Some("Path reset to default. Press Enter to save.".to_string());
+                self.set_status_message(
+                    "Path reset to default. Press Enter to save.",
+                    None,
+                );
             }
             Err(e) => {
                 let fallback_path = "transactions.csv";
@@ -305,10 +317,13 @@ impl App {
                     }
                 }
 
-                self.status_message = Some(format!(
-                    "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
-                    e, fallback_path
-                ));
+                self.set_status_message(
+                    format!(
+                        "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
+                        e, fallback_path
+                    ),
+                    None,
+                );
             }
         }
     }

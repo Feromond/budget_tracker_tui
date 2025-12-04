@@ -64,11 +64,11 @@ impl App {
             self.selected_summary_month = None;
         }
         self.table_state.select(Some(0));
-        self.status_message = None;
+        self.clear_status_message();
     }
     pub(crate) fn exit_summary_mode(&mut self) {
         self.mode = AppMode::Normal;
-        self.status_message = None;
+        self.clear_status_message();
     }
     pub(crate) fn next_summary_year(&mut self) {
         if !self.summary_years.is_empty() {
@@ -162,11 +162,11 @@ impl App {
         let len = self.cached_visible_category_items.len();
         self.category_summary_table_state
             .select(if len > 0 { Some(0) } else { None });
-        self.status_message = None;
+        self.clear_status_message();
     }
     pub(crate) fn exit_category_summary_mode(&mut self) {
         self.mode = AppMode::Normal;
-        self.status_message = None;
+        self.clear_status_message();
     }
     pub(crate) fn next_category_summary_item(&mut self) {
         let list_len = self.cached_visible_category_items.len();

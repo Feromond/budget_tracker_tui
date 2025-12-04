@@ -16,8 +16,10 @@ impl App {
         self.mode = crate::app::state::AppMode::SelectingCategory;
         let current_type_str = self.add_edit_fields[3].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
-            self.status_message =
-                Some("Error: Invalid transaction type for category lookup.".to_string());
+            self.set_status_message(
+                "Error: Invalid transaction type for category lookup.",
+                None,
+            );
             self.mode = if self.editing_index.is_some() {
                 crate::app::state::AppMode::Editing
             } else {
@@ -45,8 +47,10 @@ impl App {
         let current_type_str = self.add_edit_fields[3].trim();
         let current_category = self.add_edit_fields[4].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
-            self.status_message =
-                Some("Error: Invalid transaction type for subcategory lookup.".to_string());
+            self.set_status_message(
+                "Error: Invalid transaction type for subcategory lookup.",
+                None,
+            );
             self.mode = if self.editing_index.is_some() {
                 crate::app::state::AppMode::Editing
             } else {
