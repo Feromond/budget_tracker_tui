@@ -9,12 +9,16 @@ use rust_decimal::Decimal;
 use std::collections::HashMap;
 
 fn cell_income(amount: Decimal) -> Cell<'static> {
-    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0)))
-        .style(Style::default().fg(Color::LightGreen))
+    Cell::from(
+        Line::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).alignment(Alignment::Right),
+    )
+    .style(Style::default().fg(Color::LightGreen))
 }
 fn cell_expense(amount: Decimal) -> Cell<'static> {
-    Cell::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0)))
-        .style(Style::default().fg(Color::LightRed))
+    Cell::from(
+        Line::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).alignment(Alignment::Right),
+    )
+    .style(Style::default().fg(Color::LightRed))
 }
 fn cell_net(net: Decimal) -> Cell<'static> {
     let s = if net >= Decimal::ZERO {
@@ -27,7 +31,7 @@ fn cell_net(net: Decimal) -> Cell<'static> {
     } else {
         Style::default().fg(Color::LightRed)
     };
-    Cell::from(s).style(style)
+    Cell::from(Line::from(s).alignment(Alignment::Right)).style(style)
 }
 
 pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
@@ -48,9 +52,14 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         "Expense",
         "Net",
     ];
-    let header_cells = header_titles
-        .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Cyan).bold()));
+    let header_cells = header_titles.iter().enumerate().map(|(i, h)| {
+        let content = if i >= 3 {
+            Line::from(*h).alignment(Alignment::Right)
+        } else {
+            Line::from(*h)
+        };
+        Cell::from(content).style(Style::default().fg(Color::Cyan).bold())
+    });
     let header = Row::new(header_cells)
         .style(Style::default().bg(Color::DarkGray))
         .height(1)
