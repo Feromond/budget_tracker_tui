@@ -131,7 +131,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     }
 
     if render_mode == AppMode::Filtering {
-        let cursor_x = app.input_field_content[..app.input_field_cursor]
+        let cursor_x = app.simple_filter_content[..app.simple_filter_cursor]
             .chars()
             .count() as u16;
         f.set_cursor_position(ratatui::layout::Position::new(
