@@ -70,7 +70,7 @@ pub fn run_app<B: Backend>(
                                 // Allow Ctrl+F/R in simple Filtering mode and Ctrl+R in AdvancedFiltering mode
                                 || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r')))
                                 || (app.mode == AppMode::AdvancedFiltering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('r')))
-                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                || ((app.mode == AppMode::Filtering || app.mode == AppMode::AdvancedFiltering) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Ctrl+Up/Down for jump navigation in Normal mode
                                 || (app.mode == AppMode::Normal && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down))
                                 // Allow Ctrl+H for Help Toggle

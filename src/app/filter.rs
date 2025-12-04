@@ -59,7 +59,7 @@ impl App {
         self.status_message = None;
     }
     pub(crate) fn cancel_advanced_filtering(&mut self) {
-        self.mode = crate::app::state::AppMode::Filtering;
+        self.mode = crate::app::state::AppMode::Normal;
         self.status_message = None;
     }
     pub(crate) fn finish_advanced_filtering(&mut self) {
