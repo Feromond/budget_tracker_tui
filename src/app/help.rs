@@ -88,7 +88,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Desc", "Filter Description", "Fields", Some("Filter by text in description.")),
             KeyBindingInfo::new("Ctrl+R", "Clear all filters", "Actions", None),
             KeyBindingInfo::new("Enter", "Save & Apply", "Actions", None),
-            KeyBindingInfo::new("Esc", "Cancel / Back to Simple Filteing", "Actions", None),
+            KeyBindingInfo::new("Esc", "Cancel / Back to Normal Mode", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         AppMode::Summary => vec![
