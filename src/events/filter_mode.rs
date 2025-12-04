@@ -13,9 +13,8 @@ fn handle_simple_filtering(app: &mut App, key_event: KeyEvent) {
     match (key_event.modifiers, key_event.code) {
         (KeyModifiers::CONTROL, KeyCode::Char('f')) => app.start_advanced_filtering(),
         (KeyModifiers::CONTROL, KeyCode::Char('r')) => app.reset_all_filters(),
-        (KeyModifiers::NONE, KeyCode::Esc) | (KeyModifiers::NONE, KeyCode::Enter) => {
-            app.exit_filtering()
-        }
+        (KeyModifiers::NONE, KeyCode::Enter) => app.exit_filtering(),
+        (KeyModifiers::NONE, KeyCode::Esc) => app.reset_all_filters(),
         (KeyModifiers::NONE, KeyCode::Char(c)) => {
             app.clear_advanced_filter_fields_only();
             app.insert_char_at_cursor(c);

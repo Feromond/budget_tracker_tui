@@ -6,11 +6,15 @@ use rust_decimal::Decimal;
 use std::collections::HashSet;
 
 impl App {
+    pub(crate) fn is_filter_active(&self) -> bool {
+        !self.simple_filter_content.is_empty()
+            || self.advanced_filter_fields.iter().any(|f| !f.is_empty())
+    }
     // --- Filtering Logic ---
     // Handles entering/exiting filtering mode, applying basic filter, and updating filtered indices.
     pub(crate) fn start_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::Filtering;
-        self.input_field_cursor = self.input_field_content.len();
+        self.simple_filter_cursor = self.simple_filter_content.len();
         self.status_message = None;
     }
     pub(crate) fn exit_filtering(&mut self) {
@@ -23,7 +27,7 @@ impl App {
             self.sort_by,
             self.sort_order,
         );
-        let query = self.input_field_content.to_lowercase();
+        let query = self.simple_filter_content.to_lowercase();
         self.filtered_indices = self
             .transactions
             .iter()
@@ -67,8 +71,8 @@ impl App {
 
     pub(crate) fn reset_all_filters(&mut self) {
         // Clear simple filter field
-        self.input_field_content.clear();
-        self.input_field_cursor = 0;
+        self.simple_filter_content.clear();
+        self.simple_filter_cursor = 0;
 
         // Clear advanced filter fields
         for f in self.advanced_filter_fields.iter_mut() {
@@ -90,8 +94,8 @@ impl App {
     }
     pub(crate) fn clear_simple_filter_field_only(&mut self) {
         // Clear simple filter field without changing mode
-        self.input_field_content.clear();
-        self.input_field_cursor = 0;
+        self.simple_filter_content.clear();
+        self.simple_filter_cursor = 0;
     }
     pub(crate) fn next_advanced_filter_field(&mut self) {
         self.current_advanced_filter_field =
