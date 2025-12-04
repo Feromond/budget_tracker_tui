@@ -6,28 +6,28 @@ impl App {
     // --- Input Handling ---
     // Handles cursor movement and character insertion/deletion for the generic input field and add/edit fields.
     pub(crate) fn move_cursor_left(&mut self) {
-        if self.input_field_cursor > 0 {
-            self.input_field_cursor -= 1;
+        if self.simple_filter_cursor > 0 {
+            self.simple_filter_cursor -= 1;
         }
     }
     pub(crate) fn move_cursor_right(&mut self) {
-        if self.input_field_cursor < self.input_field_content.len() {
-            self.input_field_cursor += 1;
+        if self.simple_filter_cursor < self.simple_filter_content.len() {
+            self.simple_filter_cursor += 1;
         }
     }
     pub(crate) fn insert_char_at_cursor(&mut self, c: char) {
-        self.input_field_content.insert(self.input_field_cursor, c);
+        self.simple_filter_content.insert(self.simple_filter_cursor, c);
         self.move_cursor_right();
     }
     pub(crate) fn delete_char_before_cursor(&mut self) {
-        if self.input_field_cursor > 0 {
+        if self.simple_filter_cursor > 0 {
             self.move_cursor_left();
-            self.input_field_content.remove(self.input_field_cursor);
+            self.simple_filter_content.remove(self.simple_filter_cursor);
         }
     }
     pub(crate) fn delete_char_after_cursor(&mut self) {
-        if self.input_field_cursor < self.input_field_content.len() {
-            self.input_field_content.remove(self.input_field_cursor);
+        if self.simple_filter_cursor < self.simple_filter_content.len() {
+            self.simple_filter_content.remove(self.simple_filter_cursor);
         }
     }
     pub(crate) fn insert_char_add_edit(&mut self, c: char) {
