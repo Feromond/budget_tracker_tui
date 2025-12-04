@@ -2,8 +2,40 @@
 ///
 /// This module contains utilities that are specific to app state management
 /// and operations, as opposed to general validation or business logic.
+use chrono::Datelike;
+use rust_decimal::Decimal;
 use crate::model::*;
 use std::cmp::Ordering;
+
+/// Calculates the total income and expenses for the current filter view,
+/// optionally filtered by a specific year.
+///
+/// # Arguments
+///
+/// * `app` - The application state containing transactions and filtered indices.
+/// * `year_filter` - Optional year to filter transactions by. If None, includes all filtered transactions.
+///
+/// # Returns
+///
+/// A tuple `(total_income, total_expense)`
+pub fn calculate_totals(app: &crate::app::state::App, year_filter: Option<i32>) -> (Decimal, Decimal) {
+    app.filtered_indices
+        .iter()
+        .filter_map(|&idx| app.transactions.get(idx))
+        .filter(|tx| {
+            // Apply year filter if specified, otherwise include all transactions
+            match year_filter {
+                Some(year) => tx.date.year() == year,
+                None => true,
+            }
+        })
+        .fold((Decimal::ZERO, Decimal::ZERO), |(inc, exp), tx| {
+            match tx.transaction_type {
+                crate::model::TransactionType::Income => (inc + tx.amount, exp),
+                crate::model::TransactionType::Expense => (inc, exp + tx.amount),
+            }
+        })
+}
 
 /// Sorts transactions by the selected column and order
 pub fn sort_transactions_impl(

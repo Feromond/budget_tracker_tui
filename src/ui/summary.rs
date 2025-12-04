@@ -469,23 +469,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Option<i32>) {
-    let (total_income, total_expense) = app
-        .filtered_indices
-        .iter()
-        .filter_map(|&idx| app.transactions.get(idx))
-        .filter(|tx| {
-            // Apply year filter if specified, otherwise include all transactions
-            match year_filter {
-                Some(year) => tx.date.year() == year,
-                None => true,
-            }
-        })
-        .fold((Decimal::ZERO, Decimal::ZERO), |(inc, exp), tx| {
-            match tx.transaction_type {
-                crate::model::TransactionType::Income => (inc + tx.amount, exp),
-                crate::model::TransactionType::Expense => (inc, exp + tx.amount),
-            }
-        });
+    let (total_income, total_expense) = crate::app::util::calculate_totals(app, year_filter);
     let net_balance = total_income - total_expense;
 
     let income_span = Span::styled(
