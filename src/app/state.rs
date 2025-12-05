@@ -76,6 +76,8 @@ pub struct App {
     pub(crate) selecting_field_index: Option<usize>,
     pub(crate) current_selection_list: Vec<String>,
     pub(crate) selection_list_state: ListState,
+    pub(crate) type_to_select_buffer: String,
+    pub(crate) last_type_time: Option<std::time::Instant>,
     // Category Summary State
     pub(crate) category_summary_table_state: TableState,
     pub(crate) category_summaries: HashMap<(i32, u32), HashMap<(String, String), MonthlySummary>>,
@@ -236,6 +238,8 @@ impl App {
             selecting_field_index: None,
             current_selection_list: Vec::new(),
             selection_list_state: ListState::default(),
+            type_to_select_buffer: String::new(),
+            last_type_time: None,
             category_summaries: HashMap::new(),
             category_summary_years: Vec::new(),
             category_summary_year_index: 0,
