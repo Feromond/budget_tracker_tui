@@ -62,7 +62,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0),
-            Constraint::Length(2),
+            Constraint::Length(1),
         ])
         .split(table_area);
     let list_area = main_table_chunks[0];
@@ -95,8 +95,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     });
     let header = Row::new(header_cells)
         .style(Style::default().bg(Color::DarkGray))
-        .height(1)
-        .bottom_margin(1);
+        .height(1);
 
     // Data for Table (hierarchical)
     let current_year = app
@@ -275,7 +274,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         ],
     )
     .header(header)
-    .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT).title(table_title))
+    .block(Block::default().title(table_title))
     .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED))
     .highlight_symbol(" > ");
 
@@ -291,8 +290,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             Constraint::Percentage(12),
             Constraint::Percentage(11),
         ],
-    )
-    .block(Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT));
+    );
 
     f.render_widget(footer_table, footer_area);
 
@@ -429,7 +427,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
 
     let bar_chart = BarChart::default()
-        .block(Block::default().title(chart_title).borders(Borders::ALL))
+        .block(Block::default().title(chart_title))
         .data(BarGroup::default().bars(&bars))
         .bar_width(bar_width)
         .bar_gap(bar_gap)
