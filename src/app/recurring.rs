@@ -69,10 +69,7 @@ impl App {
                 self.set_status_message("Error: Could not map view index to transaction", None);
             }
         } else {
-            self.set_status_message(
-                "Select a transaction to configure recurring settings",
-                None,
-            );
+            self.set_status_message("Select a transaction to configure recurring settings", None);
         }
     }
 

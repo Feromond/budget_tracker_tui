@@ -296,10 +296,7 @@ impl App {
                     }
                 }
 
-                self.set_status_message(
-                    "Path reset to default. Press Enter to save.",
-                    None,
-                );
+                self.set_status_message("Path reset to default. Press Enter to save.", None);
             }
             Err(e) => {
                 let fallback_path = "transactions.csv";

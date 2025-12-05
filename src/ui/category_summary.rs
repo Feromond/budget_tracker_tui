@@ -60,10 +60,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let table_area = summary_chunks[0];
     let main_table_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(0),
-            Constraint::Length(1),
-        ])
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
         .split(table_area);
     let list_area = main_table_chunks[0];
     let footer_area = main_table_chunks[1];
@@ -170,12 +167,14 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     if expanded_month == *month {
                         let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
                         let arrow_color = color_palette[month_idx % color_palette.len()];
-                        
+
                         // Determine tree branch symbol
                         let is_last_child = if let Some(next_item) = items.get(i + 1) {
                             match next_item {
                                 CategorySummaryItem::Month(_, _) => true,
-                                CategorySummaryItem::Subcategory(next_m, _, _, _) => *next_m != *month,
+                                CategorySummaryItem::Subcategory(next_m, _, _, _) => {
+                                    *next_m != *month
+                                }
                             }
                         } else {
                             true
@@ -205,21 +204,25 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             }
         })
         .collect();
-    
+
     // Prepend Yearly Total Row
     let total_net = total_income - total_expense;
     let total_inc_cell = cell_income(total_income, true);
     let total_exp_cell = cell_expense(total_expense, true);
     let total_net_cell = cell_net(total_net, true);
-    
+
     let total_row = Row::new(vec![
         Cell::from(Span::styled(
-            "Grand Total", 
-            Style::default().add_modifier(Modifier::BOLD).fg(Color::Magenta)
+            "Grand Total",
+            Style::default()
+                .add_modifier(Modifier::BOLD)
+                .fg(Color::Magenta),
         )),
         Cell::from(Span::styled(
-            format!("{}", year_str), 
-            Style::default().add_modifier(Modifier::BOLD).fg(Color::Magenta)
+            &year_str,
+            Style::default()
+                .add_modifier(Modifier::BOLD)
+                .fg(Color::Magenta),
         )),
         Cell::from(""),
         total_inc_cell,
@@ -241,8 +244,8 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             title_spans.push(Span::styled(
                 "(Filtered) ",
                 Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             ));
         }
         title_spans.push(Span::styled(
@@ -252,8 +255,8 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         title_spans.push(Span::styled(
             y,
             Style::default()
-            .fg(Color::Magenta)
-            .add_modifier(Modifier::BOLD),
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
         ));
         title_spans.push(Span::styled(
             idx_total,

@@ -16,7 +16,8 @@ impl App {
         }
     }
     pub(crate) fn insert_char_at_cursor(&mut self, c: char) {
-        self.simple_filter_content.insert(self.simple_filter_cursor, c);
+        self.simple_filter_content
+            .insert(self.simple_filter_cursor, c);
         self.move_cursor_right();
     }
     pub(crate) fn delete_char_before_cursor(&mut self) {

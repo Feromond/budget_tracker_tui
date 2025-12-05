@@ -16,10 +16,7 @@ impl App {
         self.mode = crate::app::state::AppMode::SelectingCategory;
         let current_type_str = self.add_edit_fields[3].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
-            self.set_status_message(
-                "Error: Invalid transaction type for category lookup.",
-                None,
-            );
+            self.set_status_message("Error: Invalid transaction type for category lookup.", None);
             self.mode = if self.editing_index.is_some() {
                 crate::app::state::AppMode::Editing
             } else {

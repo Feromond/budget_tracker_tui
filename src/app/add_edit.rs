@@ -158,7 +158,10 @@ impl App {
 
         match save_transactions(&self.transactions, &self.data_file_path) {
             Ok(_) => {
-                self.set_status_message("Transaction added successfully.", Some(Duration::seconds(3)));
+                self.set_status_message(
+                    "Transaction added successfully.",
+                    Some(Duration::seconds(3)),
+                );
                 // Regenerate recurring transactions after adding a new one
                 self.generate_recurring_transactions();
                 self.exit_adding(false);
@@ -308,7 +311,10 @@ impl App {
                         self.exit_editing(false);
                     }
                     Err(e) => {
-                        self.set_status_message(format!("Error saving updated transaction: {}", e), None);
+                        self.set_status_message(
+                            format!("Error saving updated transaction: {}", e),
+                            None,
+                        );
                     }
                 }
             } else {

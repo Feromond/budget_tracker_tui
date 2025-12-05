@@ -1,10 +1,10 @@
+use crate::model::*;
 /// App-specific utility functions
 ///
 /// This module contains utilities that are specific to app state management
 /// and operations, as opposed to general validation or business logic.
 use chrono::Datelike;
 use rust_decimal::Decimal;
-use crate::model::*;
 use std::cmp::Ordering;
 
 /// Calculates the total income and expenses for the current filter view,
@@ -18,7 +18,10 @@ use std::cmp::Ordering;
 /// # Returns
 ///
 /// A tuple `(total_income, total_expense)`
-pub fn calculate_totals(app: &crate::app::state::App, year_filter: Option<i32>) -> (Decimal, Decimal) {
+pub fn calculate_totals(
+    app: &crate::app::state::App,
+    year_filter: Option<i32>,
+) -> (Decimal, Decimal) {
     app.filtered_indices
         .iter()
         .filter_map(|&idx| app.transactions.get(idx))

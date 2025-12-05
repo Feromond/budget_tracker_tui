@@ -498,10 +498,13 @@ impl App {
                 self.add_edit_fields[0] = new_date.format(crate::model::DATE_FORMAT).to_string();
                 self.clear_status_message() // Clear status on successful adjustment
             } else {
-                self.set_status_message(format!(
-                    "Error: Could not parse date '{}'. Use YYYY-MM-DD format.",
-                    self.add_edit_fields[0]
-                ), None);
+                self.set_status_message(
+                    format!(
+                        "Error: Could not parse date '{}'. Use YYYY-MM-DD format.",
+                        self.add_edit_fields[0]
+                    ),
+                    None,
+                );
             }
         }
     }
@@ -549,7 +552,9 @@ impl App {
 
     pub fn set_status_message<S: Into<String>>(&mut self, message: S, duration: Option<Duration>) {
         self.status_message = Some(message.into());
-        self.status_expiry = duration.map(|d| std::time::Instant::now() + std::time::Duration::from_secs(d.num_seconds() as u64));
+        self.status_expiry = duration.map(|d| {
+            std::time::Instant::now() + std::time::Duration::from_secs(d.num_seconds() as u64)
+        });
     }
 
     pub fn clear_status_message(&mut self) {
