@@ -274,7 +274,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         ],
     )
     .header(header)
-    .block(Block::default().title(table_title))
+    .block(Block::default().title(table_title).borders(Borders::TOP))
     .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED))
     .highlight_symbol(" > ");
 
@@ -363,7 +363,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                     ));
                 }
                 title_spans.push(Span::styled(
-                    "Category Net Balance - ",
+                    "── Category Net Balance ─ ",
                     Style::default().add_modifier(Modifier::BOLD),
                 ));
                 title_spans.push(Span::styled(
@@ -427,7 +427,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
 
     let bar_chart = BarChart::default()
-        .block(Block::default().title(chart_title))
+        .block(Block::default().title(chart_title).borders(Borders::TOP))
         .data(BarGroup::default().bars(&bars))
         .bar_width(bar_width)
         .bar_gap(bar_gap)
