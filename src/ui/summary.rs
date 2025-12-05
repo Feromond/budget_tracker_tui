@@ -360,7 +360,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         );
     }
     let chart = Chart::new(datasets)
-        .block(Block::default().title(chart_title).borders(Borders::ALL))
+        .block(Block::default().title(chart_title).borders(Borders::TOP))
         .x_axis(
             Axis::default()
                 .title("Day")
@@ -458,7 +458,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     };
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
     let bar_chart = BarChart::default()
-        .block(Block::default().title(table_title).borders(Borders::ALL))
+        .block(Block::default().title(table_title).borders(Borders::TOP))
         .data(BarGroup::default().bars(&chart_data_styled))
         .bar_width(bar_width)
         .bar_gap(bar_gap)
