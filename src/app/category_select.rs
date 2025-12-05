@@ -173,9 +173,11 @@ impl App {
         let search_term = self.type_to_select_buffer.to_lowercase();
 
         // Find the first item that starts with the buffer
-        if let Some(index) = self.current_selection_list.iter().position(|item| {
-            item.to_lowercase().starts_with(&search_term)
-        }) {
+        if let Some(index) = self
+            .current_selection_list
+            .iter()
+            .position(|item| item.to_lowercase().starts_with(&search_term))
+        {
             self.selection_list_state.select(Some(index));
         }
     }
