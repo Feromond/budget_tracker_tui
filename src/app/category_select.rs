@@ -11,8 +11,7 @@ impl App {
             self.start_fuzzy_selection();
             return;
         }
-        self.type_to_select_buffer.clear();
-        self.last_type_time = None;
+        self.type_to_select.clear();
 
         self.selecting_field_index = Some(4);
         self.mode = crate::app::state::AppMode::SelectingCategory;
@@ -41,8 +40,7 @@ impl App {
         }
     }
     pub(crate) fn start_subcategory_selection(&mut self) {
-        self.type_to_select_buffer.clear();
-        self.last_type_time = None;
+        self.type_to_select.clear();
         self.selecting_field_index = Some(5);
         self.mode = crate::app::state::AppMode::SelectingSubcategory;
         let current_type_str = self.add_edit_fields[3].trim();
@@ -158,26 +156,11 @@ impl App {
     }
 
     pub(crate) fn handle_type_to_select(&mut self, c: char) {
-        use std::time::{Duration, Instant};
-        let now = Instant::now();
-
-        if let Some(last_time) = self.last_type_time {
-            if now.duration_since(last_time) > Duration::from_secs(1) {
-                self.type_to_select_buffer.clear();
-            }
-        }
-
-        self.type_to_select_buffer.push(c);
-        self.last_type_time = Some(now);
-
-        let search_term = self.type_to_select_buffer.to_lowercase();
-
-        // Find the first item that starts with the buffer
-        if let Some(index) = self
-            .current_selection_list
-            .iter()
-            .position(|item| item.to_lowercase().starts_with(&search_term))
-        {
+        if let Some(index) = self.type_to_select.handle_char(
+            c,
+            &self.current_selection_list,
+            |item| item.as_str(),
+        ) {
             self.selection_list_state.select(Some(index));
         }
     }

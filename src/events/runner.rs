@@ -129,6 +129,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
             app.previous_mode = Some(app.mode);
             app.mode = AppMode::KeybindingsInfo;
             app.help_table_state.select(Some(0));
+            app.type_to_select.clear();
         }
         return;
     }
