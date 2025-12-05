@@ -1,6 +1,6 @@
 use crate::app::state::App;
 use crate::model::{SortColumn, SortOrder, TransactionType, DATE_FORMAT};
-use crate::ui::helpers::format_amount;
+use crate::ui::helpers::{format_amount, format_hours};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use rust_decimal::prelude::ToPrimitive;
@@ -83,15 +83,7 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         };
 
         let amount_cell_text = if app.show_hours {
-            if let Some(rate) = app.hourly_rate {
-                if rate > Decimal::ZERO {
-                    format!("{:.1}h", (tx.amount / rate).to_f64().unwrap_or(0.0))
-                } else {
-                    format_amount(&tx.amount)
-                }
-            } else {
-                format_amount(&tx.amount)
-            }
+            format_hours(&tx.amount, app.hourly_rate)
         } else {
             format_amount(&tx.amount)
         };

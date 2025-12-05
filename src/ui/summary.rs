@@ -1,5 +1,5 @@
 use crate::app::state::App;
-use crate::ui::helpers::{month_to_short_str, format_amount};
+use crate::ui::helpers::{month_to_short_str, format_amount, format_hours};
 use crate::validation::days_in_month;
 use chrono::Datelike;
 use ratatui::prelude::*;
@@ -472,14 +472,30 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
     let (total_income, total_expense) = crate::app::util::calculate_totals(app, year_filter);
     let net_balance = total_income - total_expense;
 
+    let income_str = if app.show_hours {
+        format_hours(&total_income, app.hourly_rate)
+    } else {
+        format_amount(&total_income)
+    };
+    let expense_str = if app.show_hours {
+        format_hours(&total_expense, app.hourly_rate)
+    } else {
+        format_amount(&total_expense)
+    };
+    let net_str_val = if app.show_hours {
+        format_hours(&net_balance, app.hourly_rate)
+    } else {
+        format_amount(&net_balance)
+    };
+
     let income_span = Span::styled(
-        format!("Income: {}", format_amount(&total_income)),
+        format!("Income: {}", income_str),
         Style::default()
             .fg(Color::LightGreen)
             .add_modifier(Modifier::BOLD),
     );
     let expense_span = Span::styled(
-        format!("Expenses: {}", format_amount(&total_expense)),
+        format!("Expenses: {}", expense_str),
         Style::default()
             .fg(Color::LightRed)
             .add_modifier(Modifier::BOLD),
@@ -494,9 +510,9 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
             .add_modifier(Modifier::BOLD)
     };
     let net_str = if net_balance >= Decimal::ZERO {
-        format!("+{}", format_amount(&net_balance))
+        format!("+{}", net_str_val)
     } else {
-        format_amount(&net_balance)
+        net_str_val
     };
     let net_span = Span::styled(format!("Net: {}", net_str), net_style);
 

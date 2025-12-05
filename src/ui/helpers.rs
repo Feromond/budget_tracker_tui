@@ -25,6 +25,16 @@ pub fn format_amount(amount: &Decimal) -> String {
     format!("{}{}.{}", sign, formatted_int, frac_part)
 }
 
+pub fn format_hours(amount: &Decimal, hourly_rate: Option<Decimal>) -> String {
+    if let Some(rate) = hourly_rate {
+        if rate > Decimal::ZERO {
+            let hours = (amount / rate).to_f64().unwrap_or(0.0);
+            return format!("{:.1}h", hours);
+        }
+    }
+    format_amount(amount)
+}
+
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
