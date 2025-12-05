@@ -1,6 +1,6 @@
 use crate::app::state::{App, CategorySummaryItem};
 use crate::model::MonthlySummary;
-use crate::ui::helpers::month_to_short_str;
+use crate::ui::helpers::{month_to_short_str, format_amount};
 use ratatui::prelude::*;
 use ratatui::text::Line;
 use ratatui::widgets::*;
@@ -17,7 +17,7 @@ fn cell_income(amount: Decimal, bold: bool) -> Cell<'static> {
         style = style.add_modifier(Modifier::BOLD);
     }
     Cell::from(
-        Line::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).alignment(Alignment::Right),
+        Line::from(format_amount(&amount)).alignment(Alignment::Right),
     )
     .style(style)
 }
@@ -30,15 +30,15 @@ fn cell_expense(amount: Decimal, bold: bool) -> Cell<'static> {
         style = style.add_modifier(Modifier::BOLD);
     }
     Cell::from(
-        Line::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).alignment(Alignment::Right),
+        Line::from(format_amount(&amount)).alignment(Alignment::Right),
     )
     .style(style)
 }
 fn cell_net(net: Decimal, bold: bool) -> Cell<'static> {
     let s = if net >= Decimal::ZERO {
-        format!("+{:.2}", net.to_f64().unwrap_or(0.0))
+        format!("+{}", format_amount(&net))
     } else {
-        format!("{:.2}", net.to_f64().unwrap_or(0.0))
+        format_amount(&net)
     };
     let mut style = if net >= Decimal::ZERO {
         Style::default().fg(Color::LightGreen)
