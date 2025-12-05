@@ -53,8 +53,8 @@ pub struct App {
     pub(crate) should_quit: bool,
     pub(crate) table_state: TableState,
     pub(crate) mode: AppMode,
-    pub(crate) input_field_content: String,
-    pub(crate) input_field_cursor: usize,
+    pub(crate) simple_filter_content: String,
+    pub(crate) simple_filter_cursor: usize,
     pub(crate) add_edit_fields: [String; 6],
     pub(crate) current_add_edit_field: usize,
     pub(crate) advanced_filter_fields: [String; 8],
@@ -62,6 +62,7 @@ pub struct App {
     pub(crate) delete_index: Option<usize>,
     pub(crate) editing_index: Option<usize>,
     pub(crate) status_message: Option<String>,
+    pub(crate) status_expiry: Option<std::time::Instant>,
     pub(crate) sort_by: SortColumn,
     pub(crate) sort_order: SortOrder,
     // Monthly Summary State
@@ -75,6 +76,7 @@ pub struct App {
     pub(crate) selecting_field_index: Option<usize>,
     pub(crate) current_selection_list: Vec<String>,
     pub(crate) selection_list_state: ListState,
+    pub(crate) type_to_select: crate::app::util::TypeToSelect,
     // Category Summary State
     pub(crate) category_summary_table_state: TableState,
     pub(crate) category_summaries: HashMap<(i32, u32), HashMap<(String, String), MonthlySummary>>,
@@ -99,6 +101,7 @@ pub struct App {
     // Help/Keybindings
     pub(crate) previous_mode: Option<AppMode>,
     pub(crate) help_table_state: TableState,
+    pub(crate) hide_help_bar: bool,
     // Update Check
     pub(crate) update_available_version: Option<String>,
     pub(crate) show_update_popup: bool,
@@ -214,8 +217,8 @@ impl App {
             should_quit: false,
             table_state: TableState::default(),
             mode: AppMode::Normal,
-            input_field_content: String::new(),
-            input_field_cursor: 0,
+            simple_filter_content: String::new(),
+            simple_filter_cursor: 0,
             add_edit_fields: Default::default(),
             current_add_edit_field: 0,
             advanced_filter_fields: Default::default(),
@@ -223,6 +226,7 @@ impl App {
             delete_index: None,
             editing_index: None,
             status_message: load_error_msg,
+            status_expiry: None,
             sort_by: initial_sort_by,
             sort_order: initial_sort_order,
             monthly_summaries: HashMap::new(),
@@ -234,6 +238,7 @@ impl App {
             selecting_field_index: None,
             current_selection_list: Vec::new(),
             selection_list_state: ListState::default(),
+            type_to_select: crate::app::util::TypeToSelect::new(),
             category_summaries: HashMap::new(),
             category_summary_years: Vec::new(),
             category_summary_year_index: 0,
@@ -251,6 +256,7 @@ impl App {
             recurring_transaction_index: None,
             previous_mode: None,
             help_table_state: TableState::default(),
+            hide_help_bar: loaded_settings.hide_help_bar.unwrap_or(false),
             update_available_version: None,
             show_update_popup: false,
             update_rx: rx,
@@ -494,12 +500,15 @@ impl App {
                     }
                 };
                 self.add_edit_fields[0] = new_date.format(crate::model::DATE_FORMAT).to_string();
-                self.status_message = None; // Clear status on successful adjustment
+                self.clear_status_message() // Clear status on successful adjustment
             } else {
-                self.status_message = Some(format!(
-                    "Error: Could not parse date '{}'. Use YYYY-MM-DD format.",
-                    self.add_edit_fields[0]
-                ));
+                self.set_status_message(
+                    format!(
+                        "Error: Could not parse date '{}'. Use YYYY-MM-DD format.",
+                        self.add_edit_fields[0]
+                    ),
+                    None,
+                );
             }
         }
     }
@@ -543,5 +552,17 @@ impl App {
         } else {
             self.apply_filter();
         }
+    }
+
+    pub fn set_status_message<S: Into<String>>(&mut self, message: S, duration: Option<Duration>) {
+        self.status_message = Some(message.into());
+        self.status_expiry = duration.map(|d| {
+            std::time::Instant::now() + std::time::Duration::from_secs(d.num_seconds() as u64)
+        });
+    }
+
+    pub fn clear_status_message(&mut self) {
+        self.status_message = None;
+        self.status_expiry = None;
     }
 }

@@ -16,7 +16,13 @@ pub fn handle_normal_mode(app: &mut App, key_event: KeyEvent) {
         (KeyCode::Down, KeyModifiers::NONE) => app.next_item(),
         (KeyCode::Up, KeyModifiers::NONE) => app.previous_item(),
         // Application commands
-        (KeyCode::Char('q'), _) | (KeyCode::Esc, _) => app.quit(),
+        (KeyCode::Char('q'), _) | (KeyCode::Esc, _) => {
+            if app.is_filter_active() {
+                app.reset_all_filters();
+            } else {
+                app.quit();
+            }
+        }
         (KeyCode::Char('a'), _) => app.start_adding(),
         (KeyCode::Char('d'), _) => app.prepare_for_delete(),
         (KeyCode::Char('e'), _) => app.start_editing(),

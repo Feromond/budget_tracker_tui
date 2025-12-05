@@ -20,7 +20,7 @@ pub fn handle_help_mode(app: &mut App, key_event: KeyEvent) {
             app.mode = prev;
             app.previous_mode = None;
         }
-        KeyCode::Down | KeyCode::Char('j') => {
+        KeyCode::Down => {
             let selected = app.help_table_state.selected().unwrap_or(0);
             let mode = app.previous_mode.unwrap_or(AppMode::Normal);
             let bindings = get_help_for_mode(mode);
@@ -29,7 +29,7 @@ pub fn handle_help_mode(app: &mut App, key_event: KeyEvent) {
                 app.help_table_state.select(Some(new_selected));
             }
         }
-        KeyCode::Up | KeyCode::Char('k') => {
+        KeyCode::Up => {
             let selected = app.help_table_state.selected().unwrap_or(0);
             let new_selected = selected.saturating_sub(1);
             app.help_table_state.select(Some(new_selected));
@@ -58,6 +58,16 @@ pub fn handle_help_mode(app: &mut App, key_event: KeyEvent) {
                 if binding.extended_description.is_some() {
                     app.mode = AppMode::KeybindingDetail;
                 }
+            }
+        }
+        KeyCode::Char(c) => {
+            let mode = app.previous_mode.unwrap_or(AppMode::Normal);
+            let bindings = get_help_for_mode(mode);
+            if let Some(index) = app
+                .type_to_select
+                .handle_char(c, &bindings, |item| item.description)
+            {
+                app.help_table_state.select(Some(index));
             }
         }
         _ => {}

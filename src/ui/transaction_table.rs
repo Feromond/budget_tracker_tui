@@ -1,10 +1,8 @@
 use crate::app::state::App;
 use crate::model::{SortColumn, SortOrder, TransactionType, DATE_FORMAT};
+use crate::ui::helpers::{format_amount, format_hours};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use rust_decimal::prelude::ToPrimitive;
-use rust_decimal::Decimal;
-
 pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
     let header_titles = [
         "Date",
@@ -45,7 +43,12 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             } else {
                 ""
             };
-            Cell::from(format!("{}{}", title, symbol)).style(style)
+            let content = format!("{}{}", title, symbol);
+            if *column == SortColumn::Amount {
+                Cell::from(Line::from(content).alignment(Alignment::Center)).style(style)
+            } else {
+                Cell::from(content).style(style)
+            }
         });
 
     let header = Row::new(header_cells)
@@ -77,17 +80,9 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         };
 
         let amount_cell_text = if app.show_hours {
-            if let Some(rate) = app.hourly_rate {
-                if rate > Decimal::ZERO {
-                    format!("{:.1}h", (tx.amount / rate).to_f64().unwrap_or(0.0))
-                } else {
-                    format!("{:.2}", tx.amount.to_f64().unwrap_or(0.0))
-                }
-            } else {
-                format!("{:.2}", tx.amount.to_f64().unwrap_or(0.0))
-            }
+            format_hours(&tx.amount, app.hourly_rate)
         } else {
-            format!("{:.2}", tx.amount.to_f64().unwrap_or(0.0))
+            format_amount(&tx.amount)
         };
 
         let cells = vec![
@@ -96,7 +91,8 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             Cell::from(tx.category.as_str()),
             Cell::from(tx.subcategory.as_str()),
             Cell::from(format!("{:?}", tx.transaction_type)),
-            Cell::from(amount_cell_text).style(amount_style),
+            Cell::from(Line::from(amount_cell_text).alignment(Alignment::Right))
+                .style(amount_style),
         ];
         Row::new(cells).height(1).bottom_margin(0)
     });

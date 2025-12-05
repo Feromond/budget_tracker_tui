@@ -19,23 +19,29 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 ## 🖼️ Screenshots
 
 <p align="center">
-  <img width="966" alt="main_view_tui" src="https://github.com/user-attachments/assets/26d88b97-631f-433c-95bb-4647c5bf87b9" />
+  <img width="1000" height="612" alt="main_view" src="https://github.com/user-attachments/assets/6aa9fa96-2918-4a0c-a7b2-b2b19d5eb27c" />
   <br><i>Main transaction view with summary bar and help</i><br><br>
-  <img width="966" alt="Cate Summary" src="https://github.com/user-attachments/assets/bea59559-8b34-46ac-87d8-f17e586b3cbe" />
+  
+  <img width="1000" height="612" alt="cat_summary" src="https://github.com/user-attachments/assets/1b7f6741-8a05-4374-a66f-9fd099ffc9e9" />
   <br><i>Category summary with expandable/collapsible categories</i><br>
-  <img width="966" alt="Main Daily Chart" src="https://github.com/user-attachments/assets/914448f2-0a10-425a-9cdc-9c388231e9c5" />
+  
+  <img width="1000" height="612" alt="summary_view" src="https://github.com/user-attachments/assets/016d6227-3e3d-4a7f-ad3c-efdcba7dd068" />
   <br><i>Monthly summary with interactive chart and budget line</i><br><br>
   
   ### SEE MORE SCREENSHOTS HERE <>
   <details>
   <summary>Click to see all monthly summary screenshots</summary>
   <p align="center">
-    <img width="966" alt="Multi-month Line Chart" src="https://github.com/user-attachments/assets/d1f263b0-6a0a-4d4e-b528-57fe508a037a" />
+    <img width="1000" height="612" alt="summary_multi" src="https://github.com/user-attachments/assets/07011663-c1b7-45c5-b972-fb6c68bf432c" />
     <br><i>Multi-Month Line chart</i><br><br>
-    <img width="966" alt="Cumulative Chart" src="https://github.com/user-attachments/assets/5b01519d-cfc4-4e32-b1e6-fffefc7246e2" />
+    <img width="1000" height="612" alt="summary_cumu" src="https://github.com/user-attachments/assets/5d99b5a9-2869-4a0a-aa63-a41cfb4a8787" />
     <br><i>Cumulative chart with budget line</i><br><br>
-    <img width="966" alt="Cumulative+multi_chart" src="https://github.com/user-attachments/assets/f795b663-d4dc-494e-bcb4-db1b4fefabc9" />
+    <img width="1000" height="612" alt="summary_cum_multi" src="https://github.com/user-attachments/assets/97633bb7-fc4c-4c20-822f-2f7feb1e0065" />
     <br><i>Cumulative and multi month chart</i><br><br>
+    <img width="1000" height="612" alt="help_menu" src="https://github.com/user-attachments/assets/7b994e22-1fc2-435d-9a07-e6c5373f51b4" />
+    <br><i>Options Menu with Help / Keybindings Menu Open</i><br><br>
+    <img width="1000" height="612" alt="fuzzy_find" src="https://github.com/user-attachments/assets/9c6217f3-dbf5-47a9-8e86-b61c35449ba5" />
+    <br><i>Category/Sub-Category Fuzzy Search Enabled view</i><br><br>
   </p>
 </details>
 </p>
@@ -46,6 +52,7 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 - **Transaction Management:** Add, view, edit, and delete income and expenses.
 - **Recurring Transaction:** Setup transactions that automatically recur at select frequencies.
 - **Advanced Filtering:** Filter transactions by date, description, category, type, and amount (including advanced multi-field filters).
+- **Smart Date Navigation:** Use `+`/`-` to adjust dates by day, and `Shift + Left/Right` to jump by month in date fields.
 - **Categorization:** Built-in, hierarchical categories and subcategories for all transactions.
 - **Fuzzy Search:** Toggleable option to fuzzy search categories/subcategories for quick selection.
 - **Summaries & Charts:** Visualize your spending/income by month and by category, with interactive charts and tables.
@@ -131,7 +138,7 @@ Then, you can just type `bt` to launch the app.
 - **Hourly Rate:**
   - (Optional) Set your hourly earning rate to toggle a view that shows transaction costs in "hours worked".
 - **Fuzzy Search:**
-  - Enable or disable the fuzzy search input for category selection.
+  - Enable or disable the fuzzy search input for category selection (toggle in Settings menu `o`).
 - **Config File:**
   - The application's settings are saved in a `config.json` file, which is stored in your OS's **config directory**:
     - **Linux:** `~/.config/BudgetTracker/config.json`

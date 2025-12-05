@@ -31,8 +31,12 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         0
     };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
-    let summary_bar_height = 3;
-    let help_bar_height = 3;
+    let summary_bar_height = if render_mode == AppMode::CategorySummary {
+        0
+    } else {
+        3
+    };
+    let help_bar_height = if app.hide_help_bar { 0 } else { 3 };
 
     let main_chunks = ratatui::layout::Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
@@ -120,7 +124,9 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         status::render_status_bar(f, msg, status_area);
     }
 
-    help::render_help_bar(f, app, help_area);
+    if !app.hide_help_bar {
+        help::render_help_bar(f, app, help_area);
+    }
 
     if app.mode == AppMode::KeybindingsInfo || app.mode == AppMode::KeybindingDetail {
         help_popup::render_keybindings_popup(f, app, f.area());
@@ -131,7 +137,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     }
 
     if render_mode == AppMode::Filtering {
-        let cursor_x = app.input_field_content[..app.input_field_cursor]
+        let cursor_x = app.simple_filter_content[..app.simple_filter_cursor]
             .chars()
             .count() as u16;
         f.set_cursor_position(ratatui::layout::Position::new(

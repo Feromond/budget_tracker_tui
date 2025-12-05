@@ -6,28 +6,29 @@ impl App {
     // --- Input Handling ---
     // Handles cursor movement and character insertion/deletion for the generic input field and add/edit fields.
     pub(crate) fn move_cursor_left(&mut self) {
-        if self.input_field_cursor > 0 {
-            self.input_field_cursor -= 1;
+        if self.simple_filter_cursor > 0 {
+            self.simple_filter_cursor -= 1;
         }
     }
     pub(crate) fn move_cursor_right(&mut self) {
-        if self.input_field_cursor < self.input_field_content.len() {
-            self.input_field_cursor += 1;
+        if self.simple_filter_cursor < self.simple_filter_content.len() {
+            self.simple_filter_cursor += 1;
         }
     }
     pub(crate) fn insert_char_at_cursor(&mut self, c: char) {
-        self.input_field_content.insert(self.input_field_cursor, c);
+        self.simple_filter_content
+            .insert(self.simple_filter_cursor, c);
         self.move_cursor_right();
     }
     pub(crate) fn delete_char_before_cursor(&mut self) {
-        if self.input_field_cursor > 0 {
+        if self.simple_filter_cursor > 0 {
             self.move_cursor_left();
-            self.input_field_content.remove(self.input_field_cursor);
+            self.simple_filter_content.remove(self.simple_filter_cursor);
         }
     }
     pub(crate) fn delete_char_after_cursor(&mut self) {
-        if self.input_field_cursor < self.input_field_content.len() {
-            self.input_field_content.remove(self.input_field_cursor);
+        if self.simple_filter_cursor < self.simple_filter_content.len() {
+            self.simple_filter_content.remove(self.simple_filter_cursor);
         }
     }
     pub(crate) fn insert_char_add_edit(&mut self, c: char) {
@@ -145,7 +146,7 @@ impl App {
         if let Some(item) = self.settings_state.items.get_mut(idx) {
             if item.setting_type == crate::app::settings_types::SettingType::Toggle {
                 // Left sets to No
-                item.value = "< No >".to_string();
+                item.value = " No ▶".to_string();
                 self.settings_state.edit_cursor = item.value.len();
                 return;
             }
@@ -161,7 +162,7 @@ impl App {
         if let Some(item) = self.settings_state.items.get_mut(idx) {
             if item.setting_type == crate::app::settings_types::SettingType::Toggle {
                 // Right sets to Yes
-                item.value = "< Yes >".to_string();
+                item.value = "◀ Yes ".to_string();
                 self.settings_state.edit_cursor = item.value.len();
                 return;
             }
@@ -208,11 +209,9 @@ impl App {
                     self.settings_state.edit_cursor += 1;
                 }
             }
-            crate::app::settings_types::SettingType::Toggle => {
-                // Removed char input for toggle to reduce confusion, as per user request.
-                // Use Left/Right arrows instead.
-            }
+            crate::app::settings_types::SettingType::Toggle => {}
         }
+        self.update_settings_visibility();
     }
 
     pub(crate) fn delete_char_settings(&mut self) {
@@ -251,6 +250,7 @@ impl App {
                 }
             }
         }
+        self.update_settings_visibility();
     }
 
     pub(crate) fn clear_settings_field(&mut self) {
@@ -261,6 +261,7 @@ impl App {
                 self.settings_state.edit_cursor = 0;
             }
         }
+        self.update_settings_visibility();
     }
 
     // --- Date Navigation ---

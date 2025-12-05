@@ -2,6 +2,7 @@ use super::state::App;
 use crate::app::settings_types::{SettingType, SettingsState};
 use crate::config::{save_settings, AppSettings};
 use crate::persistence::{load_transactions, save_transactions};
+use chrono::Duration;
 use std::path::PathBuf;
 
 impl App {
@@ -84,9 +85,9 @@ impl App {
         // Only show this if hourly rate is present
         if !hourly_rate_val.is_empty() {
             let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) {
-                "< Yes >"
+                "◀ Yes "
             } else {
-                "< No >"
+                " No ▶"
             };
             self.settings_state.add_setting(
                 "show_hours",
@@ -108,9 +109,9 @@ impl App {
 
         // 5. Fuzzy Search Mode
         let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) {
-            "< Yes >"
+            "◀ Yes "
         } else {
-            "< No >"
+            " No ▶"
         };
         self.settings_state.add_setting(
             "fuzzy_search_mode",
@@ -118,6 +119,29 @@ impl App {
             fuzzy_search_val.to_string(),
             SettingType::Toggle,
             "Toggle to enable fuzzy searching for categories/subcategories.",
+        );
+
+        // --- General Preferences Section ---
+        self.settings_state.add_setting(
+            "header_general",
+            "General Preferences",
+            "".to_string(),
+            SettingType::SectionHeader,
+            "",
+        );
+
+        // 6. Hide Help Bar
+        let hide_help_bar_val = if loaded_settings.hide_help_bar.unwrap_or(false) {
+            "◀ Yes "
+        } else {
+            " No ▶"
+        };
+        self.settings_state.add_setting(
+            "hide_help_bar",
+            "Hide Help Bar (NOT RECOMMENDED)",
+            hide_help_bar_val.to_string(),
+            SettingType::Toggle,
+            "Toggle to hide the bottom help bar (Ctrl+H will still work).",
         );
 
         // Select first valid item (skip headers)
@@ -139,13 +163,13 @@ impl App {
             self.settings_state.edit_cursor = item.value.len();
         }
 
-        self.status_message = None;
+        self.clear_status_message();
     }
 
     pub(crate) fn exit_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Normal;
         self.settings_state = SettingsState::default();
-        self.status_message = None;
+        self.clear_status_message();
     }
 
     pub(crate) fn save_settings(&mut self) {
@@ -155,6 +179,7 @@ impl App {
         let mut hourly_rate_str = String::new();
         let mut show_hours_val = None;
         let mut fuzzy_search_val = None;
+        let mut hide_help_bar_val = None;
 
         if let Some(val) = self.settings_state.get_value("data_file_path") {
             new_path_str = crate::validation::strip_path_quotes(val);
@@ -171,6 +196,9 @@ impl App {
         if let Some(val) = self.settings_state.get_value("fuzzy_search_mode") {
             fuzzy_search_val = Some(val.to_lowercase().contains("yes"));
         }
+        if let Some(val) = self.settings_state.get_value("hide_help_bar") {
+            hide_help_bar_val = Some(val.to_lowercase().contains("yes"));
+        }
 
         // Validate Target Budget
         let target_budget = if target_budget_str.is_empty() {
@@ -179,7 +207,7 @@ impl App {
             match crate::validation::validate_amount_string(&target_budget_str) {
                 Ok(val) => Some(val),
                 Err(msg) => {
-                    self.status_message = Some(format!("Error: Target budget - {}", msg));
+                    self.set_status_message(format!("Error: Target budget - {}", msg), None);
                     return;
                 }
             }
@@ -192,7 +220,7 @@ impl App {
             match crate::validation::validate_amount_string(&hourly_rate_str) {
                 Ok(val) => Some(val),
                 Err(msg) => {
-                    self.status_message = Some(format!("Error: Hourly rate - {}", msg));
+                    self.set_status_message(format!("Error: Hourly rate - {}", msg), None);
                     return;
                 }
             }
@@ -200,17 +228,20 @@ impl App {
 
         // Validate Path
         if new_path_str.is_empty() {
-            self.status_message = Some("Error: Path cannot be empty.".to_string());
+            self.set_status_message("Error: Path cannot be empty.", None);
             return;
         }
         let new_path = PathBuf::from(&new_path_str);
         if !new_path.exists() {
             if let Err(e) = save_transactions(&self.transactions, &new_path) {
-                self.status_message = Some(format!(
-                    "Error creating transactions file '{}': {}. Check path and permissions.",
-                    new_path.display(),
-                    e
-                ));
+                self.set_status_message(
+                    format!(
+                        "Error creating transactions file '{}': {}. Check path and permissions.",
+                        new_path.display(),
+                        e
+                    ),
+                    None,
+                );
                 return;
             }
         }
@@ -222,9 +253,10 @@ impl App {
             hourly_rate,
             show_hours: show_hours_val,
             fuzzy_search_mode: fuzzy_search_val,
+            hide_help_bar: hide_help_bar_val,
         };
         if let Err(e) = save_settings(&settings) {
-            self.status_message = Some(format!("Error saving config file: {}", e));
+            self.set_status_message(format!("Error saving config file: {}", e), None);
             return;
         }
 
@@ -233,11 +265,14 @@ impl App {
         let txs = match load_transactions(&self.data_file_path) {
             Ok(tx) => tx,
             Err(e) => {
-                self.status_message = Some(format!(
-                    "Error loading transactions from '{}': {}. Check file format and permissions.",
-                    self.data_file_path.display(),
-                    e
-                ));
+                self.set_status_message(
+                    format!(
+                        "Error loading transactions from '{}': {}. Check file format and permissions.",
+                        self.data_file_path.display(),
+                        e
+                    ),
+                    None,
+                );
                 return;
             }
         };
@@ -256,14 +291,18 @@ impl App {
         self.calculate_monthly_summaries();
         self.calculate_category_summaries();
 
-        self.status_message = Some(format!(
-            "Settings saved. Data file set to: {}",
-            self.data_file_path.display()
-        ));
+        self.set_status_message(
+            format!(
+                "Settings saved. Data file set to: {}",
+                self.data_file_path.display()
+            ),
+            Some(Duration::seconds(3)),
+        );
         self.target_budget = target_budget;
         self.hourly_rate = hourly_rate;
         self.show_hours = show_hours_val.unwrap_or(false);
         self.fuzzy_search_mode = fuzzy_search_val.unwrap_or(false);
+        self.hide_help_bar = hide_help_bar_val.unwrap_or(false);
     }
 
     pub(crate) fn reset_settings_path_to_default(&mut self) {
@@ -286,8 +325,7 @@ impl App {
                     }
                 }
 
-                self.status_message =
-                    Some("Path reset to default. Press Enter to save.".to_string());
+                self.set_status_message("Path reset to default. Press Enter to save.", None);
             }
             Err(e) => {
                 let fallback_path = "transactions.csv";
@@ -305,11 +343,79 @@ impl App {
                     }
                 }
 
-                self.status_message = Some(format!(
-                    "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
-                    e, fallback_path
-                ));
+                self.set_status_message(
+                    format!(
+                        "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
+                        e, fallback_path
+                    ),
+                    None,
+                );
             }
         }
+    }
+
+    /// Generalized method to ensure a setting is visible or hidden based on a condition.
+    /// This handles finding the correct position and maintaining list integrity.
+    fn ensure_setting_visibility<F>(
+        &mut self,
+        target_key: &str,
+        should_be_visible: bool,
+        insert_after_key: &str,
+        item_creator: F,
+    ) where
+        F: FnOnce() -> crate::app::settings_types::SettingItem,
+    {
+        let target_idx = self
+            .settings_state
+            .items
+            .iter()
+            .position(|i| i.key == target_key);
+
+        if should_be_visible {
+            if target_idx.is_none() {
+                // Find where to insert
+                if let Some(after_idx) = self
+                    .settings_state
+                    .items
+                    .iter()
+                    .position(|i| i.key == insert_after_key)
+                {
+                    let item = item_creator();
+                    self.settings_state.items.insert(after_idx + 1, item);
+
+                    // If we inserted before the selection, shift selection down
+                    if self.settings_state.selected_index > after_idx {
+                        self.settings_state.selected_index += 1;
+                    }
+                }
+            }
+        } else if let Some(idx) = target_idx {
+            self.settings_state.items.remove(idx);
+
+            // If we removed the item before or at the selection, shift selection up
+            if self.settings_state.selected_index >= idx {
+                self.settings_state.selected_index =
+                    self.settings_state.selected_index.saturating_sub(1);
+            }
+        }
+    }
+
+    pub(crate) fn update_settings_visibility(&mut self) {
+        // Rule 1: "show_hours" depends on "hourly_rate" having a value
+        let hourly_rate_has_value = self
+            .settings_state
+            .get_value("hourly_rate")
+            .map(|v| !v.trim().is_empty())
+            .unwrap_or(false);
+
+        self.ensure_setting_visibility("show_hours", hourly_rate_has_value, "hourly_rate", || {
+            crate::app::settings_types::SettingItem {
+                key: "show_hours".to_string(),
+                label: "Show Costs in Hours".to_string(),
+                value: " No ▶".to_string(), // Default to No
+                setting_type: crate::app::settings_types::SettingType::Toggle,
+                help: "Toggle to display transaction amounts as hours worked.".to_string(),
+            }
+        });
     }
 }

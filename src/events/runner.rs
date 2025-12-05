@@ -16,6 +16,13 @@ pub fn run_app<B: Backend>(
     app: &mut App,
 ) -> StdResult<(), Box<dyn std::error::Error>> {
     while !app.should_quit {
+        // Check for status expiry
+        if let Some(expiry) = app.status_expiry {
+            if std::time::Instant::now() > expiry {
+                app.clear_status_message();
+            }
+        }
+
         // Check for update in background channel
         if let Ok(Some(version)) = app.update_rx.try_recv() {
             app.update_available_version = Some(version);
@@ -61,8 +68,8 @@ pub fn run_app<B: Backend>(
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Let Shift+Char pass through for typing capitals/symbols in settings path
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
-                                // Allow Shift+Char in Adding and Editing modes
-                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                // Allow Shift+Char in Adding, Editing and FuzzyFinding modes
+                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::FuzzyFinding) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Arrow in Adding, Editing, AdvancedFiltering, and RecurringSettings modes for month changes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering || app.mode == AppMode::RecurringSettings)
                                     && key.modifiers == KeyModifiers::SHIFT
@@ -70,7 +77,7 @@ pub fn run_app<B: Backend>(
                                 // Allow Ctrl+F/R in simple Filtering mode and Ctrl+R in AdvancedFiltering mode
                                 || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r')))
                                 || (app.mode == AppMode::AdvancedFiltering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('r')))
-                                || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                || ((app.mode == AppMode::Filtering || app.mode == AppMode::AdvancedFiltering) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Ctrl+Up/Down for jump navigation in Normal mode
                                 || (app.mode == AppMode::Normal && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down))
                                 // Allow Ctrl+H for Help Toggle
@@ -81,7 +88,7 @@ pub fn run_app<B: Backend>(
                             && app.mode != AppMode::SelectingSubcategory
                             && app.mode != AppMode::KeybindingsInfo
                         {
-                            app.status_message = None;
+                            app.clear_status_message();
                         }
                         update(app, key);
                     }
@@ -122,6 +129,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
             app.previous_mode = Some(app.mode);
             app.mode = AppMode::KeybindingsInfo;
             app.help_table_state.select(Some(0));
+            app.type_to_select.clear();
         }
         return;
     }

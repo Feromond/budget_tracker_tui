@@ -1,5 +1,5 @@
 use crate::app::state::App;
-use crate::ui::helpers::month_to_short_str;
+use crate::ui::helpers::{format_amount, format_hours, month_to_short_str};
 use crate::validation::days_in_month;
 use chrono::Datelike;
 use ratatui::prelude::*;
@@ -360,7 +360,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         );
     }
     let chart = Chart::new(datasets)
-        .block(Block::default().title(chart_title).borders(Borders::ALL))
+        .block(Block::default().title(chart_title).borders(Borders::TOP))
         .x_axis(
             Axis::default()
                 .title("Day")
@@ -458,7 +458,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     };
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
     let bar_chart = BarChart::default()
-        .block(Block::default().title(table_title).borders(Borders::ALL))
+        .block(Block::default().title(table_title).borders(Borders::TOP))
         .data(BarGroup::default().bars(&chart_data_styled))
         .bar_width(bar_width)
         .bar_gap(bar_gap)
@@ -469,33 +469,33 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Option<i32>) {
-    let (total_income, total_expense) = app
-        .filtered_indices
-        .iter()
-        .filter_map(|&idx| app.transactions.get(idx))
-        .filter(|tx| {
-            // Apply year filter if specified, otherwise include all transactions
-            match year_filter {
-                Some(year) => tx.date.year() == year,
-                None => true,
-            }
-        })
-        .fold((Decimal::ZERO, Decimal::ZERO), |(inc, exp), tx| {
-            match tx.transaction_type {
-                crate::model::TransactionType::Income => (inc + tx.amount, exp),
-                crate::model::TransactionType::Expense => (inc, exp + tx.amount),
-            }
-        });
+    let (total_income, total_expense) = crate::app::util::calculate_totals(app, year_filter);
     let net_balance = total_income - total_expense;
 
+    let income_str = if app.show_hours {
+        format_hours(&total_income, app.hourly_rate)
+    } else {
+        format_amount(&total_income)
+    };
+    let expense_str = if app.show_hours {
+        format_hours(&total_expense, app.hourly_rate)
+    } else {
+        format_amount(&total_expense)
+    };
+    let net_str_val = if app.show_hours {
+        format_hours(&net_balance, app.hourly_rate)
+    } else {
+        format_amount(&net_balance)
+    };
+
     let income_span = Span::styled(
-        format!("Income: {:.2}", total_income.to_f64().unwrap_or(0.0)),
+        format!("Income: {}", income_str),
         Style::default()
             .fg(Color::LightGreen)
             .add_modifier(Modifier::BOLD),
     );
     let expense_span = Span::styled(
-        format!("Expenses: {:.2}", total_expense.to_f64().unwrap_or(0.0)),
+        format!("Expenses: {}", expense_str),
         Style::default()
             .fg(Color::LightRed)
             .add_modifier(Modifier::BOLD),
@@ -510,9 +510,9 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
             .add_modifier(Modifier::BOLD)
     };
     let net_str = if net_balance >= Decimal::ZERO {
-        format!("+{:.2}", net_balance.to_f64().unwrap_or(0.0))
+        format!("+{}", net_str_val)
     } else {
-        format!("{:.2}", net_balance.to_f64().unwrap_or(0.0))
+        net_str_val
     };
     let net_span = Span::styled(format!("Net: {}", net_str), net_style);
 

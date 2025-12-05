@@ -156,7 +156,7 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
             f.render_widget(p, *chunk);
 
             // Cursor
-            if is_focused {
+            if is_focused && item.setting_type != crate::app::settings_types::SettingType::Toggle {
                 let cursor = app.settings_state.edit_cursor as u16;
                 let visible_cursor = cursor.saturating_sub(scroll_x);
                 f.set_cursor_position(Position::new(chunk.x + visible_cursor + 1, chunk.y + 1));

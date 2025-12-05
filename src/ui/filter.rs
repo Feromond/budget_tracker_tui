@@ -3,7 +3,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::*;
 
 pub fn render_filter_input(f: &mut Frame, app: &App, area: Rect) {
-    let input = Paragraph::new(app.input_field_content.as_str())
+    let input = Paragraph::new(app.simple_filter_content.as_str())
         .style(Style::default().fg(Color::LightYellow))
         .block(
             Block::default()

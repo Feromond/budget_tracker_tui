@@ -11,13 +11,13 @@ impl App {
             self.start_fuzzy_selection();
             return;
         }
+        self.type_to_select.clear();
 
         self.selecting_field_index = Some(4);
         self.mode = crate::app::state::AppMode::SelectingCategory;
         let current_type_str = self.add_edit_fields[3].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
-            self.status_message =
-                Some("Error: Invalid transaction type for category lookup.".to_string());
+            self.set_status_message("Error: Invalid transaction type for category lookup.", None);
             self.mode = if self.editing_index.is_some() {
                 crate::app::state::AppMode::Editing
             } else {
@@ -40,13 +40,16 @@ impl App {
         }
     }
     pub(crate) fn start_subcategory_selection(&mut self) {
+        self.type_to_select.clear();
         self.selecting_field_index = Some(5);
         self.mode = crate::app::state::AppMode::SelectingSubcategory;
         let current_type_str = self.add_edit_fields[3].trim();
         let current_category = self.add_edit_fields[4].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
-            self.status_message =
-                Some("Error: Invalid transaction type for subcategory lookup.".to_string());
+            self.set_status_message(
+                "Error: Invalid transaction type for subcategory lookup.",
+                None,
+            );
             self.mode = if self.editing_index.is_some() {
                 crate::app::state::AppMode::Editing
             } else {
@@ -150,5 +153,14 @@ impl App {
             None => 0,
         };
         self.selection_list_state.select(Some(i));
+    }
+
+    pub(crate) fn handle_type_to_select(&mut self, c: char) {
+        if let Some(index) =
+            self.type_to_select
+                .handle_char(c, &self.current_selection_list, |item| item.as_str())
+        {
+            self.selection_list_state.select(Some(index));
+        }
     }
 }

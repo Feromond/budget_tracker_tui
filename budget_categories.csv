@@ -28,6 +28,10 @@ Expense,Housing,Moving Expenses
 Expense,Housing,Furniture & Decor
 Expense,Housing,Mortgage Principal
 Expense,Housing,Mortgage Interest
+Expense,Housing,Lawn Care / Gardening
+Expense,Housing,House Cleaning Service
+Expense,Housing,Pest Control
+Expense,Housing,Security System
 Expense,Utilities,Electricity
 Expense,Utilities,Water
 Expense,Utilities,Gas
@@ -53,6 +57,7 @@ Expense,Transportation,Ride Sharing
 Expense,Transportation,Tolls
 Expense,Transportation,Vehicle Registration/License
 Expense,Transportation,EV Charging
+Expense,Transportation,Car Wash / Detailing
 Expense,Family & Children,Childcare / Babysitting
 Expense,Family & Children,School Supplies
 Expense,Family & Children,Child Support
@@ -69,17 +74,24 @@ Expense,Health & Wellness,Medications
 Expense,Health & Wellness,Vitamins & Supplements
 Expense,Health & Wellness,Eyecare
 Expense,Health & Wellness,Life Insurance
+Expense,Personal Care,Haircuts / Salon / Barber
+Expense,Personal Care,Spa / Massage
+Expense,Personal Care,Nail Salon
 Expense,Entertainment,Streaming Music
 Expense,Entertainment,Streaming Services (TV/Movies)
 Expense,Entertainment,Gaming Subscriptions/Purchases
 Expense,Entertainment,Concerts/Events
 Expense,Entertainment,Sporting Goods
 Expense,Entertainment,Arts & Crafts
-Expense,Entertainment,Vacations / Travel
 Expense,Entertainment,Books / Movies
 Expense,Entertainment,Theme Parks
 Expense,Entertainment,Board Games
 Expense,Entertainment,Hobbies
+Expense,Travel,Flights
+Expense,Travel,Hotels / Accommodation
+Expense,Travel,Car Rental
+Expense,Travel,Travel Insurance
+Expense,Travel,Vacations
 Expense,Education,Tuition
 Expense,Education,Student Loan Payments
 Expense,Education,Books & Supplies
@@ -122,6 +134,8 @@ Expense,Pets,Pet Food & Supplies
 Expense,Pets,Vet Bills
 Expense,Pets,Pet Insurance
 Expense,Pets,Pet Grooming
+Expense,Pets,Pet Sitting / Boarding
+Expense,Pets,Pet Toys / Accessories
 Expense,Savings & Investments,Retirement
 Expense,Savings & Investments,Crypto
 Expense,Savings & Investments,Personal Savings/Investments
