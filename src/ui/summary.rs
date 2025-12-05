@@ -1,5 +1,5 @@
 use crate::app::state::App;
-use crate::ui::helpers::month_to_short_str;
+use crate::ui::helpers::{month_to_short_str, format_amount};
 use crate::validation::days_in_month;
 use chrono::Datelike;
 use ratatui::prelude::*;
@@ -473,13 +473,13 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
     let net_balance = total_income - total_expense;
 
     let income_span = Span::styled(
-        format!("Income: {:.2}", total_income.to_f64().unwrap_or(0.0)),
+        format!("Income: {}", format_amount(&total_income)),
         Style::default()
             .fg(Color::LightGreen)
             .add_modifier(Modifier::BOLD),
     );
     let expense_span = Span::styled(
-        format!("Expenses: {:.2}", total_expense.to_f64().unwrap_or(0.0)),
+        format!("Expenses: {}", format_amount(&total_expense)),
         Style::default()
             .fg(Color::LightRed)
             .add_modifier(Modifier::BOLD),
@@ -494,9 +494,9 @@ pub fn render_summary_bar(f: &mut Frame, app: &App, area: Rect, year_filter: Opt
             .add_modifier(Modifier::BOLD)
     };
     let net_str = if net_balance >= Decimal::ZERO {
-        format!("+{:.2}", net_balance.to_f64().unwrap_or(0.0))
+        format!("+{}", format_amount(&net_balance))
     } else {
-        format!("{:.2}", net_balance.to_f64().unwrap_or(0.0))
+        format_amount(&net_balance)
     };
     let net_span = Span::styled(format!("Net: {}", net_str), net_style);
 
