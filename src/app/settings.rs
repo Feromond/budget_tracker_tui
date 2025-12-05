@@ -353,7 +353,7 @@ impl App {
                 {
                     let item = item_creator();
                     self.settings_state.items.insert(after_idx + 1, item);
-                    
+
                     // If we inserted before the selection, shift selection down
                     if self.settings_state.selected_index > after_idx {
                         self.settings_state.selected_index += 1;
@@ -362,10 +362,11 @@ impl App {
             }
         } else if let Some(idx) = target_idx {
             self.settings_state.items.remove(idx);
-            
+
             // If we removed the item before or at the selection, shift selection up
             if self.settings_state.selected_index >= idx {
-                 self.settings_state.selected_index = self.settings_state.selected_index.saturating_sub(1);
+                self.settings_state.selected_index =
+                    self.settings_state.selected_index.saturating_sub(1);
             }
         }
     }
@@ -378,17 +379,14 @@ impl App {
             .map(|v| !v.trim().is_empty())
             .unwrap_or(false);
 
-        self.ensure_setting_visibility(
-            "show_hours",
-            hourly_rate_has_value,
-            "hourly_rate",
-            || crate::app::settings_types::SettingItem {
+        self.ensure_setting_visibility("show_hours", hourly_rate_has_value, "hourly_rate", || {
+            crate::app::settings_types::SettingItem {
                 key: "show_hours".to_string(),
                 label: "Show Costs in Hours".to_string(),
                 value: " No ▶".to_string(), // Default to No
                 setting_type: crate::app::settings_types::SettingType::Toggle,
                 help: "Toggle to display transaction amounts as hours worked.".to_string(),
-            },
-        );
+            }
+        });
     }
 }

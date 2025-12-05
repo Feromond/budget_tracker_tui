@@ -209,8 +209,7 @@ impl App {
                     self.settings_state.edit_cursor += 1;
                 }
             }
-            crate::app::settings_types::SettingType::Toggle => {
-            }
+            crate::app::settings_types::SettingType::Toggle => {}
         }
         self.update_settings_visibility();
     }
