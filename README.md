@@ -52,6 +52,7 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 - **Transaction Management:** Add, view, edit, and delete income and expenses.
 - **Recurring Transaction:** Setup transactions that automatically recur at select frequencies.
 - **Advanced Filtering:** Filter transactions by date, description, category, type, and amount (including advanced multi-field filters).
+- **Smart Date Navigation:** Use `+`/`-` to adjust dates by day, and `Shift + Left/Right` to jump by month in date fields.
 - **Categorization:** Built-in, hierarchical categories and subcategories for all transactions.
 - **Fuzzy Search:** Toggleable option to fuzzy search categories/subcategories for quick selection.
 - **Summaries & Charts:** Visualize your spending/income by month and by category, with interactive charts and tables.
@@ -137,7 +138,7 @@ Then, you can just type `bt` to launch the app.
 - **Hourly Rate:**
   - (Optional) Set your hourly earning rate to toggle a view that shows transaction costs in "hours worked".
 - **Fuzzy Search:**
-  - Enable or disable the fuzzy search input for category selection.
+  - Enable or disable the fuzzy search input for category selection (toggle in Settings menu `o`).
 - **Config File:**
   - The application's settings are saved in a `config.json` file, which is stored in your OS's **config directory**:
     - **Linux:** `~/.config/BudgetTracker/config.json`
