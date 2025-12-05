@@ -324,4 +324,42 @@ impl App {
             }
         }
     }
+
+    pub(crate) fn update_hourly_toggle_visibility(&mut self) {
+        // Find hourly_rate index and value
+        let hourly_rate_idx = self
+            .settings_state
+            .items
+            .iter()
+            .position(|i| i.key == "hourly_rate");
+
+        if let Some(idx) = hourly_rate_idx {
+            let hourly_rate_val = self.settings_state.items[idx].value.clone();
+            let has_value = !hourly_rate_val.trim().is_empty();
+
+            // Check if show_hours exists
+            let show_hours_idx = self
+                .settings_state
+                .items
+                .iter()
+                .position(|i| i.key == "show_hours");
+
+            if has_value && show_hours_idx.is_none() {
+                // Insert it immediately after hourly_rate
+                let toggle_item = crate::app::settings_types::SettingItem {
+                    key: "show_hours".to_string(),
+                    label: "Show Costs in Hours".to_string(),
+                    value: " No ▶".to_string(), // Default to No
+                    setting_type: crate::app::settings_types::SettingType::Toggle,
+                    help: "Toggle to display transaction amounts as hours worked.".to_string(),
+                };
+                self.settings_state.items.insert(idx + 1, toggle_item);
+            } else if !has_value && show_hours_idx.is_some() {
+                // Remove it
+                if let Some(rem_idx) = show_hours_idx {
+                    self.settings_state.items.remove(rem_idx);
+                }
+            }
+        }
+    }
 }
