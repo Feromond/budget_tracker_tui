@@ -360,14 +360,12 @@ impl App {
                     }
                 }
             }
-        } else {
-            if let Some(idx) = target_idx {
-                self.settings_state.items.remove(idx);
-                
-                // If we removed the item before or at the selection, shift selection up
-                if self.settings_state.selected_index >= idx {
-                     self.settings_state.selected_index = self.settings_state.selected_index.saturating_sub(1);
-                }
+        } else if let Some(idx) = target_idx {
+            self.settings_state.items.remove(idx);
+            
+            // If we removed the item before or at the selection, shift selection up
+            if self.settings_state.selected_index >= idx {
+                 self.settings_state.selected_index = self.settings_state.selected_index.saturating_sub(1);
             }
         }
     }
