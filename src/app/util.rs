@@ -49,7 +49,9 @@ impl TypeToSelect {
         self.last_type_time = Some(now);
 
         let search_term = self.buffer.to_lowercase();
-        items.iter().position(|item| extractor(item).to_lowercase().starts_with(&search_term))
+        items
+            .iter()
+            .position(|item| extractor(item).to_lowercase().starts_with(&search_term))
     }
 }
 

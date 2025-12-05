@@ -156,11 +156,10 @@ impl App {
     }
 
     pub(crate) fn handle_type_to_select(&mut self, c: char) {
-        if let Some(index) = self.type_to_select.handle_char(
-            c,
-            &self.current_selection_list,
-            |item| item.as_str(),
-        ) {
+        if let Some(index) =
+            self.type_to_select
+                .handle_char(c, &self.current_selection_list, |item| item.as_str())
+        {
             self.selection_list_state.select(Some(index));
         }
     }
