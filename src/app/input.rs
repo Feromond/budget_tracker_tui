@@ -212,7 +212,7 @@ impl App {
             crate::app::settings_types::SettingType::Toggle => {
             }
         }
-        self.update_hourly_toggle_visibility();
+        self.update_settings_visibility();
     }
 
     pub(crate) fn delete_char_settings(&mut self) {
@@ -251,7 +251,7 @@ impl App {
                 }
             }
         }
-        self.update_hourly_toggle_visibility();
+        self.update_settings_visibility();
     }
 
     pub(crate) fn clear_settings_field(&mut self) {
@@ -262,7 +262,7 @@ impl App {
                 self.settings_state.edit_cursor = 0;
             }
         }
-        self.update_hourly_toggle_visibility();
+        self.update_settings_visibility();
     }
 
     // --- Date Navigation ---

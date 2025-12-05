@@ -325,41 +325,72 @@ impl App {
         }
     }
 
-    pub(crate) fn update_hourly_toggle_visibility(&mut self) {
-        // Find hourly_rate index and value
-        let hourly_rate_idx = self
+    /// Generalized method to ensure a setting is visible or hidden based on a condition.
+    /// This handles finding the correct position and maintaining list integrity.
+    fn ensure_setting_visibility<F>(
+        &mut self,
+        target_key: &str,
+        should_be_visible: bool,
+        insert_after_key: &str,
+        item_creator: F,
+    ) where
+        F: FnOnce() -> crate::app::settings_types::SettingItem,
+    {
+        let target_idx = self
             .settings_state
             .items
             .iter()
-            .position(|i| i.key == "hourly_rate");
+            .position(|i| i.key == target_key);
 
-        if let Some(idx) = hourly_rate_idx {
-            let hourly_rate_val = self.settings_state.items[idx].value.clone();
-            let has_value = !hourly_rate_val.trim().is_empty();
-
-            // Check if show_hours exists
-            let show_hours_idx = self
-                .settings_state
-                .items
-                .iter()
-                .position(|i| i.key == "show_hours");
-
-            if has_value && show_hours_idx.is_none() {
-                // Insert it immediately after hourly_rate
-                let toggle_item = crate::app::settings_types::SettingItem {
-                    key: "show_hours".to_string(),
-                    label: "Show Costs in Hours".to_string(),
-                    value: " No ▶".to_string(), // Default to No
-                    setting_type: crate::app::settings_types::SettingType::Toggle,
-                    help: "Toggle to display transaction amounts as hours worked.".to_string(),
-                };
-                self.settings_state.items.insert(idx + 1, toggle_item);
-            } else if !has_value && show_hours_idx.is_some() {
-                // Remove it
-                if let Some(rem_idx) = show_hours_idx {
-                    self.settings_state.items.remove(rem_idx);
+        if should_be_visible {
+            if target_idx.is_none() {
+                // Find where to insert
+                if let Some(after_idx) = self
+                    .settings_state
+                    .items
+                    .iter()
+                    .position(|i| i.key == insert_after_key)
+                {
+                    let item = item_creator();
+                    self.settings_state.items.insert(after_idx + 1, item);
+                    
+                    // If we inserted before the selection, shift selection down
+                    if self.settings_state.selected_index > after_idx {
+                        self.settings_state.selected_index += 1;
+                    }
+                }
+            }
+        } else {
+            if let Some(idx) = target_idx {
+                self.settings_state.items.remove(idx);
+                
+                // If we removed the item before or at the selection, shift selection up
+                if self.settings_state.selected_index >= idx {
+                     self.settings_state.selected_index = self.settings_state.selected_index.saturating_sub(1);
                 }
             }
         }
+    }
+
+    pub(crate) fn update_settings_visibility(&mut self) {
+        // Rule 1: "show_hours" depends on "hourly_rate" having a value
+        let hourly_rate_has_value = self
+            .settings_state
+            .get_value("hourly_rate")
+            .map(|v| !v.trim().is_empty())
+            .unwrap_or(false);
+
+        self.ensure_setting_visibility(
+            "show_hours",
+            hourly_rate_has_value,
+            "hourly_rate",
+            || crate::app::settings_types::SettingItem {
+                key: "show_hours".to_string(),
+                label: "Show Costs in Hours".to_string(),
+                value: " No ▶".to_string(), // Default to No
+                setting_type: crate::app::settings_types::SettingType::Toggle,
+                help: "Toggle to display transaction amounts as hours worked.".to_string(),
+            },
+        );
     }
 }
