@@ -91,7 +91,8 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             Cell::from(tx.category.as_str()),
             Cell::from(tx.subcategory.as_str()),
             Cell::from(format!("{:?}", tx.transaction_type)),
-            Cell::from(Line::from(amount_cell_text).alignment(Alignment::Right)).style(amount_style),
+            Cell::from(Line::from(amount_cell_text).alignment(Alignment::Right))
+                .style(amount_style),
         ];
         Row::new(cells).height(1).bottom_margin(0)
     });

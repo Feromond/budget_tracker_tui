@@ -1,6 +1,6 @@
 use crate::app::state::{App, CategorySummaryItem};
 use crate::model::MonthlySummary;
-use crate::ui::helpers::{month_to_short_str, format_amount};
+use crate::ui::helpers::{format_amount, month_to_short_str};
 use ratatui::prelude::*;
 use ratatui::text::Line;
 use ratatui::widgets::*;
@@ -16,10 +16,7 @@ fn cell_income(amount: Decimal, bold: bool) -> Cell<'static> {
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    Cell::from(
-        Line::from(format_amount(&amount)).alignment(Alignment::Right),
-    )
-    .style(style)
+    Cell::from(Line::from(format_amount(&amount)).alignment(Alignment::Right)).style(style)
 }
 fn cell_expense(amount: Decimal, bold: bool) -> Cell<'static> {
     if amount.round_dp(2).is_zero() {
@@ -29,10 +26,7 @@ fn cell_expense(amount: Decimal, bold: bool) -> Cell<'static> {
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    Cell::from(
-        Line::from(format_amount(&amount)).alignment(Alignment::Right),
-    )
-    .style(style)
+    Cell::from(Line::from(format_amount(&amount)).alignment(Alignment::Right)).style(style)
 }
 fn cell_net(net: Decimal, bold: bool) -> Cell<'static> {
     let s = if net >= Decimal::ZERO {

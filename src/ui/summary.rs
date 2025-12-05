@@ -1,5 +1,5 @@
 use crate::app::state::App;
-use crate::ui::helpers::{month_to_short_str, format_amount, format_hours};
+use crate::ui::helpers::{format_amount, format_hours, month_to_short_str};
 use crate::validation::days_in_month;
 use chrono::Datelike;
 use ratatui::prelude::*;
