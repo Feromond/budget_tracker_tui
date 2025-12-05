@@ -68,8 +68,8 @@ pub fn run_app<B: Backend>(
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Let Shift+Char pass through for typing capitals/symbols in settings path
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
-                                // Allow Shift+Char in Adding and Editing modes
-                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                // Allow Shift+Char in Adding, Editing and FuzzyFinding modes
+                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::FuzzyFinding) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Arrow in Adding, Editing, AdvancedFiltering, and RecurringSettings modes for month changes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering || app.mode == AppMode::RecurringSettings)
                                     && key.modifiers == KeyModifiers::SHIFT
