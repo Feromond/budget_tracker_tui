@@ -102,6 +102,7 @@ pub struct App {
     // Help/Keybindings
     pub(crate) previous_mode: Option<AppMode>,
     pub(crate) help_table_state: TableState,
+    pub(crate) hide_help_bar: bool,
     // Update Check
     pub(crate) update_available_version: Option<String>,
     pub(crate) show_update_popup: bool,
@@ -257,6 +258,7 @@ impl App {
             recurring_transaction_index: None,
             previous_mode: None,
             help_table_state: TableState::default(),
+            hide_help_bar: loaded_settings.hide_help_bar.unwrap_or(false),
             update_available_version: None,
             show_update_popup: false,
             update_rx: rx,

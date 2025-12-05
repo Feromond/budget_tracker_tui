@@ -121,6 +121,29 @@ impl App {
             "Toggle to enable fuzzy searching for categories/subcategories.",
         );
 
+        // --- General Preferences Section ---
+        self.settings_state.add_setting(
+            "header_general",
+            "General Preferences",
+            "".to_string(),
+            SettingType::SectionHeader,
+            "",
+        );
+
+        // 6. Hide Help Bar
+        let hide_help_bar_val = if loaded_settings.hide_help_bar.unwrap_or(false) {
+            "◀ Yes "
+        } else {
+            " No ▶"
+        };
+        self.settings_state.add_setting(
+            "hide_help_bar",
+            "Hide Help Bar (NOT RECOMMENDED)",
+            hide_help_bar_val.to_string(),
+            SettingType::Toggle,
+            "Toggle to hide the bottom help bar (Ctrl+H will still work).",
+        );
+
         // Select first valid item (skip headers)
         self.settings_state.selected_index = 0;
         while self.settings_state.selected_index < self.settings_state.items.len() {
@@ -156,6 +179,7 @@ impl App {
         let mut hourly_rate_str = String::new();
         let mut show_hours_val = None;
         let mut fuzzy_search_val = None;
+        let mut hide_help_bar_val = None;
 
         if let Some(val) = self.settings_state.get_value("data_file_path") {
             new_path_str = crate::validation::strip_path_quotes(val);
@@ -171,6 +195,9 @@ impl App {
         }
         if let Some(val) = self.settings_state.get_value("fuzzy_search_mode") {
             fuzzy_search_val = Some(val.to_lowercase().contains("yes"));
+        }
+        if let Some(val) = self.settings_state.get_value("hide_help_bar") {
+            hide_help_bar_val = Some(val.to_lowercase().contains("yes"));
         }
 
         // Validate Target Budget
@@ -226,6 +253,7 @@ impl App {
             hourly_rate,
             show_hours: show_hours_val,
             fuzzy_search_mode: fuzzy_search_val,
+            hide_help_bar: hide_help_bar_val,
         };
         if let Err(e) = save_settings(&settings) {
             self.set_status_message(format!("Error saving config file: {}", e), None);
@@ -274,6 +302,7 @@ impl App {
         self.hourly_rate = hourly_rate;
         self.show_hours = show_hours_val.unwrap_or(false);
         self.fuzzy_search_mode = fuzzy_search_val.unwrap_or(false);
+        self.hide_help_bar = hide_help_bar_val.unwrap_or(false);
     }
 
     pub(crate) fn reset_settings_path_to_default(&mut self) {

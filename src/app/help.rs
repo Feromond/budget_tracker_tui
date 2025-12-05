@@ -114,6 +114,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Hourly Rate", "Hourly Earning Rate", "Fields", Some("Optional. Enter your hourly rate to enable viewing transaction amounts as equivalent hours worked.")),
             KeyBindingInfo::new("Show Hours", "Toggle Hours View", "Fields", Some("Enable to display transaction amounts in equivalent hours based on your hourly rate.")),
             KeyBindingInfo::new("Fuzzy Search", "Toggle Fuzzy Search", "Fields", Some("Toggle to enable fuzzy searching for categories/subcategories. When enabled, selecting 'Category' opens a search bar to filter both category and subcategory at once.")),
+            KeyBindingInfo::new("Hide Help Bar", "Toggle Help Bar", "Fields", Some("Toggle to hide the bottom help bar for a cleaner interface. Ctrl+H will still work. NOT RECOMMENDED unless you know the keybindings well.")),
             KeyBindingInfo::new("←/→", "Toggle Options", "Navigation", Some("Use Left/Right arrow keys to change toggle settings (e.g. Yes/No).")),
             KeyBindingInfo::new("Ctrl+D", "Reset to Default", "Actions", None),
             KeyBindingInfo::new("Ctrl+U", "Clear Field", "Actions", None),
