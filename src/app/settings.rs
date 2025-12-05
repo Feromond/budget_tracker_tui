@@ -85,9 +85,9 @@ impl App {
         // Only show this if hourly rate is present
         if !hourly_rate_val.is_empty() {
             let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) {
-                "< Yes "
+                "◀ Yes "
             } else {
-                " No >"
+                " No ▶"
             };
             self.settings_state.add_setting(
                 "show_hours",
@@ -109,9 +109,9 @@ impl App {
 
         // 5. Fuzzy Search Mode
         let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) {
-            "< Yes "
+            "◀ Yes "
         } else {
-            " No >"
+            " No ▶"
         };
         self.settings_state.add_setting(
             "fuzzy_search_mode",

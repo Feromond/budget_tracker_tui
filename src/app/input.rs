@@ -146,7 +146,7 @@ impl App {
         if let Some(item) = self.settings_state.items.get_mut(idx) {
             if item.setting_type == crate::app::settings_types::SettingType::Toggle {
                 // Left sets to No
-                item.value = " No >".to_string();
+                item.value = " No ▶".to_string();
                 self.settings_state.edit_cursor = item.value.len();
                 return;
             }
@@ -162,7 +162,7 @@ impl App {
         if let Some(item) = self.settings_state.items.get_mut(idx) {
             if item.setting_type == crate::app::settings_types::SettingType::Toggle {
                 // Right sets to Yes
-                item.value = "< Yes ".to_string();
+                item.value = "◀ Yes ".to_string();
                 self.settings_state.edit_cursor = item.value.len();
                 return;
             }
