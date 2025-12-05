@@ -3,9 +3,6 @@ use crate::model::{SortColumn, SortOrder, TransactionType, DATE_FORMAT};
 use crate::ui::helpers::{format_amount, format_hours};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use rust_decimal::prelude::ToPrimitive;
-use rust_decimal::Decimal;
-
 pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
     let header_titles = [
         "Date",
