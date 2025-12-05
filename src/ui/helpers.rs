@@ -10,13 +10,11 @@ pub fn format_amount(amount: &Decimal) -> String {
     let frac_part = parts[1];
 
     let mut formatted_int = String::new();
-    let mut count = 0;
-    for c in int_part.chars().rev() {
+    for (count, c) in int_part.chars().rev().enumerate() {
         if count > 0 && count % 3 == 0 {
             formatted_int.push(',');
         }
         formatted_int.push(c);
-        count += 1;
     }
 
     let formatted_int: String = formatted_int.chars().rev().collect();
