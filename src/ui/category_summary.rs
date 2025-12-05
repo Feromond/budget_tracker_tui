@@ -8,29 +8,46 @@ use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 
-fn cell_income(amount: Decimal) -> Cell<'static> {
+fn cell_income(amount: Decimal, bold: bool) -> Cell<'static> {
+    if amount.round_dp(2).is_zero() {
+        return Cell::from("");
+    }
+    let mut style = Style::default().fg(Color::LightGreen);
+    if bold {
+        style = style.add_modifier(Modifier::BOLD);
+    }
     Cell::from(
         Line::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).alignment(Alignment::Right),
     )
-    .style(Style::default().fg(Color::LightGreen))
+    .style(style)
 }
-fn cell_expense(amount: Decimal) -> Cell<'static> {
+fn cell_expense(amount: Decimal, bold: bool) -> Cell<'static> {
+    if amount.round_dp(2).is_zero() {
+        return Cell::from("");
+    }
+    let mut style = Style::default().fg(Color::LightRed);
+    if bold {
+        style = style.add_modifier(Modifier::BOLD);
+    }
     Cell::from(
         Line::from(format!("{:.2}", amount.to_f64().unwrap_or(0.0))).alignment(Alignment::Right),
     )
-    .style(Style::default().fg(Color::LightRed))
+    .style(style)
 }
-fn cell_net(net: Decimal) -> Cell<'static> {
+fn cell_net(net: Decimal, bold: bool) -> Cell<'static> {
     let s = if net >= Decimal::ZERO {
         format!("+{:.2}", net.to_f64().unwrap_or(0.0))
     } else {
         format!("{:.2}", net.to_f64().unwrap_or(0.0))
     };
-    let style = if net >= Decimal::ZERO {
+    let mut style = if net >= Decimal::ZERO {
         Style::default().fg(Color::LightGreen)
     } else {
         Style::default().fg(Color::LightRed)
     };
+    if bold {
+        style = style.add_modifier(Modifier::BOLD);
+    }
     Cell::from(Line::from(s).alignment(Alignment::Right)).style(style)
 }
 
@@ -41,6 +58,16 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         .split(area);
 
     let table_area = summary_chunks[0];
+    let main_table_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(2),
+        ])
+        .split(table_area);
+    let list_area = main_table_chunks[0];
+    let footer_area = main_table_chunks[1];
+
     let chart_area = summary_chunks[1];
 
     // Table Setup
@@ -53,12 +80,18 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         "Net",
     ];
     let header_cells = header_titles.iter().enumerate().map(|(i, h)| {
-        let content = if i >= 3 {
-            Line::from(*h).alignment(Alignment::Right)
+        let (content, style) = if i >= 3 {
+            let s = match i {
+                3 => Style::default().fg(Color::LightGreen).bold(), // Income
+                4 => Style::default().fg(Color::LightRed).bold(),   // Expense
+                5 => Style::default().fg(Color::LightBlue).bold(),  // Net
+                _ => Style::default().fg(Color::Cyan).bold(),
+            };
+            (Line::from(*h).alignment(Alignment::Right), s)
         } else {
-            Line::from(*h)
+            (Line::from(*h), Style::default().fg(Color::Cyan).bold())
         };
-        Cell::from(content).style(Style::default().fg(Color::Cyan).bold())
+        Cell::from(content).style(style)
     });
     let header = Row::new(header_cells)
         .style(Style::default().bg(Color::DarkGray))
@@ -91,67 +124,112 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     if let Some(year) = current_year {
         months = app.sorted_category_months_for_year(year);
     }
+
+    let (total_income, total_expense) = crate::app::util::calculate_totals(app, current_year);
+
     let mut last_expanded_month: Option<u32> = None;
-    let rows = items.iter().map(|item| match item {
-        CategorySummaryItem::Month(month, summary) => {
-            let symbol = if app.expanded_category_summary_months.contains(month) {
-                "▼"
-            } else {
-                "▶"
-            };
-            let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
-            let arrow_color = color_palette[month_idx % color_palette.len()];
-            let month_cell = Cell::from(Line::from(vec![
-                Span::styled(symbol, Style::default().fg(arrow_color)),
-                Span::raw(" "),
-                Span::raw(month_to_short_str(*month)),
-            ]));
-            if app.expanded_category_summary_months.contains(month) {
-                last_expanded_month = Some(*month);
-            } else {
-                last_expanded_month = None;
-            }
-            let inc_cell = cell_income(summary.income);
-            let exp_cell = cell_expense(summary.expense);
-            let net_cell = cell_net(summary.income - summary.expense);
-            Row::new(vec![
-                month_cell,
-                Cell::from(""),
-                Cell::from(""),
-                inc_cell,
-                exp_cell,
-                net_cell,
-            ])
-            .height(1)
-            .bottom_margin(0)
-        }
-        CategorySummaryItem::Subcategory(month, category, sub, summary) => {
-            let mut first_cell = Cell::from("");
-            if let Some(expanded_month) = last_expanded_month {
-                if expanded_month == *month {
-                    let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
-                    let arrow_color = color_palette[month_idx % color_palette.len()];
-                    first_cell = Cell::from(Line::from(vec![
-                        Span::styled("┆--", Style::default().fg(arrow_color)),
-                        Span::raw(" "),
-                    ]));
+    let rows: Vec<Row> = items
+        .iter()
+        .enumerate()
+        .map(|(i, item)| match item {
+            CategorySummaryItem::Month(month, summary) => {
+                let symbol = if app.expanded_category_summary_months.contains(month) {
+                    "▼"
+                } else {
+                    "▶"
+                };
+                let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
+                let arrow_color = color_palette[month_idx % color_palette.len()];
+                let month_cell = Cell::from(Line::from(vec![
+                    Span::styled(symbol, Style::default().fg(arrow_color)),
+                    Span::raw(" "),
+                    Span::raw(month_to_short_str(*month)),
+                ]));
+                if app.expanded_category_summary_months.contains(month) {
+                    last_expanded_month = Some(*month);
+                } else {
+                    last_expanded_month = None;
                 }
+                let inc_cell = cell_income(summary.income, true);
+                let exp_cell = cell_expense(summary.expense, true);
+                let net_cell = cell_net(summary.income - summary.expense, true);
+                Row::new(vec![
+                    month_cell,
+                    Cell::from(""),
+                    Cell::from(""),
+                    inc_cell,
+                    exp_cell,
+                    net_cell,
+                ])
+                .height(1)
+                .bottom_margin(0)
+                .style(Style::default().bg(Color::Rgb(20, 20, 20))) // Dark gray background on month rows
             }
-            let inc_cell = cell_income(summary.income);
-            let exp_cell = cell_expense(summary.expense);
-            let net_cell = cell_net(summary.income - summary.expense);
-            Row::new(vec![
-                first_cell,
-                Cell::from(category.clone()),
-                Cell::from(sub.clone()),
-                inc_cell,
-                exp_cell,
-                net_cell,
-            ])
-            .height(1)
-            .bottom_margin(0)
-        }
-    });
+            CategorySummaryItem::Subcategory(month, category, sub, summary) => {
+                let mut first_cell = Cell::from("");
+                if let Some(expanded_month) = last_expanded_month {
+                    if expanded_month == *month {
+                        let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
+                        let arrow_color = color_palette[month_idx % color_palette.len()];
+                        
+                        // Determine tree branch symbol
+                        let is_last_child = if let Some(next_item) = items.get(i + 1) {
+                            match next_item {
+                                CategorySummaryItem::Month(_, _) => true,
+                                CategorySummaryItem::Subcategory(next_m, _, _, _) => *next_m != *month,
+                            }
+                        } else {
+                            true
+                        };
+
+                        let tree_symbol = if is_last_child { "└─" } else { "├─" };
+
+                        first_cell = Cell::from(Line::from(vec![
+                            Span::styled(tree_symbol, Style::default().fg(arrow_color)),
+                            Span::raw(" "),
+                        ]));
+                    }
+                }
+                let inc_cell = cell_income(summary.income, false);
+                let exp_cell = cell_expense(summary.expense, false);
+                let net_cell = cell_net(summary.income - summary.expense, false);
+                Row::new(vec![
+                    first_cell,
+                    Cell::from(category.clone()),
+                    Cell::from(sub.clone()),
+                    inc_cell,
+                    exp_cell,
+                    net_cell,
+                ])
+                .height(1)
+                .bottom_margin(0)
+            }
+        })
+        .collect();
+    
+    // Prepend Yearly Total Row
+    let total_net = total_income - total_expense;
+    let total_inc_cell = cell_income(total_income, true);
+    let total_exp_cell = cell_expense(total_expense, true);
+    let total_net_cell = cell_net(total_net, true);
+    
+    let total_row = Row::new(vec![
+        Cell::from(Span::styled(
+            "Grand Total", 
+            Style::default().add_modifier(Modifier::BOLD).fg(Color::Magenta)
+        )),
+        Cell::from(Span::styled(
+            format!("{}", year_str), 
+            Style::default().add_modifier(Modifier::BOLD).fg(Color::Magenta)
+        )),
+        Cell::from(""),
+        total_inc_cell,
+        total_exp_cell,
+        total_net_cell,
+    ])
+    .height(1)
+    .bottom_margin(0)
+    .style(Style::default().bg(Color::Rgb(10, 10, 10)));
 
     let is_filtered = app.filtered_indices.len() != app.transactions.len();
     let table_title = {
@@ -164,8 +242,8 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             title_spans.push(Span::styled(
                 "(Filtered) ",
                 Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
             ));
         }
         title_spans.push(Span::styled(
@@ -175,8 +253,8 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         title_spans.push(Span::styled(
             y,
             Style::default()
-                .fg(Color::Magenta)
-                .add_modifier(Modifier::BOLD),
+            .fg(Color::Magenta)
+            .add_modifier(Modifier::BOLD),
         ));
         title_spans.push(Span::styled(
             idx_total,
@@ -184,6 +262,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         ));
         Line::from(title_spans)
     };
+
     let table = Table::new(
         rows,
         [
@@ -196,11 +275,26 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
         ],
     )
     .header(header)
-    .block(Block::default().borders(Borders::ALL).title(table_title))
+    .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT).title(table_title))
     .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED))
     .highlight_symbol(" > ");
 
-    f.render_stateful_widget(table, table_area, &mut app.category_summary_table_state);
+    f.render_stateful_widget(table, list_area, &mut app.category_summary_table_state);
+
+    let footer_table = Table::new(
+        vec![total_row],
+        [
+            Constraint::Length(12),
+            Constraint::Percentage(23),
+            Constraint::Percentage(30),
+            Constraint::Percentage(12),
+            Constraint::Percentage(12),
+            Constraint::Percentage(11),
+        ],
+    )
+    .block(Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT));
+
+    f.render_widget(footer_table, footer_area);
 
     // Chart Setup
     let mut chart_title = Line::from(vec![Span::styled(
