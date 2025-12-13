@@ -94,11 +94,14 @@ pub fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
     // Set cursor position for editable text fields, adjusting for scrolling
     if ![3, 4, 5].contains(&app.current_add_edit_field) {
         let field_idx = app.current_add_edit_field;
-        let text_len = app.add_edit_fields[field_idx].len() as u16;
+        // let text_len = app.add_edit_fields[field_idx].len() as u16;
         if field_idx >= scroll_offset && field_idx < scroll_offset + max_visible_fields {
             let visible_idx = field_idx - scroll_offset;
             if let Some(chunk) = form_chunks.get(visible_idx) {
-                f.set_cursor_position(Position::new(chunk.x + text_len + 1, chunk.y + 1));
+                f.set_cursor_position(Position::new(
+                    chunk.x + app.add_edit_cursor as u16 + 1,
+                    chunk.y + 1,
+                ));
             }
         }
     }

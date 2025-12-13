@@ -1,34 +1,102 @@
-use super::state::App;
-use crate::model::DATE_FORMAT;
+use super::state::{App, AppMode};
+use crate::{model::DATE_FORMAT, validation::validate_amount_char};
 use chrono::NaiveDate;
 
 impl App {
     // --- Input Handling ---
     // Handles cursor movement and character insertion/deletion for the generic input field and add/edit fields.
     pub(crate) fn move_cursor_left(&mut self) {
-        if self.simple_filter_cursor > 0 {
-            self.simple_filter_cursor -= 1;
+        match self.mode {
+            AppMode::Filtering => {
+                if self.simple_filter_cursor > 0 {
+                    self.simple_filter_cursor -= 1;
+                }
+            }
+            AppMode::Adding | AppMode::Editing => {
+                if self.add_edit_cursor > 0 {
+                    self.add_edit_cursor -= 1;
+                }
+            }
+
+            _ => (),
         }
     }
     pub(crate) fn move_cursor_right(&mut self) {
-        if self.simple_filter_cursor < self.simple_filter_content.len() {
-            self.simple_filter_cursor += 1;
+        match self.mode {
+            AppMode::Filtering => {
+                if self.simple_filter_cursor < self.simple_filter_content.len() {
+                    self.simple_filter_cursor += 1;
+                }
+            }
+            AppMode::Adding | AppMode::Editing => {
+                let content = &mut self.add_edit_fields[self.current_add_edit_field];
+                if self.add_edit_cursor < content.len() {
+                    self.add_edit_cursor += 1;
+                }
+            }
+
+            _ => (),
         }
     }
     pub(crate) fn insert_char_at_cursor(&mut self, c: char) {
-        self.simple_filter_content
-            .insert(self.simple_filter_cursor, c);
-        self.move_cursor_right();
+        match self.mode {
+            AppMode::Filtering => {
+                self.simple_filter_content
+                    .insert(self.simple_filter_cursor, c);
+                self.move_cursor_right();
+            }
+            AppMode::Adding | AppMode::Editing => {
+                let content = &mut self.add_edit_fields[self.current_add_edit_field];
+                match self.current_add_edit_field {
+                    1 => {
+                        content.insert(self.add_edit_cursor, c);
+                        self.move_cursor_right();
+                    }
+                    2 => {
+                        if validate_amount_char(content, c) {
+                            content.insert(self.add_edit_cursor, c);
+                            self.move_cursor_right();
+                        }
+                    }
+                    _ => (),
+                }
+            }
+
+            _ => (),
+        }
     }
     pub(crate) fn delete_char_before_cursor(&mut self) {
-        if self.simple_filter_cursor > 0 {
-            self.move_cursor_left();
-            self.simple_filter_content.remove(self.simple_filter_cursor);
+        match self.mode {
+            AppMode::Filtering => {
+                if self.simple_filter_cursor > 0 {
+                    self.move_cursor_left();
+                    self.simple_filter_content.remove(self.simple_filter_cursor);
+                }
+            }
+            AppMode::Adding | AppMode::Editing => {
+                if self.add_edit_cursor > 0 {
+                    self.move_cursor_left();
+                    let content = &mut self.add_edit_fields[self.current_add_edit_field];
+                    content.remove(self.add_edit_cursor);
+                }
+            }
+            _ => (),
         }
     }
     pub(crate) fn delete_char_after_cursor(&mut self) {
-        if self.simple_filter_cursor < self.simple_filter_content.len() {
-            self.simple_filter_content.remove(self.simple_filter_cursor);
+        match self.mode {
+            AppMode::Filtering => {
+                if self.simple_filter_cursor < self.simple_filter_content.len() {
+                    self.simple_filter_content.remove(self.simple_filter_cursor);
+                }
+            }
+            AppMode::Adding | AppMode::Editing => {
+                let content = &mut self.add_edit_fields[self.current_add_edit_field];
+                if self.add_edit_cursor < content.len() {
+                    content.remove(self.add_edit_cursor);
+                }
+            }
+            _ => (),
         }
     }
     pub(crate) fn insert_char_add_edit(&mut self, c: char) {
@@ -47,10 +115,12 @@ impl App {
             2 => {
                 // Amount field - use centralized validation
                 crate::validation::insert_amount_char(field_content, c);
+                self.add_edit_cursor += 1;
             }
             _ => {
                 // Default behavior for other fields
                 field_content.push(c);
+                self.add_edit_cursor += 1;
             }
         }
     }
@@ -64,12 +134,15 @@ impl App {
         } else if !field_content.is_empty() {
             // Default behavior for other fields
             field_content.pop();
+            self.add_edit_cursor = field_content.len();
         }
     }
     pub(crate) fn next_add_edit_field(&mut self) {
         // Move to the next add/edit field
         let next_field = (self.current_add_edit_field + 1) % self.add_edit_fields.len();
         self.current_add_edit_field = next_field;
+
+        self.add_edit_cursor = self.add_edit_fields[self.current_add_edit_field].len();
     }
     pub(crate) fn previous_add_edit_field(&mut self) {
         // Move to the previous add/edit field
@@ -78,6 +151,8 @@ impl App {
         } else {
             self.current_add_edit_field -= 1;
         }
+
+        self.add_edit_cursor = self.add_edit_fields[self.current_add_edit_field].len();
     }
 
     // --- Settings Input ---

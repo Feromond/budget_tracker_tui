@@ -36,11 +36,13 @@ pub fn handle_add_edit_mode(app: &mut App, key_event: KeyEvent) {
         (KeyModifiers::NONE, KeyCode::Down) => app.next_add_edit_field(),
         (KeyModifiers::NONE, KeyCode::Left) => match app.current_add_edit_field {
             0 => app.decrement_date(),
+            1 | 2 => app.move_cursor_left(),
             3 => app.toggle_transaction_type(),
             _ => {}
         },
         (KeyModifiers::NONE, KeyCode::Right) => match app.current_add_edit_field {
             0 => app.increment_date(),
+            1 | 2 => app.move_cursor_right(),
             3 => app.toggle_transaction_type(),
             _ => {}
         },
@@ -60,7 +62,7 @@ pub fn handle_add_edit_mode(app: &mut App, key_event: KeyEvent) {
             // Only allow digits for the date field (field 0)
             0 if c.is_ascii_digit() => app.insert_char_add_edit(c),
             // Allow any character for other non-special fields (1, 2)
-            field if ![0, 3, 4, 5].contains(&field) => app.insert_char_add_edit(c),
+            field if ![0, 3, 4, 5].contains(&field) => app.insert_char_at_cursor(c),
             _ => {} // Ignore char input for fields 0 (non-digit), 3, 4, 5
         },
         (KeyModifiers::SHIFT, KeyCode::Char(c)) => {
@@ -70,7 +72,7 @@ pub fn handle_add_edit_mode(app: &mut App, key_event: KeyEvent) {
         }
         (KeyModifiers::NONE, KeyCode::Backspace) => {
             if ![3, 4, 5].contains(&app.current_add_edit_field) {
-                app.delete_char_add_edit();
+                app.delete_char_before_cursor();
             }
         }
         _ => {}
