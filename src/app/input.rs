@@ -55,9 +55,13 @@ impl App {
     // --- Input Handling ---
 
     pub(crate) fn move_cursor_left(&mut self) {
-        if let Some((_, cursor, _)) = self.get_active_input_mut() {
+        if let Some((content, cursor, _)) = self.get_active_input_mut() {
             if *cursor > 0 {
-                *cursor -= 1;
+                let mut prev = *cursor - 1;
+                while !content.is_char_boundary(prev) {
+                    prev -= 1;
+                }
+                *cursor = prev;
             }
         }
     }
@@ -65,7 +69,9 @@ impl App {
     pub(crate) fn move_cursor_right(&mut self) {
         if let Some((content, cursor, _)) = self.get_active_input_mut() {
             if *cursor < content.len() {
-                *cursor += 1;
+                if let Some(c) = content[*cursor..].chars().next() {
+                    *cursor += c.len_utf8();
+                }
             }
         }
     }
@@ -88,7 +94,7 @@ impl App {
                         } else {
                             content.insert(*cursor, c);
                         }
-                        *cursor += 1;
+                        *cursor += c.len_utf8();
                     }
                 }
                 InputType::Text => {
@@ -97,7 +103,7 @@ impl App {
                     } else {
                         content.insert(*cursor, c);
                     }
-                    *cursor += 1;
+                    *cursor += c.len_utf8();
                 }
             }
         }
@@ -113,11 +119,13 @@ impl App {
                 }
                 _ => {
                     if *cursor > 0 {
-                        if *cursor <= content.len() {
-                            content.remove(*cursor - 1);
-                            *cursor -= 1;
-                        } else {
-                            *cursor = content.len();
+                        let mut prev = *cursor - 1;
+                        while !content.is_char_boundary(prev) {
+                            prev -= 1;
+                        }
+                        if prev < content.len() {
+                            content.remove(prev);
+                            *cursor = prev;
                         }
                     }
                 }
@@ -259,7 +267,7 @@ impl App {
                     }
                     self.settings_state.edit_cursor = item.value.len();
                 } else {
-                    self.settings_state.edit_cursor += 1;
+                    self.settings_state.edit_cursor += c.len_utf8();
                 }
             }
             crate::app::settings_types::SettingType::Toggle => {}
@@ -288,9 +296,13 @@ impl App {
                 let cursor = self.settings_state.edit_cursor;
                 let item = &mut self.settings_state.items[idx];
                 if cursor > 0 && !item.value.is_empty() {
-                    if cursor <= item.value.len() {
-                        item.value.remove(cursor - 1);
-                        self.settings_state.edit_cursor -= 1;
+                    let mut prev = cursor - 1;
+                    while !item.value.is_char_boundary(prev) {
+                        prev -= 1;
+                    }
+                    if prev < item.value.len() {
+                        item.value.remove(prev);
+                        self.settings_state.edit_cursor = prev;
                     }
 
                     if setting_type == crate::app::settings_types::SettingType::Path {
