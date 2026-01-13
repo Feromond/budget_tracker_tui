@@ -129,6 +129,7 @@ impl App {
         self.advanced_filter_fields[5] = new_val.to_string();
     }
     pub(crate) fn start_advanced_category_selection(&mut self) {
+        self.type_to_select.clear();
         self.selecting_field_index = Some(3);
         self.mode = crate::app::state::AppMode::SelectingFilterCategory;
         let mut unique: HashSet<String> =
@@ -142,6 +143,7 @@ impl App {
         }
     }
     pub(crate) fn start_advanced_subcategory_selection(&mut self) {
+        self.type_to_select.clear();
         self.selecting_field_index = Some(4);
         self.mode = crate::app::state::AppMode::SelectingFilterSubcategory;
         let current_cat = self.advanced_filter_fields[3].trim();
