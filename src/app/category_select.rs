@@ -96,6 +96,7 @@ impl App {
                         return;
                     } else if field_index == 5 {
                         self.current_add_edit_field = 0;
+                        self.add_edit_cursor = self.add_edit_fields[0].len();
                     }
                 }
             }

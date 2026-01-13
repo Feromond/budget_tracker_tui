@@ -56,6 +56,7 @@ impl App {
     pub(crate) fn start_advanced_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
         self.current_advanced_filter_field = 0;
+        self.advanced_filter_cursor = self.advanced_filter_fields[0].len();
         self.clear_status_message()
     }
     pub(crate) fn cancel_advanced_filtering(&mut self) {
@@ -105,6 +106,7 @@ impl App {
     pub(crate) fn next_advanced_filter_field(&mut self) {
         self.current_advanced_filter_field =
             (self.current_advanced_filter_field + 1) % self.advanced_filter_fields.len();
+        self.advanced_filter_cursor = self.advanced_filter_fields[self.current_advanced_filter_field].len();
     }
     pub(crate) fn previous_advanced_filter_field(&mut self) {
         if self.current_advanced_filter_field == 0 {
@@ -112,53 +114,7 @@ impl App {
         } else {
             self.current_advanced_filter_field -= 1;
         }
-    }
-    pub(crate) fn insert_char_advanced_filter(&mut self, c: char) {
-        self.clear_simple_filter_field_only();
-
-        let idx = self.current_advanced_filter_field;
-        let field = &mut self.advanced_filter_fields[idx];
-        match idx {
-            0 | 1 => {
-                // Date fields: use centralized date validation
-                if let Some(new_content) =
-                    crate::validation::validate_and_insert_date_char(field, c)
-                {
-                    *field = new_content;
-                }
-                // Note: No error message here since this is filter input, not form validation
-            }
-            5 => { /* Type field: toggle only via arrows/enter */ }
-            6 | 7 => {
-                // Amount fields: use centralized amount validation
-                crate::validation::insert_amount_char(field, c);
-            }
-            3 | 4 => { /* Category/Subcategory: selections only, no free text */ }
-            _ => {
-                // Description (idx 2)
-                field.push(c);
-            }
-        }
-    }
-    pub(crate) fn delete_char_advanced_filter(&mut self) {
-        self.clear_simple_filter_field_only();
-
-        let idx = self.current_advanced_filter_field;
-        let field = &mut self.advanced_filter_fields[idx];
-        match idx {
-            0 | 1 => {
-                // Date fields: use centralized date backspace handling
-                crate::validation::handle_date_backspace(field);
-            }
-            5 => { /* Type field: nothing */ }
-            6 | 7 => {
-                field.pop();
-            } // Amount fields: simple pop
-            3 | 4 => { /* Category/Subcategory: no deletion */ }
-            _ => {
-                field.pop();
-            } // Description
-        }
+        self.advanced_filter_cursor = self.advanced_filter_fields[self.current_advanced_filter_field].len();
     }
     pub(crate) fn toggle_advanced_transaction_type(&mut self) {
         self.clear_simple_filter_field_only();
@@ -315,6 +271,7 @@ impl App {
             self.clear_simple_filter_field_only();
             if let Some(new_date) = self.increment_date_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
             }
         }
     }
@@ -324,6 +281,7 @@ impl App {
             self.clear_simple_filter_field_only();
             if let Some(new_date) = self.decrement_date_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
             }
         }
     }
@@ -333,6 +291,7 @@ impl App {
             self.clear_simple_filter_field_only();
             if let Some(new_date) = self.increment_month_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
             }
         }
     }
@@ -342,6 +301,7 @@ impl App {
             self.clear_simple_filter_field_only();
             if let Some(new_date) = self.decrement_month_field(&self.advanced_filter_fields[idx]) {
                 self.advanced_filter_fields[idx] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
             }
         }
     }
