@@ -246,8 +246,15 @@ impl App {
                 // Do nothing
             }
             crate::app::settings_types::SettingType::Number => {
-                crate::validation::insert_amount_char(&mut self.settings_state.items[idx].value, c);
-                self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+                if crate::validation::validate_amount_char(&self.settings_state.items[idx].value, c) {
+                    let item = &mut self.settings_state.items[idx];
+                    if self.settings_state.edit_cursor >= item.value.len() {
+                        item.value.push(c);
+                    } else {
+                        item.value.insert(self.settings_state.edit_cursor, c);
+                    }
+                    self.settings_state.edit_cursor += c.len_utf8();
+                }
             }
             crate::app::settings_types::SettingType::Path => {
                 let item = &mut self.settings_state.items[idx];
@@ -286,8 +293,18 @@ impl App {
         match setting_type {
             crate::app::settings_types::SettingType::SectionHeader => {}
             crate::app::settings_types::SettingType::Number => {
-                self.settings_state.items[idx].value.pop();
-                self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+                 let cursor = self.settings_state.edit_cursor;
+                 let item = &mut self.settings_state.items[idx];
+                 if cursor > 0 && !item.value.is_empty() {
+                     let mut prev = cursor - 1;
+                     while !item.value.is_char_boundary(prev) {
+                         prev -= 1;
+                     }
+                     if prev < item.value.len() {
+                         item.value.remove(prev);
+                         self.settings_state.edit_cursor = prev;
+                     }
+                 }
             }
             crate::app::settings_types::SettingType::Toggle => {
                 // No-op for delete on toggle
