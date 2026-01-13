@@ -14,7 +14,10 @@ use super::{
 pub fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     app: &mut App,
-) -> StdResult<(), Box<dyn std::error::Error>> {
+) -> StdResult<(), Box<dyn std::error::Error>>
+where
+    <B as ratatui::backend::Backend>::Error: 'static,
+{
     while !app.should_quit {
         // Check for status expiry
         if let Some(expiry) = app.status_expiry {
