@@ -183,6 +183,10 @@ impl App {
             }
         }
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
+        if let Some(fi) = self.selecting_field_index {
+            self.current_advanced_filter_field = fi;
+            self.advanced_filter_cursor = self.advanced_filter_fields[fi].len();
+        }
         self.selecting_field_index = None;
         self.current_selection_list.clear();
     }
