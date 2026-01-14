@@ -129,6 +129,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("End Date", "Stop Date", "Fields", Some("Optional. If set, the recurring transaction will stop being generated after this date. Leave empty for indefinite recurrence.")),
             KeyBindingInfo::new("Enter", "Select / Save", "Actions", None),
             KeyBindingInfo::new("Esc", "Cancel", "Actions", None),
+            KeyBindingInfo::new("Tip!", "Your recurring transaction changes", "Info", Some("The recurring transactions generate from the initial transaction up to the current date. If a recurring transaction needs to be changed, set an end date and then create a new transaction with the updated details. That can then be set as recurring again to continue.")),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         AppMode::SelectingCategory
