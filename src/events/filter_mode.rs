@@ -57,12 +57,12 @@ fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
         (KeyModifiers::NONE, KeyCode::Left) => match app.current_advanced_filter_field {
             0 | 1 => app.decrement_advanced_date(),
             5 => app.toggle_advanced_transaction_type(),
-            _ => {}
+            _ => app.move_cursor_left(),
         },
         (KeyModifiers::NONE, KeyCode::Right) => match app.current_advanced_filter_field {
             0 | 1 => app.increment_advanced_date(),
             5 => app.toggle_advanced_transaction_type(),
-            _ => {}
+            _ => app.move_cursor_right(),
         },
         (KeyModifiers::SHIFT, KeyCode::Left) => match app.current_advanced_filter_field {
             0 | 1 => app.decrement_advanced_month(),
@@ -75,11 +75,23 @@ fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
         (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_advanced_filter_field {
             0 | 1 if c == '+' || c == '=' => app.increment_advanced_date(),
             0 | 1 if c == '-' => app.decrement_advanced_date(),
-            _ => app.insert_char_advanced_filter(c),
+            _ => {
+                app.clear_simple_filter_field_only();
+                app.insert_char_at_cursor(c);
+            }
         },
-        (KeyModifiers::SHIFT, KeyCode::Char(c)) => app.insert_char_advanced_filter(c),
-        (KeyModifiers::NONE, KeyCode::Backspace) => app.delete_char_advanced_filter(),
-        (KeyModifiers::NONE, KeyCode::Delete) => app.delete_char_advanced_filter(),
+        (KeyModifiers::SHIFT, KeyCode::Char(c)) => {
+            app.clear_simple_filter_field_only();
+            app.insert_char_at_cursor(c);
+        }
+        (KeyModifiers::NONE, KeyCode::Backspace) => {
+            app.clear_simple_filter_field_only();
+            app.delete_char_before_cursor();
+        }
+        (KeyModifiers::NONE, KeyCode::Delete) => {
+            app.clear_simple_filter_field_only();
+            app.delete_char_after_cursor();
+        }
         _ => {}
     }
 }

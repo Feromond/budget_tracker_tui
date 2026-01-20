@@ -57,8 +57,10 @@ pub struct App {
     pub(crate) simple_filter_cursor: usize,
     pub(crate) add_edit_fields: [String; 6],
     pub(crate) current_add_edit_field: usize,
+    pub(crate) add_edit_cursor: usize,
     pub(crate) advanced_filter_fields: [String; 8],
     pub(crate) current_advanced_filter_field: usize,
+    pub(crate) advanced_filter_cursor: usize,
     pub(crate) delete_index: Option<usize>,
     pub(crate) editing_index: Option<usize>,
     pub(crate) status_message: Option<String>,
@@ -221,8 +223,10 @@ impl App {
             simple_filter_cursor: 0,
             add_edit_fields: Default::default(),
             current_add_edit_field: 0,
+            add_edit_cursor: 0,
             advanced_filter_fields: Default::default(),
             current_advanced_filter_field: 0,
+            advanced_filter_cursor: 0,
             delete_index: None,
             editing_index: None,
             status_message: load_error_msg,
@@ -500,6 +504,7 @@ impl App {
                     }
                 };
                 self.add_edit_fields[0] = new_date.format(crate::model::DATE_FORMAT).to_string();
+                self.add_edit_cursor = self.add_edit_fields[0].len();
                 self.clear_status_message() // Clear status on successful adjustment
             } else {
                 self.set_status_message(

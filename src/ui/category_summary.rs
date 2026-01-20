@@ -338,7 +338,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                         };
                         current_max = current_max.max(net_i64.abs());
                         Bar::default()
-                            .label(cat.chars().take(15).collect::<String>().into())
+                            .label(cat.chars().take(15).collect::<String>())
                             .value(net_i64.unsigned_abs())
                             .style(net_style)
                     })
@@ -385,7 +385,7 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     }
 
     if bars.is_empty() {
-        bars.push(Bar::default().label("No Data".into()).value(0));
+        bars.push(Bar::default().label("No Data").value(0));
         let y = year_str.clone();
         let mut title_spans = vec![];
         if is_filtered {

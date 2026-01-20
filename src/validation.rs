@@ -119,13 +119,6 @@ pub fn validate_amount_char(field: &str, c: char) -> bool {
     c.is_ascii_digit() || (c == '.' && !field.contains('.'))
 }
 
-/// Inserts an amount character if valid
-pub fn insert_amount_char(field: &mut String, c: char) {
-    if validate_amount_char(field, c) {
-        field.push(c);
-    }
-}
-
 /// Validates and parses an amount string
 pub fn validate_amount_string(amount_str: &str) -> Result<Decimal, String> {
     match amount_str.parse::<Decimal>() {

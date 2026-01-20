@@ -34,6 +34,7 @@ fn handle_filter_selection(app: &mut App, key_event: KeyEvent) {
         KeyCode::Enter => app.confirm_advanced_selection(),
         KeyCode::Down => app.select_next_list_item(),
         KeyCode::Up => app.select_previous_list_item(),
+        KeyCode::Char(c) => app.handle_type_to_select(c),
         KeyCode::Tab => {}
         _ => {}
     }

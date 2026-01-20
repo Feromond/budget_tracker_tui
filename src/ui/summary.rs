@@ -435,7 +435,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             let net_i64 = net.round().to_i64().unwrap_or(0);
             chart_data_styled.push(
                 Bar::default()
-                    .label(month_to_short_str(month).into())
+                    .label(month_to_short_str(month))
                     .value(net_i64.unsigned_abs())
                     .style(if net >= Decimal::ZERO {
                         Style::default().fg(Color::LightGreen)
@@ -446,7 +446,7 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             max_abs_chart_value = max_abs_chart_value.max(net_i64.abs());
         }
     } else {
-        chart_data_styled.push(Bar::default().label("N/A".into()).value(0));
+        chart_data_styled.push(Bar::default().label("N/A").value(0));
     }
     let num_bars = chart_data_styled.len() as u16;
     let usable_width = bar_chart_area.width.saturating_sub(2);

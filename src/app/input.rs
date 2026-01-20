@@ -1,82 +1,143 @@
 use super::state::App;
+use crate::app::state::AppMode;
 use crate::model::DATE_FORMAT;
 use chrono::NaiveDate;
 
-impl App {
-    // --- Input Handling ---
-    // Handles cursor movement and character insertion/deletion for the generic input field and add/edit fields.
-    pub(crate) fn move_cursor_left(&mut self) {
-        if self.simple_filter_cursor > 0 {
-            self.simple_filter_cursor -= 1;
-        }
-    }
-    pub(crate) fn move_cursor_right(&mut self) {
-        if self.simple_filter_cursor < self.simple_filter_content.len() {
-            self.simple_filter_cursor += 1;
-        }
-    }
-    pub(crate) fn insert_char_at_cursor(&mut self, c: char) {
-        self.simple_filter_content
-            .insert(self.simple_filter_cursor, c);
-        self.move_cursor_right();
-    }
-    pub(crate) fn delete_char_before_cursor(&mut self) {
-        if self.simple_filter_cursor > 0 {
-            self.move_cursor_left();
-            self.simple_filter_content.remove(self.simple_filter_cursor);
-        }
-    }
-    pub(crate) fn delete_char_after_cursor(&mut self) {
-        if self.simple_filter_cursor < self.simple_filter_content.len() {
-            self.simple_filter_content.remove(self.simple_filter_cursor);
-        }
-    }
-    pub(crate) fn insert_char_add_edit(&mut self, c: char) {
-        let current_field = self.current_add_edit_field;
-        let field_content = &mut self.add_edit_fields[current_field];
+#[derive(PartialEq)]
+pub enum InputType {
+    Text,
+    Date,
+    Amount,
+}
 
-        match current_field {
-            0 => {
-                // Date field - use centralized validation
-                if let Some(new_content) =
-                    crate::validation::validate_and_insert_date_char(field_content, c)
-                {
-                    *field_content = new_content;
+impl App {
+    // Helper to get the active mutable input field state based on the current mode and field index.
+    // Returns: (content_string, cursor_position, input_type)
+    fn get_active_input_mut(&mut self) -> Option<(&mut String, &mut usize, InputType)> {
+        match self.mode {
+            AppMode::Filtering => Some((
+                &mut self.simple_filter_content,
+                &mut self.simple_filter_cursor,
+                InputType::Text,
+            )),
+            AppMode::Adding | AppMode::Editing => {
+                let idx = self.current_add_edit_field;
+                let input_type = match idx {
+                    0 => InputType::Date,
+                    2 => InputType::Amount,
+                    1 => InputType::Text,
+                    _ => return None, // Other fields (Type, Category, Subcategory) are not standard text inputs
+                };
+                Some((
+                    &mut self.add_edit_fields[idx],
+                    &mut self.add_edit_cursor,
+                    input_type,
+                ))
+            }
+            AppMode::AdvancedFiltering => {
+                let idx = self.current_advanced_filter_field;
+                let input_type = match idx {
+                    0 | 1 => InputType::Date,
+                    2 => InputType::Text, // Description
+                    6 | 7 => InputType::Amount,
+                    _ => return None, // Category(3), Subcategory(4), Type(5) are selections/toggles
+                };
+                Some((
+                    &mut self.advanced_filter_fields[idx],
+                    &mut self.advanced_filter_cursor,
+                    input_type,
+                ))
+            }
+            _ => None,
+        }
+    }
+
+    // --- Input Handling ---
+
+    pub(crate) fn move_cursor_left(&mut self) {
+        if let Some((content, cursor, _)) = self.get_active_input_mut() {
+            if *cursor > 0 {
+                let mut prev = *cursor - 1;
+                while !content.is_char_boundary(prev) {
+                    prev -= 1;
+                }
+                *cursor = prev;
+            }
+        }
+    }
+
+    pub(crate) fn move_cursor_right(&mut self) {
+        if let Some((content, cursor, _)) = self.get_active_input_mut() {
+            if *cursor < content.len() {
+                if let Some(c) = content[*cursor..].chars().next() {
+                    *cursor += c.len_utf8();
                 }
             }
-            2 => {
-                // Amount field - use centralized validation
-                crate::validation::insert_amount_char(field_content, c);
-            }
-            _ => {
-                // Default behavior for other fields
-                field_content.push(c);
-            }
         }
     }
-    pub(crate) fn delete_char_add_edit(&mut self) {
-        let current_field = self.current_add_edit_field;
-        let field_content = &mut self.add_edit_fields[current_field];
 
-        if current_field == 0 {
-            // Date field - use centralized backspace handling
-            crate::validation::handle_date_backspace(field_content);
-        } else if !field_content.is_empty() {
-            // Default behavior for other fields
-            field_content.pop();
+    pub(crate) fn insert_char_at_cursor(&mut self, c: char) {
+        if let Some((content, cursor, input_type)) = self.get_active_input_mut() {
+            match input_type {
+                InputType::Date => {
+                    if let Some(new_content) =
+                        crate::validation::validate_and_insert_date_char(content, c)
+                    {
+                        *content = new_content;
+                        *cursor = content.len();
+                    }
+                }
+                InputType::Amount => {
+                    if crate::validation::validate_amount_char(content, c) {
+                        if *cursor >= content.len() {
+                            content.push(c);
+                        } else {
+                            content.insert(*cursor, c);
+                        }
+                        *cursor += c.len_utf8();
+                    }
+                }
+                InputType::Text => {
+                    if *cursor >= content.len() {
+                        content.push(c);
+                    } else {
+                        content.insert(*cursor, c);
+                    }
+                    *cursor += c.len_utf8();
+                }
+            }
         }
     }
-    pub(crate) fn next_add_edit_field(&mut self) {
-        // Move to the next add/edit field
-        let next_field = (self.current_add_edit_field + 1) % self.add_edit_fields.len();
-        self.current_add_edit_field = next_field;
+
+    pub(crate) fn delete_char_before_cursor(&mut self) {
+        if let Some((content, cursor, input_type)) = self.get_active_input_mut() {
+            match input_type {
+                InputType::Date => {
+                    // Date backspace logic is specific
+                    crate::validation::handle_date_backspace(content);
+                    *cursor = content.len();
+                }
+                _ => {
+                    if *cursor > 0 {
+                        let mut prev = *cursor - 1;
+                        while !content.is_char_boundary(prev) {
+                            prev -= 1;
+                        }
+                        if prev < content.len() {
+                            content.remove(prev);
+                            *cursor = prev;
+                        }
+                    }
+                }
+            }
+        }
     }
-    pub(crate) fn previous_add_edit_field(&mut self) {
-        // Move to the previous add/edit field
-        if self.current_add_edit_field == 0 {
-            self.current_add_edit_field = self.add_edit_fields.len() - 1;
-        } else {
-            self.current_add_edit_field -= 1;
+
+    pub(crate) fn delete_char_after_cursor(&mut self) {
+        if let Some((content, cursor, _)) = self.get_active_input_mut() {
+            if *cursor < content.len() {
+                content.remove(*cursor);
+            }
         }
     }
 
@@ -185,8 +246,16 @@ impl App {
                 // Do nothing
             }
             crate::app::settings_types::SettingType::Number => {
-                crate::validation::insert_amount_char(&mut self.settings_state.items[idx].value, c);
-                self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+                if crate::validation::validate_amount_char(&self.settings_state.items[idx].value, c)
+                {
+                    let item = &mut self.settings_state.items[idx];
+                    if self.settings_state.edit_cursor >= item.value.len() {
+                        item.value.push(c);
+                    } else {
+                        item.value.insert(self.settings_state.edit_cursor, c);
+                    }
+                    self.settings_state.edit_cursor += c.len_utf8();
+                }
             }
             crate::app::settings_types::SettingType::Path => {
                 let item = &mut self.settings_state.items[idx];
@@ -206,7 +275,7 @@ impl App {
                     }
                     self.settings_state.edit_cursor = item.value.len();
                 } else {
-                    self.settings_state.edit_cursor += 1;
+                    self.settings_state.edit_cursor += c.len_utf8();
                 }
             }
             crate::app::settings_types::SettingType::Toggle => {}
@@ -225,8 +294,18 @@ impl App {
         match setting_type {
             crate::app::settings_types::SettingType::SectionHeader => {}
             crate::app::settings_types::SettingType::Number => {
-                self.settings_state.items[idx].value.pop();
-                self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+                let cursor = self.settings_state.edit_cursor;
+                let item = &mut self.settings_state.items[idx];
+                if cursor > 0 && !item.value.is_empty() {
+                    let mut prev = cursor - 1;
+                    while !item.value.is_char_boundary(prev) {
+                        prev -= 1;
+                    }
+                    if prev < item.value.len() {
+                        item.value.remove(prev);
+                        self.settings_state.edit_cursor = prev;
+                    }
+                }
             }
             crate::app::settings_types::SettingType::Toggle => {
                 // No-op for delete on toggle
@@ -235,9 +314,13 @@ impl App {
                 let cursor = self.settings_state.edit_cursor;
                 let item = &mut self.settings_state.items[idx];
                 if cursor > 0 && !item.value.is_empty() {
-                    if cursor <= item.value.len() {
-                        item.value.remove(cursor - 1);
-                        self.settings_state.edit_cursor -= 1;
+                    let mut prev = cursor - 1;
+                    while !item.value.is_char_boundary(prev) {
+                        prev -= 1;
+                    }
+                    if prev < item.value.len() {
+                        item.value.remove(prev);
+                        self.settings_state.edit_cursor = prev;
                     }
 
                     if setting_type == crate::app::settings_types::SettingType::Path {

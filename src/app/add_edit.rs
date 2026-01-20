@@ -77,6 +77,7 @@ impl App {
         let today = chrono::Local::now().date_naive();
         self.add_edit_fields[0] = today.format(DATE_FORMAT).to_string();
         self.add_edit_fields[3] = "Expense".to_string();
+        self.add_edit_cursor = self.add_edit_fields[0].len();
         self.clear_status_message();
     }
     pub(crate) fn exit_adding(&mut self, cancelled: bool) {
@@ -200,6 +201,7 @@ impl App {
                         target_tx.category.clone(),
                         target_tx.subcategory.clone(),
                     ];
+                    self.add_edit_cursor = self.add_edit_fields[0].len();
 
                     if target_index == original_index {
                         self.clear_status_message();
@@ -326,6 +328,22 @@ impl App {
             self.exit_editing(true);
         }
     }
+    // --- Field Navigation ---
+    pub(crate) fn next_add_edit_field(&mut self) {
+        self.current_add_edit_field =
+            (self.current_add_edit_field + 1) % self.add_edit_fields.len();
+        self.add_edit_cursor = self.add_edit_fields[self.current_add_edit_field].len();
+    }
+
+    pub(crate) fn previous_add_edit_field(&mut self) {
+        if self.current_add_edit_field == 0 {
+            self.current_add_edit_field = self.add_edit_fields.len() - 1;
+        } else {
+            self.current_add_edit_field -= 1;
+        }
+        self.add_edit_cursor = self.add_edit_fields[self.current_add_edit_field].len();
+    }
+
     // --- Toggle Transaction Type ---
     // Switches between Income and Expense, and clears category/subcategory if type changes.
     pub(crate) fn toggle_transaction_type(&mut self) {
