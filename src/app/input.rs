@@ -246,7 +246,8 @@ impl App {
                 // Do nothing
             }
             crate::app::settings_types::SettingType::Number => {
-                if crate::validation::validate_amount_char(&self.settings_state.items[idx].value, c) {
+                if crate::validation::validate_amount_char(&self.settings_state.items[idx].value, c)
+                {
                     let item = &mut self.settings_state.items[idx];
                     if self.settings_state.edit_cursor >= item.value.len() {
                         item.value.push(c);
@@ -293,18 +294,18 @@ impl App {
         match setting_type {
             crate::app::settings_types::SettingType::SectionHeader => {}
             crate::app::settings_types::SettingType::Number => {
-                 let cursor = self.settings_state.edit_cursor;
-                 let item = &mut self.settings_state.items[idx];
-                 if cursor > 0 && !item.value.is_empty() {
-                     let mut prev = cursor - 1;
-                     while !item.value.is_char_boundary(prev) {
-                         prev -= 1;
-                     }
-                     if prev < item.value.len() {
-                         item.value.remove(prev);
-                         self.settings_state.edit_cursor = prev;
-                     }
-                 }
+                let cursor = self.settings_state.edit_cursor;
+                let item = &mut self.settings_state.items[idx];
+                if cursor > 0 && !item.value.is_empty() {
+                    let mut prev = cursor - 1;
+                    while !item.value.is_char_boundary(prev) {
+                        prev -= 1;
+                    }
+                    if prev < item.value.len() {
+                        item.value.remove(prev);
+                        self.settings_state.edit_cursor = prev;
+                    }
+                }
             }
             crate::app::settings_types::SettingType::Toggle => {
                 // No-op for delete on toggle

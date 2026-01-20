@@ -106,7 +106,8 @@ impl App {
     pub(crate) fn next_advanced_filter_field(&mut self) {
         self.current_advanced_filter_field =
             (self.current_advanced_filter_field + 1) % self.advanced_filter_fields.len();
-        self.advanced_filter_cursor = self.advanced_filter_fields[self.current_advanced_filter_field].len();
+        self.advanced_filter_cursor =
+            self.advanced_filter_fields[self.current_advanced_filter_field].len();
     }
     pub(crate) fn previous_advanced_filter_field(&mut self) {
         if self.current_advanced_filter_field == 0 {
@@ -114,7 +115,8 @@ impl App {
         } else {
             self.current_advanced_filter_field -= 1;
         }
-        self.advanced_filter_cursor = self.advanced_filter_fields[self.current_advanced_filter_field].len();
+        self.advanced_filter_cursor =
+            self.advanced_filter_fields[self.current_advanced_filter_field].len();
     }
     pub(crate) fn toggle_advanced_transaction_type(&mut self) {
         self.clear_simple_filter_field_only();
