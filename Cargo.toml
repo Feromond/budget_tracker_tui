@@ -1,6 +1,6 @@
 [package]
 name = "budget_tracker_tui"
-version = "1.2.1"
+version = "1.2.2"
 edition = "2021"
 authors = ["Jacob Mish <JacobPMish@gmail.com>"]
 description = "A very simple TUI budget tracker app"
@@ -29,7 +29,7 @@ winresource = "0.1.27"
 name = "Budget Tracker"
 identifier = "io.github.Feromond.budget_tracker_tui"
 icon = ["/budget_tracker_icon.png"]
-version = "1.2.1"
+version = "1.2.2"
 copyright = "Copyright Ventra Software Inc. 2025. All rights reserved."
 category = "Finance"
 short_description = "A simple TUI budget tracker."
