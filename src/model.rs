@@ -30,7 +30,7 @@ where
     )))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub enum TransactionType {
     Income,
     Expense,
@@ -47,6 +47,21 @@ impl TryFrom<&str> for TransactionType {
             t if t.starts_with('e') => Ok(TransactionType::Expense),
             _ => Err(()),
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for TransactionType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        TransactionType::try_from(s.as_str()).map_err(|_| {
+            SerdeError::custom(format!(
+                "Invalid transaction type: '{}'. Expected 'Income', 'Expense', 'i', or 'e'.",
+                s
+            ))
+        })
     }
 }
 
