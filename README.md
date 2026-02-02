@@ -78,6 +78,7 @@ If you are on **Windows**, you can download and run the latest installer for a q
 - [Rust](https://www.rust-lang.org/tools/install) (includes `cargo`)
 
 ### Installation & Running
+> Still working on adding support for direct downloads via some linux package managers
 
 **Build and Run Manually:**
 
