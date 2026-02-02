@@ -70,6 +70,7 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 ### Windows Installer (Recommended for Windows Users)
 
 If you are on **Windows**, you can download and run the latest installer for a quick and easy setup. This is the simplest way to get started on Windows—no Rust or Cargo required!
+(NOTE: I do not have a windows developer licence so it will be an unknown publisher)
 
 - [Download the latest Windows installer from the Releases page](https://github.com/Feromond/budget_tracker_tui/releases)
 
