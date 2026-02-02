@@ -321,10 +321,11 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 
     // Add cumulative budget line if in cumulative mode and budget is set
     let mut cumulative_budget_line: Option<Vec<(f64, f64)>> = None;
-    if app.summary_cumulative_mode && app.target_budget.is_some() && !app.summary_multi_month_mode {
-        if let (Some(year), Some(month)) = (current_year, app.selected_summary_month) {
+    if app.summary_cumulative_mode && !app.summary_multi_month_mode {
+        if let (Some(year), Some(month), Some(budget)) =
+            (current_year, app.selected_summary_month, app.target_budget)
+        {
             let num_days = days_in_month(year, month) as usize;
-            let budget = app.target_budget.unwrap();
             if num_days > 0 {
                 let daily_budget = budget / Decimal::from(num_days);
                 let budget_line: Vec<(f64, f64)> = (1..=num_days)
