@@ -4,6 +4,7 @@ pub enum SettingType {
     Path,
     Number,
     Toggle,
+    Action,
 }
 
 #[derive(Debug, Clone)]
