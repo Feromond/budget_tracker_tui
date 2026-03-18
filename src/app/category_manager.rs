@@ -115,7 +115,8 @@ impl App {
     }
 
     pub(crate) fn next_category_field(&mut self) {
-        self.current_category_field = (self.current_category_field + 1) % self.category_edit_fields.len();
+        self.current_category_field =
+            (self.current_category_field + 1) % self.category_edit_fields.len();
         self.category_edit_cursor = self.category_edit_fields[self.current_category_field].len();
     }
 
@@ -204,7 +205,10 @@ impl App {
         }
 
         if let Err(err) = self.reload_categories_from_store() {
-            self.set_status_message(format!("Category deleted, but refresh failed: {}", err), None);
+            self.set_status_message(
+                format!("Category deleted, but refresh failed: {}", err),
+                None,
+            );
             return;
         }
 
@@ -226,9 +230,12 @@ impl App {
             }
         };
 
-        let existing_record = self
-            .editing_category_id
-            .and_then(|id| self.category_records.iter().find(|record| record.id == id).cloned());
+        let existing_record = self.editing_category_id.and_then(|id| {
+            self.category_records
+                .iter()
+                .find(|record| record.id == id)
+                .cloned()
+        });
         let editing_category_id = self.editing_category_id;
 
         let store = self.category_store();
@@ -325,7 +332,9 @@ impl App {
         let target_budget = if target_budget_str.is_empty() {
             None
         } else {
-            Some(crate::validation::validate_amount_string(target_budget_str)?)
+            Some(crate::validation::validate_amount_string(
+                target_budget_str,
+            )?)
         };
 
         Ok(CategoryDraft {

@@ -175,10 +175,7 @@ impl App {
 
         let (seed_categories, load_seed_error_msg) = match load_categories() {
             Ok(cats) => (cats, None),
-            Err(e) => (
-                vec![],
-                Some(format!("Embedded Category Seed Error: {}", e)),
-            ),
+            Err(e) => (vec![], Some(format!("Embedded Category Seed Error: {}", e))),
         };
         let (category_records, load_cat_error_msg) =
             match Self::load_category_records(&initial_database_path, &seed_categories) {
@@ -319,7 +316,8 @@ impl App {
                 let path = PathBuf::from(path_str);
                 if let Some(parent) = path.parent() {
                     if let Err(err) = create_dir_all(parent) {
-                        let fallback = default_path_fn().unwrap_or_else(|_| PathBuf::from(fallback_name));
+                        let fallback =
+                            default_path_fn().unwrap_or_else(|_| PathBuf::from(fallback_name));
                         return (
                             fallback,
                             Some(format!(
@@ -348,7 +346,10 @@ impl App {
     }
 
     fn project_categories(records: &[CategoryRecord]) -> Vec<CategoryInfo> {
-        records.iter().map(CategoryRecord::to_category_info).collect()
+        records
+            .iter()
+            .map(CategoryRecord::to_category_info)
+            .collect()
     }
 
     fn resolve_default_database_path(data_file_path: &Path) -> (PathBuf, Option<String>) {

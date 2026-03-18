@@ -127,8 +127,7 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
             f.render_widget(header, *chunk);
         } else {
             // Render Input Field
-            let is_action =
-                item.setting_type == crate::app::settings_types::SettingType::Action;
+            let is_action = item.setting_type == crate::app::settings_types::SettingType::Action;
             let border_style = if is_focused {
                 Style::default().fg(Color::Yellow)
             } else {
@@ -174,14 +173,12 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
                         .border_style(border_style),
                 )
             } else {
-                Paragraph::new(display_value)
-                    .scroll((0, scroll_x))
-                    .block(
-                        Block::default()
-                            .borders(Borders::ALL)
-                            .title(title)
-                            .border_style(border_style),
-                    )
+                Paragraph::new(display_value).scroll((0, scroll_x)).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(title)
+                        .border_style(border_style),
+                )
             };
 
             f.render_widget(p, *chunk);

@@ -47,11 +47,18 @@ impl SqliteDatabase {
     }
 
     pub fn metadata_value(&self, conn: &Connection, key: &str) -> Result<Option<String>> {
-        conn.query_row("SELECT value FROM database_meta WHERE key = ?1", [key], |row| {
-            row.get::<_, String>(0)
-        })
+        conn.query_row(
+            "SELECT value FROM database_meta WHERE key = ?1",
+            [key],
+            |row| row.get::<_, String>(0),
+        )
         .optional()
-        .map_err(|err| Error::other(format!("Failed to read database metadata '{}': {}", key, err)))
+        .map_err(|err| {
+            Error::other(format!(
+                "Failed to read database metadata '{}': {}",
+                key, err
+            ))
+        })
     }
 
     pub fn set_metadata_value(&self, conn: &Connection, key: &str, value: &str) -> Result<()> {
@@ -63,7 +70,12 @@ impl SqliteDatabase {
             ",
             [key, value],
         )
-        .map_err(|err| Error::other(format!("Failed to write database metadata '{}': {}", key, err)))?;
+        .map_err(|err| {
+            Error::other(format!(
+                "Failed to write database metadata '{}': {}",
+                key, err
+            ))
+        })?;
         Ok(())
     }
 }

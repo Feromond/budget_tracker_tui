@@ -44,7 +44,9 @@ impl SqliteCategoryStore {
     }
 
     fn seed_if_empty(&self, conn: &Connection, seed_categories: &[CategoryInfo]) -> Result<()> {
-        let seeded_flag = self.database.metadata_value(conn, "category_seed_version")?;
+        let seeded_flag = self
+            .database
+            .metadata_value(conn, "category_seed_version")?;
 
         if seeded_flag.is_some() {
             return Ok(());
@@ -62,7 +64,9 @@ impl SqliteCategoryStore {
                 ) VALUES (?1, ?2, ?3, NULL, NULL)
                 ",
             )
-            .map_err(|err| Error::other(format!("Failed to prepare category seed insert: {}", err)))?;
+            .map_err(|err| {
+                Error::other(format!("Failed to prepare category seed insert: {}", err))
+            })?;
 
         for category in seed_categories {
             stmt.execute(params![
@@ -91,9 +95,10 @@ impl SqliteCategoryStore {
             Self::row_to_record,
         )
         .map_err(|err| match err {
-            rusqlite::Error::QueryReturnedNoRows => {
-                Error::new(ErrorKind::NotFound, format!("Category with id {} was not found.", id))
-            }
+            rusqlite::Error::QueryReturnedNoRows => Error::new(
+                ErrorKind::NotFound,
+                format!("Category with id {} was not found.", id),
+            ),
             other => Error::other(format!("Failed to load category {}: {}", id, other)),
         })
     }
@@ -102,31 +107,37 @@ impl SqliteCategoryStore {
         let transaction_type_str: String = row.get(1)?;
         let target_budget_str: Option<String> = row.get(5)?;
 
-        let transaction_type = TransactionType::try_from(transaction_type_str.as_str()).map_err(|_| {
-            rusqlite::Error::FromSqlConversionFailure(
-                1,
-                rusqlite::types::Type::Text,
-                Box::new(Error::new(
-                    ErrorKind::InvalidData,
-                    format!(
-                        "Invalid transaction type '{}' in category database.",
-                        transaction_type_str
-                    ),
-                )),
-            )
-        })?;
-
-        let target_budget = match target_budget_str {
-            Some(value) if !value.trim().is_empty() => Some(Decimal::from_str(value.trim()).map_err(|err| {
+        let transaction_type =
+            TransactionType::try_from(transaction_type_str.as_str()).map_err(|_| {
                 rusqlite::Error::FromSqlConversionFailure(
-                    5,
+                    1,
                     rusqlite::types::Type::Text,
                     Box::new(Error::new(
                         ErrorKind::InvalidData,
-                        format!("Invalid target budget '{}' in category database: {}", value, err),
+                        format!(
+                            "Invalid transaction type '{}' in category database.",
+                            transaction_type_str
+                        ),
                     )),
                 )
-            })?),
+            })?;
+
+        let target_budget = match target_budget_str {
+            Some(value) if !value.trim().is_empty() => {
+                Some(Decimal::from_str(value.trim()).map_err(|err| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        5,
+                        rusqlite::types::Type::Text,
+                        Box::new(Error::new(
+                            ErrorKind::InvalidData,
+                            format!(
+                                "Invalid target budget '{}' in category database: {}",
+                                value, err
+                            ),
+                        )),
+                    )
+                })?)
+            }
             _ => None,
         };
 
@@ -264,4 +275,3 @@ impl CategoryStore for SqliteCategoryStore {
         Ok(())
     }
 }
-

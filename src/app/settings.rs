@@ -420,7 +420,9 @@ impl App {
             .filter(|value| !value.trim().is_empty());
 
         let default_path = match data_path_value {
-            Some(path_str) => Self::default_database_path_for_data_path(PathBuf::from(path_str).as_path()),
+            Some(path_str) => {
+                Self::default_database_path_for_data_path(PathBuf::from(path_str).as_path())
+            }
             None => Self::get_default_database_file_path()
                 .unwrap_or_else(|_| PathBuf::from("budget.db")),
         };

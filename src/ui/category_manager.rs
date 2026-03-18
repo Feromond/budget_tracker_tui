@@ -17,7 +17,11 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
     }
 
     let header = Row::new(["Type", "Category", "Subcategory", "Tag", "Target Budget"])
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .height(1);
 
     let rows = app.category_records.iter().map(|record| {
@@ -30,13 +34,15 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
                 record.subcategory.clone()
             }),
             Cell::from(record.tag.clone().unwrap_or_default()),
-            Cell::from(Line::from(
-                record
-                    .target_budget
-                    .map(|value| format!("{value:.2}"))
-                    .unwrap_or_default(),
-            )
-            .alignment(Alignment::Right)),
+            Cell::from(
+                Line::from(
+                    record
+                        .target_budget
+                        .map(|value| format!("{value:.2}"))
+                        .unwrap_or_default(),
+                )
+                .alignment(Alignment::Right),
+            ),
         ])
     });
 
