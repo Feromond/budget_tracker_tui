@@ -362,6 +362,7 @@ impl App {
         if let Some(item) = self.settings_state.items.get_mut(idx) {
             if item.setting_type != crate::app::settings_types::SettingType::SectionHeader
                 && item.setting_type != crate::app::settings_types::SettingType::Action
+                && item.setting_type != crate::app::settings_types::SettingType::Toggle
             {
                 item.value.clear();
                 self.settings_state.edit_cursor = 0;
