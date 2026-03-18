@@ -1,3 +1,4 @@
+pub mod category_manager;
 pub mod category_summary;
 pub mod dialog;
 pub mod filter;
@@ -86,6 +87,16 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         }
         AppMode::CategorySummary => {
             category_summary::render_category_summary_view(f, app, main_area);
+        }
+        AppMode::CategoryCatalog => {
+            category_manager::render_category_catalog(f, app, main_area);
+        }
+        AppMode::CategoryEditor => {
+            category_manager::render_category_editor(f, app, main_area);
+        }
+        AppMode::ConfirmCategoryDelete => {
+            category_manager::render_category_catalog(f, app, main_area);
+            dialog::render_confirmation_dialog(f, "Delete selected category? (y/n)", main_area);
         }
         AppMode::Settings => {
             transaction_table::render_transaction_table(f, app, main_area);
