@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 use serde::de::Error as SerdeError;
 use serde::Deserializer;
@@ -34,6 +35,21 @@ where
 pub enum TransactionType {
     Income,
     Expense,
+}
+
+impl TransactionType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            TransactionType::Income => "Income",
+            TransactionType::Expense => "Expense",
+        }
+    }
+}
+
+impl fmt::Display for TransactionType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 impl TryFrom<&str> for TransactionType {
@@ -194,4 +210,43 @@ pub struct CategoryInfo {
     pub transaction_type: TransactionType,
     pub category: String,
     pub subcategory: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CategoryDraft {
+    pub transaction_type: TransactionType,
+    pub category: String,
+    pub subcategory: String,
+    pub tag: Option<String>,
+    pub target_budget: Option<Decimal>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CategoryRecord {
+    pub id: i64,
+    pub transaction_type: TransactionType,
+    pub category: String,
+    pub subcategory: String,
+    pub tag: Option<String>,
+    pub target_budget: Option<Decimal>,
+}
+
+impl CategoryRecord {
+    pub fn to_category_info(&self) -> CategoryInfo {
+        CategoryInfo {
+            transaction_type: self.transaction_type,
+            category: self.category.clone(),
+            subcategory: self.subcategory.clone(),
+        }
+    }
+
+    pub fn to_draft(&self) -> CategoryDraft {
+        CategoryDraft {
+            transaction_type: self.transaction_type,
+            category: self.category.clone(),
+            subcategory: self.subcategory.clone(),
+            tag: self.tag.clone(),
+            target_budget: self.target_budget,
+        }
+    }
 }
