@@ -1,5 +1,7 @@
 use crate::app::update_checker;
+use crate::category_store::{CategoryStore, SqliteCategoryStore};
 use crate::config::{load_settings, AppSettings};
+use crate::database::SqliteDatabase;
 use crate::model::*;
 use crate::persistence::{load_categories, load_transactions};
 use chrono::{Datelike, Duration, NaiveDate};
@@ -8,7 +10,7 @@ use rust_decimal::Decimal;
 use std::collections::{HashMap, HashSet};
 use std::fs::create_dir_all;
 use std::io::{Error, ErrorKind};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::thread;
 
@@ -37,6 +39,9 @@ pub enum AppMode {
     KeybindingsInfo,
     KeybindingDetail,
     FuzzyFinding,
+    CategoryCatalog,
+    CategoryEditor,
+    ConfirmCategoryDelete,
 }
 
 #[derive(Debug)]
@@ -49,7 +54,9 @@ pub struct App {
     pub(crate) transactions: Vec<Transaction>,
     pub(crate) filtered_indices: Vec<usize>,
     pub(crate) categories: Vec<CategoryInfo>,
+    pub(crate) category_records: Vec<CategoryRecord>,
     pub(crate) data_file_path: PathBuf,
+    pub(crate) database_path: PathBuf,
     pub(crate) should_quit: bool,
     pub(crate) table_state: TableState,
     pub(crate) mode: AppMode,
@@ -90,6 +97,13 @@ pub struct App {
     pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
     // Settings form state
     pub(crate) settings_state: crate::app::settings_types::SettingsState,
+    // Category catalog state
+    pub(crate) category_table_state: TableState,
+    pub(crate) category_edit_fields: [String; 5], // [type, category, subcategory, tag, target_budget]
+    pub(crate) current_category_field: usize,
+    pub(crate) category_edit_cursor: usize,
+    pub(crate) editing_category_id: Option<i64>,
+    pub(crate) category_delete_id: Option<i64>,
     // Budget
     pub(crate) target_budget: Option<Decimal>,
     pub(crate) hourly_rate: Option<Decimal>,
@@ -127,42 +141,24 @@ impl App {
                 Some(format!("Config Load Error: {}. Using defaults.", e)),
             ),
         };
-        // --- Determine Data File Path (based on settings or default) ---
-        let (initial_data_file_path, path_error_msg) = match loaded_settings.data_file_path {
-            Some(path_str) => {
-                let path = PathBuf::from(path_str);
-                if let Some(parent) = path.parent() {
-                    if !parent.exists() {
-                        if let Err(e) = create_dir_all(parent) {
-                            {
-                                let fallback = match Self::get_default_data_file_path() {
-                                    Ok(p) => p,
-                                    Err(_) => PathBuf::from("transactions.csv"),
-                                };
-                                (
-                                    fallback,
-                                    Some(format!("Config Path Error: Could not create parent dir for {}: {}. Using default.", path.display(), e)),
-                                )
-                            }
-                        } else {
-                            (path, None) // Parent created successfully
-                        }
-                    } else {
-                        (path, None) // Parent already exists
-                    }
-                } else {
-                    (path, None) // Path has no parent (e.g., relative path in current dir)
-                }
-            }
-            None => match Self::get_default_data_file_path() {
-                // No path in config, use default logic
-                Ok(path) => (path, None),
-                Err(e) => (
-                    PathBuf::from("transactions.csv"),
-                    Some(format!("Data Dir Error: {}. Using local.", e)),
+
+        let (initial_data_file_path, data_path_error_msg) = Self::resolve_configured_path(
+            loaded_settings.data_file_path.clone(),
+            Self::get_default_data_file_path,
+            "transactions.csv",
+            "Data file",
+        );
+        let (initial_database_path, database_path_error_msg) =
+            match loaded_settings.database_path.clone() {
+                Some(path) => Self::resolve_configured_path(
+                    Some(path),
+                    Self::get_default_database_file_path,
+                    "budget.db",
+                    "Database",
                 ),
-            },
-        };
+                None => Self::resolve_default_database_path(&initial_data_file_path),
+            };
+
         // --- Load Transactions ---
         let (mut transactions, load_tx_specific_error_msg) =
             match load_transactions(&initial_data_file_path) {
@@ -176,11 +172,39 @@ impl App {
                     )),
                 ),
             };
-        // Combine potential errors (settings, path, tx load)
+
+        let (seed_categories, load_seed_error_msg) = match load_categories() {
+            Ok(cats) => (cats, None),
+            Err(e) => (
+                vec![],
+                Some(format!("Embedded Category Seed Error: {}", e)),
+            ),
+        };
+        let (category_records, load_cat_error_msg) =
+            match Self::load_category_records(&initial_database_path, &seed_categories) {
+                Ok(records) => (records, None),
+                Err(e) => (
+                    vec![],
+                    Some(format!(
+                        "Category DB Error [{}]: {}",
+                        initial_database_path.display(),
+                        e
+                    )),
+                ),
+            };
+        let categories = if category_records.is_empty() {
+            seed_categories.clone()
+        } else {
+            Self::project_categories(&category_records)
+        };
+
+        // Combine potential errors (settings, paths, tx load, category load)
         let load_tx_error_msg = [
             load_settings_error_msg,
-            path_error_msg,
+            data_path_error_msg,
             load_tx_specific_error_msg,
+            database_path_error_msg,
+            load_seed_error_msg,
         ]
         .into_iter()
         .flatten()
@@ -191,11 +215,7 @@ impl App {
         } else {
             Some(load_tx_error_msg)
         };
-        // --- Load Categories ---
-        let (categories, load_cat_error_msg) = match load_categories() {
-            Ok(cats) => (cats, None),
-            Err(e) => (vec![], Some(format!("Load Category Error: {}", e))),
-        };
+
         // --- Combine All Load Errors ---
         let load_error_msg = match (load_tx_error_msg, load_cat_error_msg) {
             (Some(tx_err), Some(cat_err)) => Some(format!("{} | {}", tx_err, cat_err)),
@@ -215,7 +235,9 @@ impl App {
             transactions,
             filtered_indices: initial_filtered_indices,
             categories,
+            category_records,
             data_file_path: initial_data_file_path,
+            database_path: initial_database_path,
             should_quit: false,
             table_state: TableState::default(),
             mode: AppMode::Normal,
@@ -250,6 +272,12 @@ impl App {
             expanded_category_summary_months: HashSet::new(),
             cached_visible_category_items: Vec::new(),
             settings_state: crate::app::settings_types::SettingsState::default(),
+            category_table_state: TableState::default(),
+            category_edit_fields: Default::default(),
+            current_category_field: 0,
+            category_edit_cursor: 0,
+            editing_category_id: None,
+            category_delete_id: None,
             target_budget: loaded_settings.target_budget,
             hourly_rate: loaded_settings.hourly_rate,
             show_hours: loaded_settings.show_hours.unwrap_or(false),
@@ -279,6 +307,111 @@ impl App {
 
         app
     }
+
+    fn resolve_configured_path(
+        configured_path: Option<String>,
+        default_path_fn: fn() -> Result<PathBuf, Error>,
+        fallback_name: &str,
+        label: &str,
+    ) -> (PathBuf, Option<String>) {
+        match configured_path {
+            Some(path_str) => {
+                let path = PathBuf::from(path_str);
+                if let Some(parent) = path.parent() {
+                    if let Err(err) = create_dir_all(parent) {
+                        let fallback = default_path_fn().unwrap_or_else(|_| PathBuf::from(fallback_name));
+                        return (
+                            fallback,
+                            Some(format!(
+                                "{} path error: Could not create parent dir for {}: {}. Using default.",
+                                label,
+                                path.display(),
+                                err
+                            )),
+                        );
+                    }
+                }
+
+                (path, None)
+            }
+            None => match default_path_fn() {
+                Ok(path) => (path, None),
+                Err(err) => (
+                    PathBuf::from(fallback_name),
+                    Some(format!(
+                        "{} default path error: {}. Using local '{}'.",
+                        label, err, fallback_name
+                    )),
+                ),
+            },
+        }
+    }
+
+    fn project_categories(records: &[CategoryRecord]) -> Vec<CategoryInfo> {
+        records.iter().map(CategoryRecord::to_category_info).collect()
+    }
+
+    fn resolve_default_database_path(data_file_path: &Path) -> (PathBuf, Option<String>) {
+        let default_path = Self::default_database_path_for_data_path(data_file_path);
+
+        if let Some(parent) = default_path.parent() {
+            if let Err(err) = create_dir_all(parent) {
+                return (
+                    PathBuf::from("budget.db"),
+                    Some(format!(
+                        "Database default path error: Could not create parent dir for {}: {}. Using local 'budget.db'.",
+                        default_path.display(),
+                        err
+                    )),
+                );
+            }
+        }
+
+        (default_path, None)
+    }
+
+    fn category_store_for_path(database_path: &Path) -> SqliteCategoryStore {
+        SqliteCategoryStore::new(SqliteDatabase::new(database_path))
+    }
+
+    pub(crate) fn category_store(&self) -> SqliteCategoryStore {
+        Self::category_store_for_path(&self.database_path)
+    }
+
+    pub(crate) fn initialize_category_database(
+        database_path: &Path,
+        seed_categories: &[CategoryInfo],
+    ) -> Result<(), Error> {
+        let store = Self::category_store_for_path(database_path);
+        store.initialize(seed_categories)?;
+        Ok(())
+    }
+
+    fn load_category_records(
+        database_path: &Path,
+        seed_categories: &[CategoryInfo],
+    ) -> Result<Vec<CategoryRecord>, Error> {
+        let store = Self::category_store_for_path(database_path);
+        store.initialize(seed_categories)?;
+        store.list()
+    }
+
+    pub(crate) fn refresh_category_state(&mut self, records: Vec<CategoryRecord>) {
+        self.category_records = records;
+        self.categories = Self::project_categories(&self.category_records);
+    }
+
+    pub(crate) fn refresh_categories_from_database(&mut self) -> Result<(), Error> {
+        let store = self.category_store();
+        let records = store.list()?;
+        self.refresh_category_state(records);
+        Ok(())
+    }
+
+    pub(crate) fn reload_categories_from_store(&mut self) -> Result<(), Error> {
+        self.refresh_categories_from_database()
+    }
+
     pub fn quit(&mut self) {
         self.should_quit = true;
     }
@@ -532,6 +665,20 @@ impl App {
                 "Could not find user data directory",
             )),
         }
+    }
+
+    pub fn default_database_path_for_data_path(data_file_path: &Path) -> PathBuf {
+        const DATABASE_FILE_NAME: &str = "budget.db";
+
+        match data_file_path.parent() {
+            Some(parent) => parent.join(DATABASE_FILE_NAME),
+            None => PathBuf::from(DATABASE_FILE_NAME),
+        }
+    }
+
+    pub fn get_default_database_file_path() -> Result<PathBuf, Error> {
+        Self::get_default_data_file_path()
+            .map(|data_path| Self::default_database_path_for_data_path(&data_path))
     }
     // --- Sorting Logic ---
     pub(crate) fn set_sort_column(&mut self, column: SortColumn) {
