@@ -34,6 +34,19 @@ impl App {
                     input_type,
                 ))
             }
+            AppMode::CategoryEditor => {
+                let idx = self.current_category_field;
+                let input_type = match idx {
+                    1..=3 => InputType::Text,
+                    4 => InputType::Amount,
+                    _ => return None,
+                };
+                Some((
+                    &mut self.category_edit_fields[idx],
+                    &mut self.category_edit_cursor,
+                    input_type,
+                ))
+            }
             AppMode::AdvancedFiltering => {
                 let idx = self.current_advanced_filter_field;
                 let input_type = match idx {
@@ -205,6 +218,9 @@ impl App {
     pub(crate) fn move_cursor_left_settings(&mut self) {
         let idx = self.settings_state.selected_index;
         if let Some(item) = self.settings_state.items.get_mut(idx) {
+            if item.setting_type == crate::app::settings_types::SettingType::Action {
+                return;
+            }
             if item.setting_type == crate::app::settings_types::SettingType::Toggle {
                 // Left sets to No
                 item.value = " No ▶".to_string();
@@ -221,6 +237,9 @@ impl App {
     pub(crate) fn move_cursor_right_settings(&mut self) {
         let idx = self.settings_state.selected_index;
         if let Some(item) = self.settings_state.items.get_mut(idx) {
+            if item.setting_type == crate::app::settings_types::SettingType::Action {
+                return;
+            }
             if item.setting_type == crate::app::settings_types::SettingType::Toggle {
                 // Right sets to Yes
                 item.value = "◀ Yes ".to_string();
@@ -279,6 +298,7 @@ impl App {
                 }
             }
             crate::app::settings_types::SettingType::Toggle => {}
+            crate::app::settings_types::SettingType::Action => {}
         }
         self.update_settings_visibility();
     }
@@ -310,6 +330,7 @@ impl App {
             crate::app::settings_types::SettingType::Toggle => {
                 // No-op for delete on toggle
             }
+            crate::app::settings_types::SettingType::Action => {}
             _ => {
                 let cursor = self.settings_state.edit_cursor;
                 let item = &mut self.settings_state.items[idx];
@@ -339,7 +360,9 @@ impl App {
     pub(crate) fn clear_settings_field(&mut self) {
         let idx = self.settings_state.selected_index;
         if let Some(item) = self.settings_state.items.get_mut(idx) {
-            if item.setting_type != crate::app::settings_types::SettingType::SectionHeader {
+            if item.setting_type != crate::app::settings_types::SettingType::SectionHeader
+                && item.setting_type != crate::app::settings_types::SettingType::Action
+            {
                 item.value.clear();
                 self.settings_state.edit_cursor = 0;
             }
