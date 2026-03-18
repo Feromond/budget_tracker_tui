@@ -426,7 +426,7 @@ impl App {
         };
 
         let clean_path =
-            crate::validation::strip_path_quotes(&default_path.to_string_lossy().to_string());
+            crate::validation::strip_path_quotes(default_path.to_string_lossy().as_ref());
 
         if let Some(idx) = self
             .settings_state
