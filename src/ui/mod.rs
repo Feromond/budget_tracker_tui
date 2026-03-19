@@ -32,7 +32,23 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         0
     };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
-    let summary_bar_height = if render_mode == AppMode::CategorySummary {
+    let summary_bar_height = if matches!(
+        render_mode,
+        AppMode::CategorySummary
+            | AppMode::Settings
+            | AppMode::CategoryCatalog
+            | AppMode::CategoryEditor
+            | AppMode::ConfirmCategoryDelete
+            | AppMode::Adding
+            | AppMode::Editing
+            | AppMode::FuzzyFinding
+            | AppMode::RecurringSettings
+            | AppMode::SelectingRecurrenceFrequency
+            | AppMode::SelectingCategory
+            | AppMode::SelectingSubcategory
+            | AppMode::KeybindingsInfo
+            | AppMode::KeybindingDetail
+    ) {
         0
     } else {
         3
@@ -128,12 +144,12 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             .copied(),
         _ => None, // No year filter for other modes - show all transactions as before
     };
-
-    summary::render_summary_bar(f, app, summary_area, year_filter);
-
+    
     if let Some(msg) = &app.status_message {
         status::render_status_bar(f, msg, status_area);
     }
+
+    summary::render_summary_bar(f, app, summary_area, year_filter);
 
     if !app.hide_help_bar {
         help::render_help_bar(f, app, help_area);
