@@ -27,6 +27,11 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
   
   <img width="1000" height="612" alt="summary_view" src="https://github.com/user-attachments/assets/016d6227-3e3d-4a7f-ad3c-efdcba7dd068" />
   <br><i>Monthly summary with interactive chart and budget line</i><br><br>
+
+  
+
+  <img width="1009" height="593" alt="budget_view" src="https://github.com/user-attachments/assets/c5b25f94-8364-4f11-ba40-383a4e9bb850" />
+  <br><i>Budget View with yearly, monthly, and categorically focused data</i><br><br>
   
   ### SEE MORE SCREENSHOTS HERE <>
   <details>
@@ -42,6 +47,10 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
     <br><i>Options Menu with Help / Keybindings Menu Open</i><br><br>
     <img width="1000" height="612" alt="fuzzy_find" src="https://github.com/user-attachments/assets/9c6217f3-dbf5-47a9-8e86-b61c35449ba5" />
     <br><i>Category/Sub-Category Fuzzy Search Enabled view</i><br><br>
+    <img width="1009" height="593" alt="category_catalog" src="https://github.com/user-attachments/assets/0f9430a9-50dc-4fec-ab2f-59ba21c331ca" />
+    <br><i>Category Catalog - Editable categories and custom category creation</i><br><br>
+    
+    
   </p>
 </details>
 </p>
