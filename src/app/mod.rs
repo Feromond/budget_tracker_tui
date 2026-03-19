@@ -1,4 +1,5 @@
 pub mod add_edit;
+pub mod budget;
 pub mod category_manager;
 pub mod category_select;
 pub mod filter;
