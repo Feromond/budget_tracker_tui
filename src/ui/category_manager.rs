@@ -25,6 +25,15 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
         .height(1);
 
     let rows = app.category_records.iter().map(|record| {
+        let target_budget = record.target_budget.map(|value| {
+            Cell::from(Line::from(format!("{value:.2}")).alignment(Alignment::Right)).style(
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .bg(Color::Rgb(20, 20, 20))
+                    .add_modifier(Modifier::BOLD),
+            )
+        });
+
         Row::new(vec![
             Cell::from(record.transaction_type.to_string()),
             Cell::from(record.category.clone()),
@@ -34,15 +43,7 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
                 record.subcategory.clone()
             }),
             Cell::from(record.tag.clone().unwrap_or_default()),
-            Cell::from(
-                Line::from(
-                    record
-                        .target_budget
-                        .map(|value| format!("{value:.2}"))
-                        .unwrap_or_default(),
-                )
-                .alignment(Alignment::Right),
-            ),
+            target_budget.unwrap_or_else(|| Cell::from(Line::from("").alignment(Alignment::Right))),
         ])
     });
 
@@ -65,12 +66,20 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
+    let income_category = app.category_edit_fields[0].eq_ignore_ascii_case("income");
     let field_definitions = [
         ("Transaction Type", "(Left/Right or Enter to toggle)"),
         ("Category", ""),
         ("Subcategory", "(Optional)"),
         ("Tag", "(Optional)"),
-        ("Target Budget", "(Optional, positive number)"),
+        (
+            "Target Budget",
+            if income_category {
+                "(Expense categories only)"
+            } else {
+                "(Optional, positive number)"
+            },
+        ),
     ];
     let input_widgets: Vec<_> = app
         .category_edit_fields
@@ -85,6 +94,8 @@ pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
                     format!(" < {} > ", text),
                     Style::default().fg(Color::White).bold(),
                 )
+            } else if index == 4 && income_category && text.is_empty() {
+                Span::styled("Expense categories only", Style::default().fg(Color::DarkGray))
             } else {
                 Span::raw(text.as_str())
             };
