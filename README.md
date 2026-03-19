@@ -4,6 +4,8 @@
   <img src="budget_tracker_icon.png" alt="Budget Tracker Logo" width="150"/>
 </p>
 
+[![Built With Ratatui](https://ratatui.rs/built-with-ratatui/badge.svg)](https://ratatui.rs/)
+
 A fast, modern, and efficient Terminal User Interface (TUI) application for tracking your personal budget, built with [Rust](https://www.rust-lang.org) and [Ratatui](https://ratatui.rs).
 
 ## 📚 Table of Contents
