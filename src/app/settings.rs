@@ -278,10 +278,14 @@ impl App {
         } else {
             self.categories.clone()
         };
-        if let Err(e) = Self::initialize_category_database(&new_database_path, &seed_categories) {
+        if let Err(e) = Self::prepare_category_database_for_path_change(
+            &self.database_path,
+            &new_database_path,
+            &seed_categories,
+        ) {
             self.set_status_message(
                 format!(
-                    "Error creating or opening database '{}': {}. Check path and permissions.",
+                    "Error preparing database '{}': {}. Check path and permissions.",
                     new_database_path.display(),
                     e
                 ),

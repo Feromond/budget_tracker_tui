@@ -8,7 +8,7 @@ use chrono::{Datelike, Duration, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
 use rust_decimal::Decimal;
 use std::collections::{HashMap, HashSet};
-use std::fs::create_dir_all;
+use std::fs::{copy, create_dir_all};
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -405,6 +405,30 @@ impl App {
         let store = Self::category_store_for_path(database_path);
         store.initialize(seed_categories)?;
         Ok(())
+    }
+
+    pub(crate) fn prepare_category_database_for_path_change(
+        current_database_path: &Path,
+        new_database_path: &Path,
+        seed_categories: &[CategoryInfo],
+    ) -> Result<(), Error> {
+        if current_database_path != new_database_path
+            && !new_database_path.exists()
+            && current_database_path.exists()
+        {
+            let destination_database = SqliteDatabase::new(new_database_path);
+            destination_database.ensure_parent_dir()?;
+            copy(current_database_path, new_database_path).map_err(|err| {
+                Error::other(format!(
+                    "Failed to copy database from '{}' to '{}': {}",
+                    current_database_path.display(),
+                    new_database_path.display(),
+                    err
+                ))
+            })?;
+        }
+
+        Self::initialize_category_database(new_database_path, seed_categories)
     }
 
     fn load_category_records(
