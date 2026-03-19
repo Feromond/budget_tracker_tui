@@ -33,7 +33,7 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
                     .fg(Color::LightBlue)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(" Recur | "),
+            Span::raw(" Rcr | "),
             Span::styled(
                 "f",
                 Style::default()
@@ -56,12 +56,19 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             ),
             Span::raw(" Cate | "),
             Span::styled(
+                "b",
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Budg | "),
+            Span::styled(
                 "1-6",
                 Style::default()
                     .fg(Color::LightBlue)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(" Sort | "),
+            Span::raw(" Srt | "),
             Span::styled(
                 "q/Esc",
                 Style::default()
@@ -180,6 +187,31 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(" Month Jump | "),
             Span::styled("Enter", Style::default().fg(Color::Magenta)),
             Span::raw(" ▶ Expand ▼ Collapse | "),
+            Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Back"),
+        ],
+        AppMode::Budget => vec![
+            Span::styled(
+                "↑↓",
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Rows | "),
+            Span::styled(
+                "←→",
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Month | "),
+            Span::styled(
+                "Shift+←→",
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Year | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
             Span::raw(" Back"),
         ],
