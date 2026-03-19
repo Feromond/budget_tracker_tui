@@ -7,8 +7,8 @@ use std::result::Result as StdResult;
 use std::time::Duration;
 
 use super::{
-    add_edit_mode, category_manager_mode, filter_mode, fuzzy_search_mode, help_mode, normal_mode,
-    recurring_mode, selection_mode, settings_mode, summary_mode,
+    add_edit_mode, budget_mode, category_manager_mode, filter_mode, fuzzy_search_mode, help_mode,
+    normal_mode, recurring_mode, selection_mode, settings_mode, summary_mode,
 };
 
 pub fn run_app<B: Backend>(
@@ -73,8 +73,8 @@ where
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Char in Adding, Editing and FuzzyFinding modes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::FuzzyFinding || app.mode == AppMode::CategoryEditor) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
-                                // Allow Shift+Arrow in Adding, Editing, AdvancedFiltering, and RecurringSettings modes for month changes
-                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering || app.mode == AppMode::RecurringSettings)
+                                // Allow Shift+Arrow in date-like navigation modes
+                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering || app.mode == AppMode::RecurringSettings || app.mode == AppMode::Budget)
                                     && key.modifiers == KeyModifiers::SHIFT
                                     && matches!(key.code, KeyCode::Left | KeyCode::Right))
                                 // Allow Ctrl+F/R in simple Filtering mode and Ctrl+R in AdvancedFiltering mode
@@ -151,6 +151,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
         AppMode::Summary | AppMode::CategorySummary => {
             summary_mode::handle_summary_mode(app, key_event)
         }
+        AppMode::Budget => budget_mode::handle_budget_mode(app, key_event),
         AppMode::SelectingCategory
         | AppMode::SelectingSubcategory
         | AppMode::SelectingFilterCategory
