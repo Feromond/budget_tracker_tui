@@ -33,6 +33,7 @@ pub enum AppMode {
     SelectingCategory,
     SelectingSubcategory,
     CategorySummary,
+    Budget,
     Settings,
     RecurringSettings,
     SelectingRecurrenceFrequency,
@@ -48,6 +49,14 @@ pub enum AppMode {
 pub enum CategorySummaryItem {
     Month(u32, MonthlySummary),
     Subcategory(u32, String, String, MonthlySummary),
+}
+
+#[derive(Debug, Clone)]
+pub struct BudgetCategoryComparison {
+    pub category: String,
+    pub subcategory: String,
+    pub target_budget: Decimal,
+    pub actual_expense: Decimal,
 }
 
 pub struct App {
@@ -95,6 +104,11 @@ pub struct App {
     pub(crate) expanded_category_summary_months: HashSet<u32>,
     // Flattened list of visible items for rendering and navigation
     pub(crate) cached_visible_category_items: Vec<CategorySummaryItem>,
+    // Budget view state
+    pub(crate) budget_years: Vec<i32>,
+    pub(crate) budget_year_index: usize,
+    pub(crate) selected_budget_month: Option<u32>,
+    pub(crate) budget_table_state: TableState,
     // Settings form state
     pub(crate) settings_state: crate::app::settings_types::SettingsState,
     // Category catalog state
@@ -268,6 +282,10 @@ impl App {
             category_summary_table_state: TableState::default(),
             expanded_category_summary_months: HashSet::new(),
             cached_visible_category_items: Vec::new(),
+            budget_years: Vec::new(),
+            budget_year_index: 0,
+            selected_budget_month: None,
+            budget_table_state: TableState::default(),
             settings_state: crate::app::settings_types::SettingsState::default(),
             category_table_state: TableState::default(),
             category_edit_fields: Default::default(),
@@ -292,6 +310,7 @@ impl App {
         };
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
+        app.refresh_budget_years();
         if !app.summary_years.is_empty() {
             app.selected_summary_year_index = app.summary_years.len() - 1;
         }
@@ -421,6 +440,7 @@ impl App {
             AppMode::Normal | AppMode::Filtering => self.filtered_indices.len(),
             AppMode::Summary => 12,
             AppMode::CategorySummary => self.cached_visible_category_items.len(),
+            AppMode::Budget => 12,
             _ => 0,
         };
         if list_len == 0 {
@@ -439,6 +459,7 @@ impl App {
             AppMode::Normal | AppMode::Filtering => self.filtered_indices.len(),
             AppMode::Summary => 12,
             AppMode::CategorySummary => self.cached_visible_category_items.len(),
+            AppMode::Budget => 12,
             _ => 0,
         };
         if list_len == 0 {
@@ -572,6 +593,7 @@ impl App {
         } else {
             self.selected_summary_year_index = 0;
         }
+        self.refresh_budget_years();
     }
     pub(crate) fn calculate_category_summaries(&mut self) {
         self.category_summaries.clear();
