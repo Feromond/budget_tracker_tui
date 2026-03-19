@@ -157,7 +157,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
         AppMode::RecurringSettings => vec![
             KeyBindingInfo::new("Tab/↑/↓", "Navigate fields", "Navigation", None),
             KeyBindingInfo::new("Active", "Enable/Disable", "Fields", Some("Toggle if this transaction will be recurring.")),
-            KeyBindingInfo::new("Frequency", "Recurrence Interval", "Fields", Some("Determines the interval for the transaction. 'Daily', 'Weekly', 'Monthly', or 'Yearly'. The app will automatically generate these transactions up to the current date when you open it.")),
+            KeyBindingInfo::new("Frequency", "Recurrence Interval", "Fields", Some("Determines the interval for the transaction. Options include 'Daily', 'Weekly', 'Bi-Weekly', 'Semi-Monthly', 'Monthly', 'Quarterly', and 'Yearly'. The app will automatically generate these transactions up to the current date when you open it.")),
             KeyBindingInfo::new("End Date", "Stop Date", "Fields", Some("Optional. If set, the recurring transaction will stop being generated after this date. Leave empty for indefinite recurrence.")),
             KeyBindingInfo::new("Enter", "Select / Save", "Actions", None),
             KeyBindingInfo::new("Esc", "Cancel", "Actions", None),
