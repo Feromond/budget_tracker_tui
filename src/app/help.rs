@@ -52,7 +52,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Tab/↑/↓", "Navigate fields", "Navigation", None),
             KeyBindingInfo::new("Date Field", "Transaction Date (YYYY-MM-DD)", "Fields", Some("Enter the date of the transaction (YYYY-MM-DD). Use Arrow keys to adjust day by day. Hold Shift + Arrow keys to jump by month. Accurate dating helps with monthly filtering.")),
             KeyBindingInfo::new("Amount Field", "Transaction Amount", "Fields", Some("Numerical value of the transaction. Positive numbers are standard. The 'Type' field determines if it's income or expense. For expenses, enter the positive cost.")),
-            KeyBindingInfo::new("Category", "Main Category", "Fields", Some("Primary classification (e.g., 'Food', 'Housing'). Press Enter to open a selection list of existing categories or type a new one to create it.")),
+            KeyBindingInfo::new("Category", "Main Category", "Fields", Some("Primary classification (e.g., 'Food', 'Housing'). Press Enter to open a selection list of categories from the current catalog.")),
             KeyBindingInfo::new("Subcategory", "Sub Category", "Fields", Some("More specific classification (e.g., 'Groceries', 'Rent'). Useful for detailed breakdown in the Category Summary view.")),
             KeyBindingInfo::new("Type", "Expense / Income", "Fields", Some("Classifies the transaction as 'Expense' or 'Income'. This affects how totals are calculated in summaries. Use Left/Right arrows to toggle.")),
             KeyBindingInfo::new("Description", "Notes / Details", "Fields", Some("Optional details about the transaction. Add context that doesn't fit in categories.")),
