@@ -1,3 +1,4 @@
+pub mod budget;
 pub mod category_manager;
 pub mod category_summary;
 pub mod dialog;
@@ -35,6 +36,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
     let summary_bar_height = if matches!(
         render_mode,
         AppMode::CategorySummary
+            | AppMode::Budget
             | AppMode::Settings
             | AppMode::CategoryCatalog
             | AppMode::CategoryEditor
@@ -104,6 +106,9 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::CategorySummary => {
             category_summary::render_category_summary_view(f, app, main_area);
         }
+        AppMode::Budget => {
+            budget::render_budget_view(f, app, main_area);
+        }
         AppMode::CategoryCatalog => {
             category_manager::render_category_catalog(f, app, main_area);
         }
@@ -142,6 +147,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             .category_summary_years
             .get(app.category_summary_year_index)
             .copied(),
+        AppMode::Budget => app.selected_budget_year(),
         _ => None, // No year filter for other modes - show all transactions as before
     };
     
