@@ -129,6 +129,57 @@ pub fn open_url(url: &str) -> bool {
     result.map(|_| true).unwrap_or(false)
 }
 
+pub fn apply_category_update(
+    transactions: &mut [Transaction],
+    old_record: &CategoryRecord,
+    new_draft: &CategoryDraft,
+) -> bool {
+    let mut changed = false;
+
+    for transaction in transactions {
+        if transaction_matches_category_record(transaction, old_record) {
+            transaction.transaction_type = new_draft.transaction_type;
+            transaction.category = new_draft.category.clone();
+            transaction.subcategory = new_draft.subcategory.clone();
+            changed = true;
+        }
+    }
+
+    changed
+}
+
+pub fn apply_category_delete(transactions: &mut [Transaction], record: &CategoryRecord) -> bool {
+    let mut changed = false;
+
+    for transaction in transactions {
+        if !transaction_matches_category_record(transaction, record) {
+            continue;
+        }
+
+        if record.subcategory.is_empty() {
+            transaction.category = "Uncategorized".to_string();
+            transaction.subcategory.clear();
+        } else {
+            transaction.subcategory.clear();
+        }
+
+        changed = true;
+    }
+
+    changed
+}
+
+pub fn transaction_matches_category_record(
+    transaction: &Transaction,
+    record: &CategoryRecord,
+) -> bool {
+    transaction.transaction_type == record.transaction_type
+        && transaction.category.eq_ignore_ascii_case(&record.category)
+        && transaction
+            .subcategory
+            .eq_ignore_ascii_case(&record.subcategory)
+}
+
 // --- Recurring Transaction Utilities ---
 
 /// Action types for jumping to original recurring transactions

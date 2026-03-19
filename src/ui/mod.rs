@@ -1,3 +1,5 @@
+pub mod budget;
+pub mod category_manager;
 pub mod category_summary;
 pub mod dialog;
 pub mod filter;
@@ -31,7 +33,24 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         0
     };
     let status_bar_height = if app.status_message.is_some() { 3 } else { 0 };
-    let summary_bar_height = if render_mode == AppMode::CategorySummary {
+    let summary_bar_height = if matches!(
+        render_mode,
+        AppMode::CategorySummary
+            | AppMode::Budget
+            | AppMode::Settings
+            | AppMode::CategoryCatalog
+            | AppMode::CategoryEditor
+            | AppMode::ConfirmCategoryDelete
+            | AppMode::Adding
+            | AppMode::Editing
+            | AppMode::FuzzyFinding
+            | AppMode::RecurringSettings
+            | AppMode::SelectingRecurrenceFrequency
+            | AppMode::SelectingCategory
+            | AppMode::SelectingSubcategory
+            | AppMode::KeybindingsInfo
+            | AppMode::KeybindingDetail
+    ) {
         0
     } else {
         3
@@ -87,6 +106,19 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::CategorySummary => {
             category_summary::render_category_summary_view(f, app, main_area);
         }
+        AppMode::Budget => {
+            budget::render_budget_view(f, app, main_area);
+        }
+        AppMode::CategoryCatalog => {
+            category_manager::render_category_catalog(f, app, main_area);
+        }
+        AppMode::CategoryEditor => {
+            category_manager::render_category_editor(f, app, main_area);
+        }
+        AppMode::ConfirmCategoryDelete => {
+            category_manager::render_category_catalog(f, app, main_area);
+            dialog::render_confirmation_dialog(f, "Delete selected category? (y/n)", main_area);
+        }
         AppMode::Settings => {
             transaction_table::render_transaction_table(f, app, main_area);
             settings::render_settings_form(f, app, main_area);
@@ -115,14 +147,15 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             .category_summary_years
             .get(app.category_summary_year_index)
             .copied(),
+        AppMode::Budget => app.selected_budget_year(),
         _ => None, // No year filter for other modes - show all transactions as before
     };
-
-    summary::render_summary_bar(f, app, summary_area, year_filter);
 
     if let Some(msg) = &app.status_message {
         status::render_status_bar(f, msg, status_area);
     }
+
+    summary::render_summary_bar(f, app, summary_area, year_filter);
 
     if !app.hide_help_bar {
         help::render_help_bar(f, app, help_area);

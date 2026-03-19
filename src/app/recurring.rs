@@ -98,6 +98,7 @@ impl App {
                         "Bi-Weekly" => Some(RecurrenceFrequency::BiWeekly),
                         "Semi-Monthly" => Some(RecurrenceFrequency::SemiMonthly),
                         "Monthly" => Some(RecurrenceFrequency::Monthly),
+                        "Quarterly" => Some(RecurrenceFrequency::Quarterly),
                         "Yearly" => Some(RecurrenceFrequency::Yearly),
                         _ => Some(RecurrenceFrequency::Monthly), // Default
                     }

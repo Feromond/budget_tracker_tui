@@ -10,6 +10,7 @@ const CONFIG_FILE_NAME: &str = "config.json";
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub(crate) struct AppSettings {
     pub(crate) data_file_path: Option<String>,
+    pub(crate) database_path: Option<String>,
     pub(crate) target_budget: Option<Decimal>,
     pub(crate) hourly_rate: Option<Decimal>,
     pub(crate) show_hours: Option<bool>,

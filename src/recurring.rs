@@ -67,6 +67,9 @@ pub fn generate_recurring_transactions(
                         RecurrenceFrequency::Monthly => {
                             crate::validation::add_months(current_date, 1)
                         }
+                        RecurrenceFrequency::Quarterly => {
+                            crate::validation::add_months(current_date, 3)
+                        }
                         RecurrenceFrequency::Yearly => {
                             // Handle leap year edge case for Feb 29
                             let next_year = current_date.year() + 1;

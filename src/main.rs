@@ -1,5 +1,7 @@
 mod app;
+mod category_store;
 mod config;
+mod database;
 mod events;
 mod model;
 mod persistence;

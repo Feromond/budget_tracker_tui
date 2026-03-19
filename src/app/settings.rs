@@ -1,7 +1,7 @@
 use super::state::App;
 use crate::app::settings_types::{SettingType, SettingsState};
 use crate::config::{save_settings, AppSettings};
-use crate::persistence::{load_transactions, save_transactions};
+use crate::persistence::{load_categories, load_transactions, save_transactions};
 use chrono::Duration;
 use std::path::PathBuf;
 
@@ -36,6 +36,24 @@ impl App {
             SettingType::Path,
             "Absolute path to your transactions CSV file.",
         );
+        // 2. SQLite Database Path
+        let database_path_str = self.database_path.to_string_lossy().to_string();
+        let database_path_val = crate::validation::strip_path_quotes(&database_path_str);
+        self.settings_state.add_setting(
+            "database_path",
+            "Database Path",
+            database_path_val,
+            SettingType::Path,
+            "Absolute path to your categories SQLite database.",
+        );
+        // 3. Manage Categories
+        self.settings_state.add_setting(
+            "manage_categories",
+            "Manage Categories",
+            "Open Category Catalog".to_string(),
+            SettingType::Action,
+            "Open the category catalog to add, edit, or delete categories.",
+        );
 
         // --- Monthly Summary View Section ---
         self.settings_state.add_setting(
@@ -46,7 +64,7 @@ impl App {
             "",
         );
 
-        // 2. Target Budget
+        // 4. Target Budget
         let budget_val = loaded_settings
             .target_budget
             .map(|v| v.to_string())
@@ -68,7 +86,7 @@ impl App {
             "",
         );
 
-        // 3. Hourly Rate
+        // 5. Hourly Rate
         let hourly_rate_val = loaded_settings
             .hourly_rate
             .map(|v| v.to_string())
@@ -81,7 +99,7 @@ impl App {
             "Optional. Enter your hourly earning rate to see costs in hours.",
         );
 
-        // 4. Show Hours Toggle
+        // 6. Show Hours Toggle
         // Only show this if hourly rate is present
         if !hourly_rate_val.is_empty() {
             let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) {
@@ -107,7 +125,7 @@ impl App {
             "",
         );
 
-        // 5. Fuzzy Search Mode
+        // 7. Fuzzy Search Mode
         let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) {
             "◀ Yes "
         } else {
@@ -130,7 +148,7 @@ impl App {
             "",
         );
 
-        // 6. Hide Help Bar
+        // 8. Hide Help Bar
         let hide_help_bar_val = if loaded_settings.hide_help_bar.unwrap_or(false) {
             "◀ Yes "
         } else {
@@ -175,6 +193,7 @@ impl App {
     pub(crate) fn save_settings(&mut self) {
         // Retrieve values from state
         let mut new_path_str = String::new();
+        let mut new_database_path_str = String::new();
         let mut target_budget_str = String::new();
         let mut hourly_rate_str = String::new();
         let mut show_hours_val = None;
@@ -183,6 +202,9 @@ impl App {
 
         if let Some(val) = self.settings_state.get_value("data_file_path") {
             new_path_str = crate::validation::strip_path_quotes(val);
+        }
+        if let Some(val) = self.settings_state.get_value("database_path") {
+            new_database_path_str = crate::validation::strip_path_quotes(val);
         }
         if let Some(val) = self.settings_state.get_value("target_budget") {
             target_budget_str = val.trim().to_string();
@@ -231,7 +253,12 @@ impl App {
             self.set_status_message("Error: Path cannot be empty.", None);
             return;
         }
+        if new_database_path_str.is_empty() {
+            self.set_status_message("Error: Database path cannot be empty.", None);
+            return;
+        }
         let new_path = PathBuf::from(&new_path_str);
+        let new_database_path = PathBuf::from(&new_database_path_str);
         if !new_path.exists() {
             if let Err(e) = save_transactions(&self.transactions, &new_path) {
                 self.set_status_message(
@@ -246,9 +273,27 @@ impl App {
             }
         }
 
+        let seed_categories = if self.categories.is_empty() {
+            load_categories().unwrap_or_default()
+        } else {
+            self.categories.clone()
+        };
+        if let Err(e) = Self::initialize_category_database(&new_database_path, &seed_categories) {
+            self.set_status_message(
+                format!(
+                    "Error creating or opening database '{}': {}. Check path and permissions.",
+                    new_database_path.display(),
+                    e
+                ),
+                None,
+            );
+            return;
+        }
+
         // Save to Config
         let settings = AppSettings {
             data_file_path: Some(new_path_str.clone()),
+            database_path: Some(new_database_path_str.clone()),
             target_budget,
             hourly_rate,
             show_hours: show_hours_val,
@@ -262,6 +307,7 @@ impl App {
 
         // Reload Transactions
         self.data_file_path = new_path.clone();
+        self.database_path = new_database_path.clone();
         let txs = match load_transactions(&self.data_file_path) {
             Ok(tx) => tx,
             Err(e) => {
@@ -277,6 +323,17 @@ impl App {
             }
         };
         self.transactions = txs;
+        if let Err(e) = self.reload_categories_from_store() {
+            self.set_status_message(
+                format!(
+                    "Error loading categories from '{}': {}. Check database path and permissions.",
+                    self.database_path.display(),
+                    e
+                ),
+                None,
+            );
+            return;
+        }
 
         self.exit_settings_mode();
 
@@ -293,8 +350,9 @@ impl App {
 
         self.set_status_message(
             format!(
-                "Settings saved. Data file set to: {}",
-                self.data_file_path.display()
+                "Settings saved. Data: {} | Database: {}",
+                self.data_file_path.display(),
+                self.database_path.display()
             ),
             Some(Duration::seconds(3)),
         );
@@ -351,6 +409,55 @@ impl App {
                     None,
                 );
             }
+        }
+    }
+
+    pub(crate) fn reset_settings_database_path_to_default(&mut self) {
+        let data_path_value = self
+            .settings_state
+            .get_value("data_file_path")
+            .map(|value| crate::validation::strip_path_quotes(value))
+            .filter(|value| !value.trim().is_empty());
+
+        let default_path = match data_path_value {
+            Some(path_str) => {
+                Self::default_database_path_for_data_path(PathBuf::from(path_str).as_path())
+            }
+            None => Self::get_default_database_file_path()
+                .unwrap_or_else(|_| PathBuf::from("budget.db")),
+        };
+
+        let clean_path =
+            crate::validation::strip_path_quotes(default_path.to_string_lossy().as_ref());
+
+        if let Some(idx) = self
+            .settings_state
+            .items
+            .iter()
+            .position(|i| i.key == "database_path")
+        {
+            self.settings_state.items[idx].value = clean_path;
+            if self.settings_state.selected_index == idx {
+                self.settings_state.edit_cursor = self.settings_state.items[idx].value.len();
+            }
+        }
+
+        self.set_status_message(
+            "Database path reset to default for the current data file. Press Enter to save.",
+            None,
+        );
+    }
+
+    pub(crate) fn activate_selected_setting(&mut self) {
+        let selected_key = self
+            .settings_state
+            .items
+            .get(self.settings_state.selected_index)
+            .map(|item| item.key.clone());
+
+        match selected_key.as_deref() {
+            Some("manage_categories") => self.open_category_catalog(),
+            _ => self.save_settings(),
         }
     }
 

@@ -56,7 +56,7 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Blue))
         .style(Style::default().bg(Color::Black))
-        .title(" Settings - [Esc] Cancel, [Enter] Save ")
+        .title(" Settings - [Esc] Cancel, [Enter] Save/Action ")
         .title_bottom(Line::from(help_text).centered());
 
     f.render_widget(popup_block, area);
@@ -127,6 +127,7 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
             f.render_widget(header, *chunk);
         } else {
             // Render Input Field
+            let is_action = item.setting_type == crate::app::settings_types::SettingType::Action;
             let border_style = if is_focused {
                 Style::default().fg(Color::Yellow)
             } else {
@@ -134,6 +135,11 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
             };
 
             let title = format!(" {} ", item.label);
+            let display_value = if is_action {
+                format!("  [ {} ]  ", item.value)
+            } else {
+                item.value.clone()
+            };
 
             // Horizontal scrolling for long values
             let mut scroll_x = 0;
@@ -144,19 +150,44 @@ pub fn render_settings_form(f: &mut Frame, app: &App, area: Rect) {
                 }
             }
 
-            let p = Paragraph::new(item.value.as_str())
-                .scroll((0, scroll_x))
+            let p = if is_action {
+                Paragraph::new(Line::from(vec![Span::styled(
+                    display_value,
+                    if is_focused {
+                        Style::default()
+                            .fg(Color::Black)
+                            .bg(Color::LightGreen)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default()
+                            .fg(Color::White)
+                            .bg(Color::DarkGray)
+                            .add_modifier(Modifier::BOLD)
+                    },
+                )]))
+                .alignment(Alignment::Center)
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
                         .title(title)
                         .border_style(border_style),
-                );
+                )
+            } else {
+                Paragraph::new(display_value).scroll((0, scroll_x)).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(title)
+                        .border_style(border_style),
+                )
+            };
 
             f.render_widget(p, *chunk);
 
             // Cursor
-            if is_focused && item.setting_type != crate::app::settings_types::SettingType::Toggle {
+            if is_focused
+                && item.setting_type != crate::app::settings_types::SettingType::Toggle
+                && item.setting_type != crate::app::settings_types::SettingType::Action
+            {
                 let cursor = app.settings_state.edit_cursor as u16;
                 let visible_cursor = cursor.saturating_sub(scroll_x);
                 f.set_cursor_position(Position::new(chunk.x + visible_cursor + 1, chunk.y + 1));
