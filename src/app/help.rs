@@ -145,7 +145,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("←/→", "Toggle type / move cursor", "Navigation", None),
             KeyBindingInfo::new("Enter", "Toggle type or save", "Actions", None),
             KeyBindingInfo::new("Esc", "Cancel editor", "Actions", None),
-            KeyBindingInfo::new("Target Budget", "Per-category budget goal", "Fields", Some("Optional. Enter a positive amount to store a target budget for this category row.")),
+            KeyBindingInfo::new("Target Budget", "Expense-only category budget goal", "Fields", Some("Optional for expense categories only. Income categories do not use per-category target budgets in the budget view.")),
             KeyBindingInfo::new("Tag", "Optional label", "Fields", Some("Optional. Store an extra short label for the category row.")),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],

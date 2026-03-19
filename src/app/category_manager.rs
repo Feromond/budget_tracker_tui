@@ -86,15 +86,20 @@ impl App {
         self.editing_category_id = Some(record.id);
         self.current_category_field = 0;
         let draft = record.to_draft();
+        let target_budget = if draft.transaction_type == TransactionType::Expense {
+            draft
+                .target_budget
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
         self.category_edit_fields = [
             draft.transaction_type.to_string(),
             draft.category,
             draft.subcategory,
             draft.tag.unwrap_or_default(),
-            draft
-                .target_budget
-                .map(|value| format!("{value:.2}"))
-                .unwrap_or_default(),
+            target_budget,
         ];
         self.category_edit_cursor = self.category_edit_fields[0].len();
         self.clear_status_message();
@@ -134,12 +139,13 @@ impl App {
             return;
         }
 
-        self.category_edit_fields[0] =
-            if self.category_edit_fields[0].eq_ignore_ascii_case("income") {
-                TransactionType::Expense.to_string()
-            } else {
-                TransactionType::Income.to_string()
-            };
+        let switching_to_income = !self.category_edit_fields[0].eq_ignore_ascii_case("income");
+        self.category_edit_fields[0] = if switching_to_income {
+            self.category_edit_fields[4].clear();
+            TransactionType::Income.to_string()
+        } else {
+            TransactionType::Expense.to_string()
+        };
         self.category_edit_cursor = self.category_edit_fields[0].len();
     }
 
@@ -222,7 +228,7 @@ impl App {
     }
 
     pub(crate) fn save_category(&mut self) {
-        let draft = match self.build_category_draft_from_editor() {
+        let mut draft = match self.build_category_draft_from_editor() {
             Ok(draft) => draft,
             Err(message) => {
                 self.set_status_message(format!("Error: {}", message), None);
@@ -237,6 +243,14 @@ impl App {
                 .cloned()
         });
         let editing_category_id = self.editing_category_id;
+
+        if draft.transaction_type == TransactionType::Income && draft.target_budget.is_none() {
+            if let Some(old_record) = existing_record.as_ref() {
+                if old_record.transaction_type == TransactionType::Income {
+                    draft.target_budget = old_record.target_budget;
+                }
+            }
+        }
 
         let store = self.category_store();
         let result = if let Some(id) = editing_category_id {
@@ -336,6 +350,10 @@ impl App {
                 target_budget_str,
             )?)
         };
+
+        if transaction_type == TransactionType::Income && target_budget.is_some() {
+            return Err("Target budget is only available for expense categories.".to_string());
+        }
 
         Ok(CategoryDraft {
             transaction_type,
