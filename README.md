@@ -53,11 +53,11 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 - **Recurring Transaction:** Setup transactions that automatically recur at select frequencies.
 - **Advanced Filtering:** Filter transactions by date, description, category, type, and amount (including advanced multi-field filters).
 - **Smart Date Navigation:** Use `+`/`-` to adjust dates by day, and `Shift + Left/Right` to jump by month in date fields.
-- **Categorization:** Built-in, hierarchical categories and subcategories for all transactions.
+- **Categorization:** Hierarchical categories and subcategories for all transactions, now managed in-app and stored in a local SQLite catalog.
 - **Fuzzy Search:** Toggleable option to fuzzy search categories/subcategories for quick selection.
 - **Summaries & Charts:** Visualize your spending/income by month and by category, with interactive charts and tables.
-- **Budget Tracking:** Set a monthly target budget and see your progress (including a budget line in summary charts).
-- **Data Persistence:** All data is stored locally in a configurable CSV file. Settings are saved in a config file.
+- **Budget Tracking:** Set a monthly target budget, assign per-category expense budgets, and review progress in the dedicated budget view.
+- **Data Persistence:** Transactions are stored in a configurable CSV file, categories are stored in a local SQLite database, and app preferences are saved in a config file.
 - **Cross-Platform:** Runs on Windows, macOS, and Linux.
 - **Keyboard-Driven:** Fully operable with keyboard shortcuts for every action and mode. Press `Ctrl+H` for a help menu.
 - **Update Checker:** Automatically checks for updates on startup and notifies you of new versions.
@@ -77,6 +77,7 @@ If you are on **Windows**, you can download and run the latest installer for a q
 ### Prerequisites (for manual/cargo install)
 
 - [Rust](https://www.rust-lang.org/tools/install) (includes `cargo`)
+- No separate SQLite installation is required for normal builds; the app bundles SQLite through `rusqlite`.
 
 ### Installation & Running
 > Still working on adding support for direct downloads via some linux package managers
@@ -123,8 +124,8 @@ Then, you can just type `bt` to launch the app.
 3. **Navigate:** Use `↑`/`↓` to move between transactions, `PageUp`/`PageDown` to jump by pages, `Ctrl+↑`/`Ctrl+↓` to jump to first/last transaction.
 4. **Sort transactions:** Press `1-6` to sort by Date, Description, Category, Subcategory, Type, or Amount respectively.
 5. **Manage transactions:** Press `e` to edit, `d` to delete, `f` to filter, `r` to manage recurring transactions.
-6. **View summaries:** Press `s` for monthly summary, `c` for category summary (use `PageUp`/`PageDown` to jump between months in category view).
-7. **Change settings:** Press `o` to open settings (change data file path, set target budget).
+6. **View summaries:** Press `s` for monthly summary, `c` for category summary, and `b` for the budget view.
+7. **Change settings:** Press `o` to open settings (change the transactions CSV path, SQLite database path, target budget, and manage categories).
 8. **Quit:** Press `q` or `Esc`.
 9. **Help:** Press `Ctrl+H` at any time to view the keybindings menu for the current mode.
 
@@ -135,8 +136,15 @@ Then, you can just type `bt` to launch the app.
   - Default locations: - **Linux:** `$XDG_DATA_HOME/BudgetTracker/transactions.csv` (usually `~/.local/share/BudgetTracker/transactions.csv`) - **macOS:** `~/Library/Application Support/BudgetTracker/transactions.csv` - **Windows:** `%APPDATA%\BudgetTracker\transactions.csv` (e.g.,
     `C:\Users\<YourUsername>\AppData\Roaming\BudgetTracker\transactions.csv`)
   - **Cross-Device Sync:** You can set your data file path to a cloud-synced folder (iCloud, Google Drive, Dropbox, OneDrive, etc.) to automatically sync your budget data across multiple devices. Just point the data file path to a location within your cloud storage folder!
+- **Database Path:**
+  - The category catalog is stored in a SQLite database file, configurable in-app from Settings.
+  - By default, the database file is named `budget.db` and is placed alongside your current transactions CSV file.
+  - On first run with a new database, the app seeds it with the default category catalog.
+- **Manage Categories:**
+  - From Settings, use **Manage Categories** to open the category catalog and add, edit, or delete categories/subcategories.
+  - Expense categories can optionally store a per-category target budget for use in the budget view.
 - **Target Budget:**
-  - Set a monthly target budget in settings. This will show a budget line in summary charts.
+  - Set a monthly target budget in settings. This is used in the monthly summary and budget view.
 - **Hourly Rate:**
   - (Optional) Set your hourly earning rate to toggle a view that shows transaction costs in "hours worked".
 - **Fuzzy Search:**
@@ -153,9 +161,9 @@ Then, you can just type `bt` to launch the app.
 - **CSV Columns:** `date, description, amount, transaction_type, category, subcategory`
 - **Date Format:** Flexible! Accepts `YYYY-MM-DD`, `YYYY/MM/DD`, `DD/MM/YYYY`, or `DD-MM-YYYY`.
 - **Transaction Type:** `Income` or `Expense` (case-insensitive, also accepts `i`/`e`)
-- **Category/Subcategory:** Must match the built-in set of categories and subcategories provided by the application. Custom or arbitrary categories are not currently supported.
-- **Import/Export:** You can edit the CSV in Excel/LibreOffice or import from other tools (just match the columns and use valid categories).
-- **Data Safety:** The app will not overwrite your CSV unless you save a transaction, close the program, or change settings.
+- **Category/Subcategory:** Transaction rows should reference categories that exist in the SQLite category catalog. You can manage that catalog in-app from Settings.
+- **Import/Export:** You can edit the transaction CSV in Excel/LibreOffice or import from other tools (just match the columns and use valid categories). SQLite support currently backs category data; transaction storage remains CSV for now.
+- **Data Safety:** The app will not overwrite your transaction CSV unless you save a transaction, close the program, or change settings. Category edits are written to the SQLite database.
 
 ## References
 
