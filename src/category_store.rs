@@ -40,7 +40,39 @@ impl SqliteCategoryStore {
             );
             ",
         )
-        .map_err(|err| Error::other(format!("Failed to initialize category schema: {}", err)))
+        .map_err(|err| Error::other(format!("Failed to initialize category schema: {}", err)))?;
+
+        Self::ensure_target_budget_column(conn)
+    }
+
+    fn ensure_target_budget_column(conn: &Connection) -> Result<()> {
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(categories)")
+            .map_err(|err| Error::other(format!("Failed to inspect category schema: {}", err)))?;
+        let columns = stmt
+            .query_map([], |row| row.get::<_, String>(1))
+            .map_err(|err| Error::other(format!("Failed to read category schema: {}", err)))?;
+
+        let has_target_budget = columns
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(|err| Error::other(format!("Failed to collect category schema: {}", err)))?
+            .into_iter()
+            .any(|name| name == "target_budget");
+
+        if !has_target_budget {
+            conn.execute(
+                "ALTER TABLE categories ADD COLUMN target_budget TEXT NULL",
+                [],
+            )
+            .map_err(|err| {
+                Error::other(format!(
+                    "Failed to add target_budget column to categories: {}",
+                    err
+                ))
+            })?;
+        }
+
+        Ok(())
     }
 
     fn seed_if_empty(&self, conn: &Connection, seed_categories: &[CategoryInfo]) -> Result<()> {
