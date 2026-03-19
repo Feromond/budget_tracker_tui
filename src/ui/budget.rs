@@ -6,7 +6,15 @@ use ratatui::widgets::{Bar, BarChart, BarGroup, Block, Borders, Cell, Paragraph,
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 
+const PANEL_CHROME_COLOR: Color = Color::LightBlue;
 const SELECTED_MONTH_BAR_COLOR: Color = Color::Rgb(255, 165, 0);
+
+fn budget_panel_block(title: Line<'static>, borders: Borders) -> Block<'static> {
+    Block::default()
+        .title(title)
+        .borders(borders)
+        .border_style(Style::default().fg(PANEL_CHROME_COLOR))
+}
 
 fn format_budget_variance(variance: Decimal) -> String {
     if variance >= Decimal::ZERO {
@@ -90,7 +98,9 @@ fn title_with_month(
     }
     spans.push(Span::styled(
         prefix.to_string(),
-        Style::default().add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(PANEL_CHROME_COLOR)
+            .add_modifier(Modifier::BOLD),
     ));
     if let Some(month) = month {
         spans.push(Span::styled(
@@ -110,7 +120,9 @@ fn title_with_month(
     if let Some(suffix) = suffix {
         spans.push(Span::styled(
             suffix.to_string(),
-            Style::default().add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(PANEL_CHROME_COLOR)
+                .add_modifier(Modifier::BOLD),
         ));
     }
     Line::from(spans)
@@ -124,9 +136,11 @@ fn compact_selected_budget_title(
         Some(comparison) if width >= 34 => Line::from(vec![
             Span::styled(
                 "Selected Budget".to_string(),
-                Style::default().add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(PANEL_CHROME_COLOR)
+                    .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(" | "),
+            Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)),
             Span::styled(
                 comparison.category.clone(),
                 Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
@@ -134,7 +148,9 @@ fn compact_selected_budget_title(
         ]),
         _ => Line::from(vec![Span::styled(
             "Selected Budget".to_string(),
-            Style::default().add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(PANEL_CHROME_COLOR)
+                .add_modifier(Modifier::BOLD),
         )]),
     }
 }
@@ -148,15 +164,17 @@ fn compact_yearly_pattern_title(
         Some(comparison) if width >= 42 => {
             let mut spans = vec![Span::styled(
                 "Yearly Pattern".to_string(),
-                Style::default().add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(PANEL_CHROME_COLOR)
+                    .add_modifier(Modifier::BOLD),
             )];
-            spans.push(Span::raw(" | "));
+            spans.push(Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)));
             spans.push(Span::styled(
                 format_amount(&comparison.target_budget),
                 Style::default().fg(Color::LightBlue).add_modifier(Modifier::BOLD),
             ));
             if let Some(month) = selected_month {
-                spans.push(Span::raw(" | "));
+                spans.push(Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)));
                 spans.push(Span::styled(
                     month_to_short_str(month).to_string(),
                     Style::default()
@@ -169,9 +187,11 @@ fn compact_yearly_pattern_title(
         Some(comparison) if width >= 28 => Line::from(vec![
             Span::styled(
                 "Yearly Pattern".to_string(),
-                Style::default().add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(PANEL_CHROME_COLOR)
+                    .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(" | "),
+            Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)),
             Span::styled(
                 format_amount(&comparison.target_budget),
                 Style::default().fg(Color::LightBlue).add_modifier(Modifier::BOLD),
@@ -179,7 +199,9 @@ fn compact_yearly_pattern_title(
         ]),
         _ => Line::from(vec![Span::styled(
             "Yearly Pattern".to_string(),
-            Style::default().add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(PANEL_CHROME_COLOR)
+                .add_modifier(Modifier::BOLD),
         )]),
     }
 }
@@ -299,17 +321,10 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     ];
 
     let summary = Paragraph::new(status_lines)
-        .block(
-            Block::default()
-                .title(title_with_month(
-                    "Budget Status - ",
-                    selected_month,
-                    &year_label,
-                    None,
-                    is_filtered,
-                ))
-                .borders(Borders::ALL),
-        )
+        .block(budget_panel_block(
+            title_with_month("Budget Status - ", selected_month, &year_label, None, is_filtered),
+            Borders::TOP,
+        ))
         .wrap(Wrap { trim: true });
     f.render_widget(summary, top_chunks[0]);
 
@@ -364,17 +379,16 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     let bar_gap = if width_per_bar_and_gap > 1 { 1 } else { 0 };
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
     let chart = BarChart::default()
-        .block(
-            Block::default()
-                .title(title_with_month(
-                    "Monthly Spending - ",
-                    selected_month,
-                    &year_label,
-                    None,
-                    is_filtered,
-                ))
-                .borders(Borders::ALL),
-        )
+        .block(budget_panel_block(
+            title_with_month(
+                "Monthly Spending - ",
+                selected_month,
+                &year_label,
+                None,
+                is_filtered,
+            ),
+            Borders::TOP | Borders::LEFT,
+        ))
         .data(BarGroup::default().bars(&bars))
         .bar_width(bar_width)
         .bar_gap(bar_gap)
@@ -432,17 +446,16 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
         ],
     )
     .header(header)
-    .block(
-        Block::default()
-            .title(title_with_month(
-                "Budgeted Categories - ",
-                selected_month,
-                &year_label,
-                Some(" (rows)"),
-                is_filtered,
-            ))
-            .borders(Borders::ALL),
-    )
+    .block(budget_panel_block(
+        title_with_month(
+            "Budgeted Categories - ",
+            selected_month,
+            &year_label,
+            Some(" (rows)"),
+            is_filtered,
+        ),
+        Borders::TOP,
+    ))
     .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED))
     .highlight_symbol(" > ");
     f.render_stateful_widget(table, bottom_chunks[0], &mut app.budget_table_state);
@@ -533,7 +546,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     let detail_title =
         compact_selected_budget_title(selected_comparison.as_ref(), detail_chunks[0].width);
     let details = Paragraph::new(detail_lines)
-        .block(Block::default().title(detail_title).borders(Borders::ALL))
+        .block(budget_panel_block(detail_title, Borders::TOP | Borders::LEFT))
         .wrap(Wrap { trim: true });
     f.render_widget(details, detail_chunks[0]);
 
@@ -576,7 +589,10 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     let bar_gap = if width_per_bar_and_gap > 1 { 1 } else { 0 };
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
     let detail_chart = BarChart::default()
-        .block(Block::default().title(detail_chart_title).borders(Borders::ALL))
+        .block(budget_panel_block(
+            detail_chart_title,
+            Borders::TOP | Borders::LEFT,
+        ))
         .data(BarGroup::default().bars(&selected_bars))
         .bar_width(bar_width)
         .bar_gap(bar_gap)
