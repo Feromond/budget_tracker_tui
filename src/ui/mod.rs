@@ -150,7 +150,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::Budget => app.selected_budget_year(),
         _ => None, // No year filter for other modes - show all transactions as before
     };
-    
+
     if let Some(msg) = &app.status_message {
         status::render_status_bar(f, msg, status_area);
     }

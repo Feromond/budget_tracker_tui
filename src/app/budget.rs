@@ -84,7 +84,11 @@ impl App {
         self.refresh_budget_years();
         if !self.budget_years.is_empty() {
             let current_year = chrono::Local::now().year();
-            if let Some(index) = self.budget_years.iter().position(|&year| year == current_year) {
+            if let Some(index) = self
+                .budget_years
+                .iter()
+                .position(|&year| year == current_year)
+            {
                 self.budget_year_index = index;
             } else {
                 self.budget_year_index = self.budget_years.len() - 1;
@@ -261,10 +265,8 @@ impl App {
                     .category_summaries
                     .get(&(year, month))
                     .and_then(|month_map| {
-                        month_map.get(&(
-                            comparison.category.clone(),
-                            comparison.subcategory.clone(),
-                        ))
+                        month_map
+                            .get(&(comparison.category.clone(), comparison.subcategory.clone()))
                     })
                     .map(|summary| summary.expense)
                     .unwrap_or(Decimal::ZERO);

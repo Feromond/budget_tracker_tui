@@ -2,7 +2,9 @@ use crate::app::state::{App, BudgetCategoryComparison};
 use crate::ui::helpers::{format_amount, month_to_color, month_to_short_str};
 use ratatui::prelude::*;
 use ratatui::text::Line;
-use ratatui::widgets::{Bar, BarChart, BarGroup, Block, Borders, Cell, Paragraph, Row, Table, Wrap};
+use ratatui::widgets::{
+    Bar, BarChart, BarGroup, Block, Borders, Cell, Paragraph, Row, Table, Wrap,
+};
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 
@@ -67,16 +69,22 @@ fn comparison_row(comparison: &BudgetCategoryComparison) -> Row<'static> {
     Row::new(vec![
         Cell::from(comparison.category.clone()),
         Cell::from(subcategory),
-        Cell::from(Line::from(format_amount(&comparison.target_budget)).alignment(Alignment::Right)),
-        Cell::from(Line::from(format_amount(&comparison.actual_expense)).alignment(Alignment::Right))
-            .style(spent_style),
+        Cell::from(
+            Line::from(format_amount(&comparison.target_budget)).alignment(Alignment::Right),
+        ),
+        Cell::from(
+            Line::from(format_amount(&comparison.actual_expense)).alignment(Alignment::Right),
+        )
+        .style(spent_style),
         Cell::from(Line::from(format_budget_variance(remaining)).alignment(Alignment::Right))
             .style(remaining_style),
-        Cell::from(Line::from(usage_percent(
-            comparison.actual_expense,
-            comparison.target_budget,
-        ))
-        .alignment(Alignment::Right)),
+        Cell::from(
+            Line::from(usage_percent(
+                comparison.actual_expense,
+                comparison.target_budget,
+            ))
+            .alignment(Alignment::Right),
+        ),
     ])
 }
 
@@ -143,7 +151,9 @@ fn compact_selected_budget_title(
             Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)),
             Span::styled(
                 comparison.category.clone(),
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             ),
         ]),
         _ => Line::from(vec![Span::styled(
@@ -171,7 +181,9 @@ fn compact_yearly_pattern_title(
             spans.push(Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)));
             spans.push(Span::styled(
                 format_amount(&comparison.target_budget),
-                Style::default().fg(Color::LightBlue).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
             ));
             if let Some(month) = selected_month {
                 spans.push(Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)));
@@ -194,7 +206,9 @@ fn compact_yearly_pattern_title(
             Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)),
             Span::styled(
                 format_amount(&comparison.target_budget),
-                Style::default().fg(Color::LightBlue).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
             ),
         ]),
         _ => Line::from(vec![Span::styled(
@@ -292,7 +306,8 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             Span::styled("Spent:  ", Style::default().add_modifier(Modifier::BOLD)),
             Span::styled(
                 format_amount(&actual_expense),
-                if app.target_budget.is_some() && remaining_budget.unwrap_or_default() < Decimal::ZERO
+                if app.target_budget.is_some()
+                    && remaining_budget.unwrap_or_default() < Decimal::ZERO
                 {
                     Style::default().fg(Color::LightRed)
                 } else {
@@ -322,7 +337,13 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
 
     let summary = Paragraph::new(status_lines)
         .block(budget_panel_block(
-            title_with_month("Budget Status - ", selected_month, &year_label, None, is_filtered),
+            title_with_month(
+                "Budget Status - ",
+                selected_month,
+                &year_label,
+                None,
+                is_filtered,
+            ),
             Borders::TOP,
         ))
         .wrap(Wrap { trim: true });
@@ -483,7 +504,9 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
                 Span::styled("Category: ", Style::default().add_modifier(Modifier::BOLD)),
                 Span::styled(
                     comparison.category.clone(),
-                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
                 ),
             ]),
             Line::from(vec![
@@ -546,7 +569,10 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     let detail_title =
         compact_selected_budget_title(selected_comparison.as_ref(), detail_chunks[0].width);
     let details = Paragraph::new(detail_lines)
-        .block(budget_panel_block(detail_title, Borders::TOP | Borders::LEFT))
+        .block(budget_panel_block(
+            detail_title,
+            Borders::TOP | Borders::LEFT,
+        ))
         .wrap(Wrap { trim: true });
     f.render_widget(details, detail_chunks[0]);
 

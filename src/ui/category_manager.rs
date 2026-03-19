@@ -95,7 +95,10 @@ pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
                     Style::default().fg(Color::White).bold(),
                 )
             } else if index == 4 && income_category && text.is_empty() {
-                Span::styled("Expense categories only", Style::default().fg(Color::DarkGray))
+                Span::styled(
+                    "Expense categories only",
+                    Style::default().fg(Color::DarkGray),
+                )
             } else {
                 Span::raw(text.as_str())
             };
