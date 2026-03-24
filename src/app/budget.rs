@@ -259,7 +259,12 @@ impl App {
         year: i32,
         comparison: &BudgetCategoryComparison,
     ) -> Vec<(u32, Decimal)> {
-        (1..=12)
+        let mut months: Vec<u32> = (1..=12)
+            .filter(|&month| self.monthly_summaries.contains_key(&(year, month)))
+            .collect();
+        months.sort_unstable();
+        months
+            .into_iter()
             .map(|month| {
                 let expense = self
                     .category_summaries
