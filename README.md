@@ -107,7 +107,13 @@ cargo build --release
 ./target/release/Budget_Tracker
 ```
 
-**Install Globally with Cargo (Recommended for Linux/macOS):**
+**Install from crates.io (Recommended for Linux/macOS):**
+
+```bash
+cargo install budget_tracker_tui
+```
+
+**Install Globally with Cargo from source:**
 
 ```bash
 # Navigate to the project directory
