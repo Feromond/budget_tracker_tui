@@ -33,6 +33,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("a", "Add new transaction", "Actions", Some("Opens the 'Add Transaction' form where you can input details like date, amount, category, etc.")),
             KeyBindingInfo::new("e", "Edit selected transaction", "Actions", Some("Opens the edit mode for the currently selected transaction.")),
             KeyBindingInfo::new("d", "Delete selected transaction", "Actions", Some("Prompts for confirmation to delete the selected transaction.")),
+            KeyBindingInfo::new("Ctrl+C", "Copy selected transaction", "Actions", Some("Creates a duplicate of the selected transaction with today's date, keeping the same description, category, subcategory, amount, and type.")),
             KeyBindingInfo::new("r", "Manage recurring transactions", "Actions", Some("Opens the recurring transactions manager.")),
             KeyBindingInfo::new("f", "Filter transactions", "Actions", Some("Enables simple filtering mode. Type to filter by any field.")),
             KeyBindingInfo::new("s", "Monthly Summary", "Actions", Some("View a monthly breakdown of income vs expenses.")),

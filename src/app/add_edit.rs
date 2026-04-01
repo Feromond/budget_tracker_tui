@@ -357,6 +357,51 @@ impl App {
             self.add_edit_fields[5] = String::new();
         }
     }
+    // --- Copying Logic ---
+    pub(crate) fn copy_transaction(&mut self) {
+        if let Some(view_index) = self.table_state.selected() {
+            if let Some(original_index) = self.get_original_index(view_index) {
+                let tx = self.transactions[original_index].clone();
+                let today = chrono::Local::now().date_naive();
+
+                let new_transaction = crate::model::Transaction {
+                    date: today,
+                    description: tx.description,
+                    amount: tx.amount,
+                    transaction_type: tx.transaction_type,
+                    category: tx.category,
+                    subcategory: tx.subcategory,
+                    is_recurring: false,
+                    recurrence_frequency: None,
+                    recurrence_end_date: None,
+                    is_generated_from_recurring: false,
+                };
+
+                self.transactions.push(new_transaction);
+                self.sort_transactions();
+                self.apply_filter();
+                self.calculate_monthly_summaries();
+                self.calculate_category_summaries();
+
+                match save_transactions(&self.transactions, &self.data_file_path) {
+                    Ok(_) => {
+                        self.set_status_message(
+                            "Transaction copied with today's date.",
+                            Some(Duration::seconds(3)),
+                        );
+                    }
+                    Err(e) => {
+                        self.set_status_message(format!("Error saving copied transaction: {}", e), None);
+                    }
+                }
+            } else {
+                self.set_status_message("Error: Could not map view index to transaction", None);
+            }
+        } else {
+            self.set_status_message("Select a transaction to copy first", None);
+        }
+    }
+
     // --- Deleting Logic ---
     // Handles preparing, confirming, and canceling transaction deletion.
     pub(crate) fn prepare_for_delete(&mut self) {
