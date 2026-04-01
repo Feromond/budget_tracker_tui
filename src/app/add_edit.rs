@@ -391,7 +391,10 @@ impl App {
                         );
                     }
                     Err(e) => {
-                        self.set_status_message(format!("Error saving copied transaction: {}", e), None);
+                        self.set_status_message(
+                            format!("Error saving copied transaction: {}", e),
+                            None,
+                        );
                     }
                 }
             } else {
