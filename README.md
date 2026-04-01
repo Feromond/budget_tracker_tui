@@ -78,61 +78,63 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
 
 ## 🚀 Getting Started
 
-### Windows Installer (Recommended for Windows Users)
+### Install via Cargo / crates.io (Recommended)
 
-If you are on **Windows**, you can download and run the latest installer for a quick and easy setup. This is the simplest way to get started on Windows—no Rust or Cargo required!
-(NOTE: I do not have a windows developer licence so it will be an unknown publisher)
+The easiest way to install on **Linux**, **macOS**, or **Windows** (if you have Rust installed). One command, no cloning required:
+
+```bash
+cargo install budget_tracker_tui
+```
+
+After installation, the `Budget_Tracker` command is immediately available in your terminal.
+
+> **Don't have Rust?** Install it in seconds at [rustup.rs](https://rustup.rs) — it includes `cargo`.
+
+_Optional tip:_ Set up a short alias for even quicker access:
+
+```bash
+# Add to your .bashrc / .zshrc / PowerShell profile
+alias bt='Budget_Tracker'
+```
+
+Then just type `bt` to launch the app.
+
+---
+
+### Windows Installer (No Rust Required)
+
+If you are on **Windows** and prefer not to install Rust, you can download and run the latest installer directly from the Releases page — no toolchain needed.
+
+> **Note:** I do not have a Windows developer licence, so it will show as an unknown publisher.
 
 - [Download the latest Windows installer from the Releases page](https://github.com/Feromond/budget_tracker_tui/releases)
 
-### Prerequisites (for manual/cargo install)
+---
 
-- [Rust](https://www.rust-lang.org/tools/install) (includes `cargo`)
-- No separate SQLite installation is required for normal builds; the app bundles SQLite through `rusqlite`.
+### Other Installation Options
 
-### Installation & Running
-> Still working on adding support for direct downloads via some linux package managers
+> Still working on adding support for direct downloads via some Linux package managers.
 
-**Build and Run Manually:**
+**Build and run from source:**
 
 ```bash
 # Clone the repository
 git clone https://github.com/Feromond/budget_tracker_tui
 cd budget_tracker_tui
 
-# Build the project (use --release for optimized build)
+# Build (use --release for an optimized build)
 cargo build --release
 
-# Run the executable
+# Run
 ./target/release/Budget_Tracker
 ```
 
-**Install from crates.io (Recommended for Linux/macOS):**
+**Install globally from source:**
 
 ```bash
-cargo install budget_tracker_tui
-```
-
-**Install Globally with Cargo from source:**
-
-```bash
-# Navigate to the project directory
 cd budget_tracker_tui
-
-# Install the binary to Cargo's bin directory
 cargo install --path .
 ```
-
-After installation, the `Budget_Tracker` command should be available in your terminal directly.
-
-_Optional Tip:_ For even quicker access, set up a shell alias:
-
-```bash
-# Example for bash/zsh (add to your .bashrc or .zshrc)
-alias bt='Budget_Tracker'
-```
-
-Then, you can just type `bt` to launch the app.
 
 ## ⚡ Quick Start
 
