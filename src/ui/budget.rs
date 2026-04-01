@@ -26,6 +26,22 @@ fn format_budget_variance(variance: Decimal) -> String {
     }
 }
 
+fn usage_color(actual: Decimal, target: Decimal) -> Color {
+    if target <= Decimal::ZERO {
+        return Color::DarkGray;
+    }
+    let ratio = (actual / target).to_f64().unwrap_or(0.0);
+    if ratio > 1.0 {
+        Color::LightRed
+    } else if ratio >= 0.85 {
+        Color::Rgb(255, 165, 0) // orange
+    } else if ratio >= 0.60 {
+        Color::LightYellow
+    } else {
+        Color::LightGreen
+    }
+}
+
 fn usage_percent(actual: Decimal, target: Decimal) -> String {
     if target <= Decimal::ZERO {
         return "N/A".to_string();
@@ -71,7 +87,8 @@ fn comparison_row(comparison: &BudgetCategoryComparison) -> Row<'static> {
         Cell::from(subcategory),
         Cell::from(
             Line::from(format_amount(&comparison.target_budget)).alignment(Alignment::Right),
-        ),
+        )
+        .style(Style::default().fg(Color::LightBlue)),
         Cell::from(
             Line::from(format_amount(&comparison.actual_expense)).alignment(Alignment::Right),
         )
@@ -84,7 +101,11 @@ fn comparison_row(comparison: &BudgetCategoryComparison) -> Row<'static> {
                 comparison.target_budget,
             ))
             .alignment(Alignment::Right),
-        ),
+        )
+        .style(Style::default().fg(usage_color(
+            comparison.actual_expense,
+            comparison.target_budget,
+        ))),
     ])
 }
 
