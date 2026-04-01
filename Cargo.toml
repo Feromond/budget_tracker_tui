@@ -1,9 +1,9 @@
 [package]
 name = "budget_tracker_tui"
-version = "1.3.0"
+version = "1.3.1"
 edition = "2021"
 authors = ["Jacob Mish <JacobPMish@gmail.com>"]
-description = "A very simple TUI budget tracker app"
+description = "A feature rich TUI budget tracker app"
 license-file = "LICENSE"
 
 
@@ -15,8 +15,8 @@ serde = { version = "1.0.228", features = ["derive"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 dirs = "6.0.0"
 serde_json = "1.0.149"
-rust_decimal = { version = "1.40.0", features = ["serde"] }
-ureq = { version = "3.2.0", features = ["json"] }
+rust_decimal = { version = "1.41.0", features = ["serde"] }
+ureq = { version = "3.3.0", features = ["json"] }
 semver = "1.0.27"
 rusqlite = { version = "0.39.0", features = ["bundled"] }
 
@@ -31,10 +31,10 @@ winresource = "0.1.31"
 name = "Budget Tracker"
 identifier = "io.github.Feromond.budget_tracker_tui"
 icon = ["/budget_tracker_icon.png"]
-version = "1.3.0"
+version = "1.3.1"
 copyright = "Copyright Ventra Software Inc. 2025. All rights reserved."
 category = "Finance"
-short_description = "A simple TUI budget tracker."
+short_description = "A feature rich TUI budget tracker app"
 
 [profile.release]
 strip = true

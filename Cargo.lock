@@ -150,7 +150,7 @@ dependencies = [
 
 [[package]]
 name = "budget_tracker_tui"
-version = "1.3.0"
+version = "1.3.1"
 dependencies = [
  "chrono",
  "crossterm",
