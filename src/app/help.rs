@@ -94,7 +94,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
         ],
         AppMode::Summary => vec![
             KeyBindingInfo::new("↑/↓", "Change Month", "Navigation", None),
-            KeyBindingInfo::new("←/→", "Change Year", "Navigation", None),
+            KeyBindingInfo::new("←/→ / [/] / PgUp/PgDn", "Change Year", "Navigation", None),
             KeyBindingInfo::new("m", "Toggle Multi-Month View", "View", Some("Switch between single month view and multi-month view.")),
             KeyBindingInfo::new("c", "Toggle Cumulative View", "View", Some("Toggle cumulative (running total) view.")),
             KeyBindingInfo::new("q/Esc", "Back to Transactions", "Actions", None),
@@ -102,8 +102,8 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
         ],
         AppMode::CategorySummary => vec![
             KeyBindingInfo::new("↑/↓", "Select Category/Subcategory", "Navigation", None),
-            KeyBindingInfo::new("←/→", "Change Year", "Navigation", None),
-            KeyBindingInfo::new("PgUp/PgDn", "Jump Month (if expanded)", "Navigation", None),
+            KeyBindingInfo::new("←/→ / [/]", "Change Year", "Navigation", None),
+            KeyBindingInfo::new("PgUp/PgDn", "Jump Selected Month", "Navigation", None),
             KeyBindingInfo::new("Enter", "Expand/Collapse Category", "Actions", None),
             KeyBindingInfo::new("q/Esc", "Back to Transactions", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
