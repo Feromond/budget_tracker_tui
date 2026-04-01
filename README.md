@@ -115,7 +115,7 @@ If you are on **Windows** and prefer not to install Rust, you can download and r
 
 > Still working on adding support for direct downloads via some Linux package managers.
 
-**Build and run from source:**
+**Build and run from source (recommended to just use crates.io):**
 
 ```bash
 # Clone the repository
