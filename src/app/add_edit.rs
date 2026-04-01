@@ -366,11 +366,11 @@ impl App {
 
                 let new_transaction = crate::model::Transaction {
                     date: today,
-                    description: tx.description,
+                    description: tx.description.clone(),
                     amount: tx.amount,
                     transaction_type: tx.transaction_type,
-                    category: tx.category,
-                    subcategory: tx.subcategory,
+                    category: tx.category.clone(),
+                    subcategory: tx.subcategory.clone(),
                     is_recurring: false,
                     recurrence_frequency: None,
                     recurrence_end_date: None,
@@ -385,6 +385,21 @@ impl App {
 
                 match save_transactions(&self.transactions, &self.data_file_path) {
                     Ok(_) => {
+                        if let Some(new_view_index) =
+                            self.filtered_indices.iter().position(|&idx| {
+                                let t = &self.transactions[idx];
+                                t.date == today
+                                    && t.description == tx.description
+                                    && t.amount == tx.amount
+                                    && t.transaction_type == tx.transaction_type
+                                    && t.category == tx.category
+                                    && t.subcategory == tx.subcategory
+                                    && !t.is_recurring
+                                    && !t.is_generated_from_recurring
+                            })
+                        {
+                            self.table_state.select(Some(new_view_index));
+                        }
                         self.set_status_message(
                             "Transaction copied with today's date.",
                             Some(Duration::seconds(3)),
