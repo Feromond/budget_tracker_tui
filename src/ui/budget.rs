@@ -380,6 +380,9 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     if let Some(year) = current_year {
         for month in 1..=12 {
             let expense = app.budget_month_expense(year, month);
+            if expense.is_zero() && Some(month) != selected_month {
+                continue;
+            }
             let value = expense.round().to_u64().unwrap_or(0);
             max_expense = max_expense.max(value);
             let style = if Some(month) == selected_month {
