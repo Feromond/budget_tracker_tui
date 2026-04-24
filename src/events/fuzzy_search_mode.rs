@@ -15,11 +15,9 @@ pub fn handle_fuzzy_search_mode(app: &mut App, key: KeyEvent) {
         KeyCode::Down => {
             app.select_next_list_item();
         }
-        KeyCode::Backspace => {
-            if !app.search_query.is_empty() {
-                app.search_query.pop();
-                app.update_fuzzy_search_results();
-            }
+        KeyCode::Backspace if !app.search_query.is_empty() => {
+            app.search_query.pop();
+            app.update_fuzzy_search_results();
         }
         KeyCode::Char(c) => {
             // Allow normal typing

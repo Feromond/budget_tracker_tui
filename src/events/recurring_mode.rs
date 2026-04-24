@@ -24,15 +24,11 @@ pub fn handle_recurring_mode(app: &mut App, key_event: KeyEvent) {
             2 => app.increment_date_recurring(),
             _ => {}
         },
-        (KeyModifiers::SHIFT, KeyCode::Left) => {
-            if app.current_recurring_field == 2 {
-                app.decrement_month_recurring();
-            }
+        (KeyModifiers::SHIFT, KeyCode::Left) if app.current_recurring_field == 2 => {
+            app.decrement_month_recurring();
         }
-        (KeyModifiers::SHIFT, KeyCode::Right) => {
-            if app.current_recurring_field == 2 {
-                app.increment_month_recurring();
-            }
+        (KeyModifiers::SHIFT, KeyCode::Right) if app.current_recurring_field == 2 => {
+            app.increment_month_recurring();
         }
         (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_recurring_field {
             2 if c == '+' || c == '=' => app.increment_date_recurring(),
@@ -40,10 +36,8 @@ pub fn handle_recurring_mode(app: &mut App, key_event: KeyEvent) {
             2 if c.is_ascii_digit() => app.insert_char_recurring(c),
             _ => {}
         },
-        (KeyModifiers::NONE, KeyCode::Backspace) => {
-            if app.current_recurring_field == 2 {
-                app.delete_char_recurring();
-            }
+        (KeyModifiers::NONE, KeyCode::Backspace) if app.current_recurring_field == 2 => {
+            app.delete_char_recurring();
         }
         _ => {}
     }

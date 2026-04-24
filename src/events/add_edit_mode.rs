@@ -44,15 +44,11 @@ pub fn handle_add_edit_mode(app: &mut App, key_event: KeyEvent) {
             3 => app.toggle_transaction_type(),
             _ => app.move_cursor_right(),
         },
-        (KeyModifiers::SHIFT, KeyCode::Left) => {
-            if app.current_add_edit_field == 0 {
-                app.decrement_month()
-            }
+        (KeyModifiers::SHIFT, KeyCode::Left) if app.current_add_edit_field == 0 => {
+            app.decrement_month()
         }
-        (KeyModifiers::SHIFT, KeyCode::Right) => {
-            if app.current_add_edit_field == 0 {
-                app.increment_month()
-            }
+        (KeyModifiers::SHIFT, KeyCode::Right) if app.current_add_edit_field == 0 => {
+            app.increment_month()
         }
         (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_add_edit_field {
             0 if c == '+' || c == '=' => app.increment_date(),
@@ -63,20 +59,18 @@ pub fn handle_add_edit_mode(app: &mut App, key_event: KeyEvent) {
             field if ![0, 3, 4, 5].contains(&field) => app.insert_char_at_cursor(c),
             _ => {} // Ignore char input for fields 0 (non-digit), 3, 4, 5
         },
-        (KeyModifiers::SHIFT, KeyCode::Char(c)) => {
-            if app.current_add_edit_field == 1 {
-                app.insert_char_at_cursor(c);
-            }
+        (KeyModifiers::SHIFT, KeyCode::Char(c)) if app.current_add_edit_field == 1 => {
+            app.insert_char_at_cursor(c);
         }
-        (KeyModifiers::NONE, KeyCode::Backspace) => {
-            if ![3, 4, 5].contains(&app.current_add_edit_field) {
-                app.delete_char_before_cursor();
-            }
+        (KeyModifiers::NONE, KeyCode::Backspace)
+            if ![3, 4, 5].contains(&app.current_add_edit_field) =>
+        {
+            app.delete_char_before_cursor();
         }
-        (KeyModifiers::NONE, KeyCode::Delete) => {
-            if ![3, 4, 5].contains(&app.current_add_edit_field) {
-                app.delete_char_after_cursor();
-            }
+        (KeyModifiers::NONE, KeyCode::Delete)
+            if ![3, 4, 5].contains(&app.current_add_edit_field) =>
+        {
+            app.delete_char_after_cursor();
         }
         _ => {}
     }

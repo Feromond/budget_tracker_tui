@@ -62,20 +62,16 @@ fn handle_category_editor(app: &mut App, key_event: KeyEvent) {
             1..=3 => app.insert_char_at_cursor(c),
             _ => {}
         },
-        (KeyCode::Char(c), KeyModifiers::SHIFT) => {
-            if (1..=3).contains(&app.current_category_field) {
-                app.insert_char_at_cursor(c);
-            }
+        (KeyCode::Char(c), KeyModifiers::SHIFT)
+            if (1..=3).contains(&app.current_category_field) =>
+        {
+            app.insert_char_at_cursor(c);
         }
-        (KeyCode::Backspace, KeyModifiers::NONE) => {
-            if app.current_category_field != 0 {
-                app.delete_char_before_cursor();
-            }
+        (KeyCode::Backspace, KeyModifiers::NONE) if app.current_category_field != 0 => {
+            app.delete_char_before_cursor();
         }
-        (KeyCode::Delete, KeyModifiers::NONE) => {
-            if app.current_category_field != 0 {
-                app.delete_char_after_cursor();
-            }
+        (KeyCode::Delete, KeyModifiers::NONE) if app.current_category_field != 0 => {
+            app.delete_char_after_cursor();
         }
         _ => {}
     }
