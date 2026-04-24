@@ -8,6 +8,10 @@
 
 A fast, modern, and efficient Terminal User Interface (TUI) application for tracking your personal budget, built with [Rust](https://www.rust-lang.org) and [Ratatui](https://ratatui.rs).
 
+```bash
+cargo install budget_tracker_tui
+```
+
 ## 📚 Table of Contents
 
 - [🖼️ Screenshots](#️-screenshots)
@@ -30,14 +34,15 @@ A fast, modern, and efficient Terminal User Interface (TUI) application for trac
   <img width="1000" height="612" alt="summary_view" src="https://github.com/user-attachments/assets/016d6227-3e3d-4a7f-ad3c-efdcba7dd068" />
   <br><i>Monthly summary with interactive chart and budget line</i><br><br>
 
-  
-
   <img width="1009" height="593" alt="budget_view" src="https://github.com/user-attachments/assets/c5b25f94-8364-4f11-ba40-383a4e9bb850" />
   <br><i>Budget View with yearly, monthly, and categorically focused data</i><br><br>
   
-  ### SEE MORE SCREENSHOTS HERE <>
-  <details>
-  <summary>Click to see all monthly summary screenshots</summary>
+  <!-- ### SEE MORE SCREENSHOTS HERE <> -->
+  <details><summary>
+  
+  ### CLICK FOR MORE SCREENSHOTS HERE 
+  </summary>
+
   <p align="center">
     <img width="1000" height="612" alt="summary_multi" src="https://github.com/user-attachments/assets/07011663-c1b7-45c5-b972-fb6c68bf432c" />
     <br><i>Multi-Month Line chart</i><br><br>
