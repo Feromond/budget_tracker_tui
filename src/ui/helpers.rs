@@ -1,7 +1,7 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Color;
-use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
 pub fn format_amount(amount: &Decimal) -> String {
     let value = amount.to_f64().unwrap_or(0.0);
@@ -26,10 +26,11 @@ pub fn format_amount(amount: &Decimal) -> String {
 
 pub fn format_hours(amount: &Decimal, hourly_rate: Option<Decimal>) -> String {
     if let Some(rate) = hourly_rate
-        && rate > Decimal::ZERO {
-            let hours = (amount / rate).to_f64().unwrap_or(0.0);
-            return format!("{:.1}h", hours);
-        }
+        && rate > Decimal::ZERO
+    {
+        let hours = (amount / rate).to_f64().unwrap_or(0.0);
+        return format!("{:.1}h", hours);
+    }
     format_amount(amount)
 }
 

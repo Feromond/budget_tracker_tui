@@ -3,8 +3,8 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-use serde::de::Error as SerdeError;
 use serde::Deserializer;
+use serde::de::Error as SerdeError;
 
 pub(crate) const DATE_FORMAT: &str = "%Y-%m-%d";
 

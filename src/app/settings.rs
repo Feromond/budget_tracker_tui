@@ -1,6 +1,6 @@
 use super::state::{App, AppMode};
 use crate::app::settings_types::{SettingKey, SettingType, SettingsState};
-use crate::config::{save_settings, AppSettings};
+use crate::config::{AppSettings, save_settings};
 use crate::csv_io::load_seed_categories;
 use chrono::Duration;
 use std::path::PathBuf;

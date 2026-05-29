@@ -7,8 +7,8 @@ use ratatui::text::Line;
 use ratatui::widgets::{
     Axis, Bar, BarChart, BarGroup, Block, Borders, Chart, Dataset, GraphType, Paragraph,
 };
-use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
 pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let summary_chunks = Layout::default()
@@ -60,13 +60,15 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             let mut daily_expenses = vec![Decimal::ZERO; num_days];
             for &idx in &app.filtered_indices {
                 let tx = &app.transactions[idx];
-                if tx.date.year() == year && tx.date.month() == month
-                    && let crate::model::TransactionType::Expense = tx.transaction_type {
-                        let day = tx.date.day() as usize;
-                        if day > 0 && day <= num_days {
-                            daily_expenses[day - 1] += tx.amount;
-                        }
+                if tx.date.year() == year
+                    && tx.date.month() == month
+                    && let crate::model::TransactionType::Expense = tx.transaction_type
+                {
+                    let day = tx.date.day() as usize;
+                    if day > 0 && day <= num_days {
+                        daily_expenses[day - 1] += tx.amount;
                     }
+                }
             }
             let line_data: Vec<(f64, f64)> = if app.summary_cumulative_mode {
                 let mut cum = Decimal::ZERO;
@@ -116,13 +118,15 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             let mut daily_expenses = vec![Decimal::ZERO; num_days];
             for &idx in &app.filtered_indices {
                 let tx = &app.transactions[idx];
-                if tx.date.year() == year && tx.date.month() == month
-                    && let crate::model::TransactionType::Expense = tx.transaction_type {
-                        let day = tx.date.day() as usize;
-                        if day > 0 && day <= num_days {
-                            daily_expenses[day - 1] += tx.amount;
-                        }
+                if tx.date.year() == year
+                    && tx.date.month() == month
+                    && let crate::model::TransactionType::Expense = tx.transaction_type
+                {
+                    let day = tx.date.day() as usize;
+                    if day > 0 && day <= num_days {
+                        daily_expenses[day - 1] += tx.amount;
                     }
+                }
             }
             let line_data: Vec<(f64, f64)> = if app.summary_cumulative_mode {
                 let mut cum = Decimal::ZERO;
@@ -319,30 +323,31 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
 
     // Add cumulative budget line if in cumulative mode and budget is set
     let mut cumulative_budget_line: Option<Vec<(f64, f64)>> = None;
-    if app.summary_cumulative_mode && !app.summary_multi_month_mode
+    if app.summary_cumulative_mode
+        && !app.summary_multi_month_mode
         && let (Some(year), Some(month), Some(budget)) =
             (current_year, app.selected_summary_month, app.target_budget)
-        {
-            let num_days = days_in_month(year, month) as usize;
-            if num_days > 0 {
-                let daily_budget = budget / Decimal::from(num_days);
-                let budget_line: Vec<(f64, f64)> = (1..=num_days)
-                    .map(|d| {
-                        (
-                            d as f64,
-                            (daily_budget * Decimal::from(d)).to_f64().unwrap_or(0.0),
-                        )
-                    })
-                    .collect();
-                cumulative_budget_line = Some(budget_line);
-                legend_labels.push(Span::styled(
-                    "CumuBudget",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::DIM),
-                ));
-            }
+    {
+        let num_days = days_in_month(year, month) as usize;
+        if num_days > 0 {
+            let daily_budget = budget / Decimal::from(num_days);
+            let budget_line: Vec<(f64, f64)> = (1..=num_days)
+                .map(|d| {
+                    (
+                        d as f64,
+                        (daily_budget * Decimal::from(d)).to_f64().unwrap_or(0.0),
+                    )
+                })
+                .collect();
+            cumulative_budget_line = Some(budget_line);
+            legend_labels.push(Span::styled(
+                "CumuBudget",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::DIM),
+            ));
         }
+    }
     if let Some(ref budget_line) = cumulative_budget_line {
         datasets.push(
             Dataset::default()

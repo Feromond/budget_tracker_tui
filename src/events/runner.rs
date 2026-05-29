@@ -1,8 +1,8 @@
 use crate::app::state::{App, AppMode};
 use crate::ui::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::prelude::Backend;
 use ratatui::Terminal;
+use ratatui::prelude::Backend;
 use std::result::Result as StdResult;
 use std::time::Duration;
 
@@ -21,9 +21,10 @@ where
     while !app.should_quit {
         // Check for status expiry
         if let Some(expiry) = app.status_expiry
-            && std::time::Instant::now() > expiry {
-                app.clear_status_message();
-            }
+            && std::time::Instant::now() > expiry
+        {
+            app.clear_status_message();
+        }
 
         // Check for update in background channel
         if let Ok(Some(version)) = app.update_rx.try_recv() {

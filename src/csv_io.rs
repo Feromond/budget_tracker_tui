@@ -2,7 +2,7 @@
 //! Import/Export actions) and parsing of the embedded category seed used to initialize the
 //! database. The database itself is the persistence layer; this module only handles CSV.
 use crate::model::{CategoryInfo, Transaction, TransactionType};
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::{Error, ErrorKind};
 use std::path::Path;
 use std::result::Result as StdResult;

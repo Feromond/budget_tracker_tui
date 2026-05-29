@@ -253,11 +253,13 @@ impl App {
         });
         let editing_category_id = self.editing_category_id;
 
-        if draft.transaction_type == TransactionType::Income && draft.target_budget.is_none()
+        if draft.transaction_type == TransactionType::Income
+            && draft.target_budget.is_none()
             && let Some(old_record) = existing_record.as_ref()
-                && old_record.transaction_type == TransactionType::Income {
-                    draft.target_budget = old_record.target_budget;
-                }
+            && old_record.transaction_type == TransactionType::Income
+        {
+            draft.target_budget = old_record.target_budget;
+        }
 
         let store = self.category_store();
         let result = if let Some(id) = editing_category_id {

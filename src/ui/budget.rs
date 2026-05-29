@@ -5,8 +5,8 @@ use ratatui::text::Line;
 use ratatui::widgets::{
     Bar, BarChart, BarGroup, Block, Borders, Cell, Paragraph, Row, Table, Wrap,
 };
-use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
 const PANEL_CHROME_COLOR: Color = Color::LightBlue;
 const SELECTED_MONTH_BAR_COLOR: Color = Color::Rgb(255, 165, 0);

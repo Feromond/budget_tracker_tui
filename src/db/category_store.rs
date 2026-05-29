@@ -1,6 +1,6 @@
 use crate::db::database::SqliteDatabase;
 use crate::model::{CategoryDraft, CategoryInfo, CategoryRecord, TransactionType};
-use rusqlite::{params, Connection, Row};
+use rusqlite::{Connection, Row, params};
 use rust_decimal::Decimal;
 use std::io::{Error, ErrorKind, Result};
 use std::str::FromStr;

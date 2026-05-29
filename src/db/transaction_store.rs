@@ -1,10 +1,10 @@
 use crate::db::database::SqliteDatabase;
 use crate::model::{
-    CategoryDraft, CategoryRecord, RecurrenceFrequency, Transaction, TransactionDraft,
-    TransactionType, DATE_FORMAT,
+    CategoryDraft, CategoryRecord, DATE_FORMAT, RecurrenceFrequency, Transaction, TransactionDraft,
+    TransactionType,
 };
 use chrono::NaiveDate;
-use rusqlite::{params, types::Type, Connection, Error as SqlError, Row};
+use rusqlite::{Connection, Error as SqlError, Row, params, types::Type};
 use rust_decimal::Decimal;
 use std::io::{Error, ErrorKind, Result};
 use std::str::FromStr;
@@ -527,10 +527,10 @@ mod tests {
         assert_eq!(stored.len(), 2);
         assert!(stored.iter().all(|tx| !tx.is_generated_from_recurring));
         // The recurring source survived with its rule intact.
-        assert!(stored
-            .iter()
-            .any(|tx| tx.is_recurring
-                && tx.recurrence_frequency == Some(RecurrenceFrequency::Monthly)));
+        assert!(
+            stored.iter().any(|tx| tx.is_recurring
+                && tx.recurrence_frequency == Some(RecurrenceFrequency::Monthly))
+        );
 
         let _ = std::fs::remove_file(&csv_path);
     }

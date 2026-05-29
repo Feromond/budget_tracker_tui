@@ -41,9 +41,10 @@ impl TypeToSelect {
     {
         let now = Instant::now();
         if let Some(last_time) = self.last_type_time
-            && now.duration_since(last_time) > self.timeout {
-                self.buffer.clear();
-            }
+            && now.duration_since(last_time) > self.timeout
+        {
+            self.buffer.clear();
+        }
         self.buffer.push(c);
         self.last_type_time = Some(now);
 

@@ -1,5 +1,5 @@
 use crate::app::update_checker;
-use crate::config::{load_settings, AppSettings};
+use crate::config::{AppSettings, load_settings};
 use crate::csv_io::{load_seed_categories, load_transactions};
 use crate::db::category_store::{CategoryStore, SqliteCategoryStore};
 use crate::db::database::SqliteDatabase;
@@ -349,19 +349,20 @@ impl App {
             Some(path_str) => {
                 let path = PathBuf::from(path_str);
                 if let Some(parent) = path.parent()
-                    && let Err(err) = create_dir_all(parent) {
-                        let fallback =
-                            default_path_fn().unwrap_or_else(|_| PathBuf::from(fallback_name));
-                        return (
-                            fallback,
-                            Some(format!(
-                                "{} path error: Could not create parent dir for {}: {}. Using default.",
-                                label,
-                                path.display(),
-                                err
-                            )),
-                        );
-                    }
+                    && let Err(err) = create_dir_all(parent)
+                {
+                    let fallback =
+                        default_path_fn().unwrap_or_else(|_| PathBuf::from(fallback_name));
+                    return (
+                        fallback,
+                        Some(format!(
+                            "{} path error: Could not create parent dir for {}: {}. Using default.",
+                            label,
+                            path.display(),
+                            err
+                        )),
+                    );
+                }
 
                 (path, None)
             }
@@ -389,16 +390,17 @@ impl App {
         let default_path = Self::default_database_path_for_data_path(data_file_path);
 
         if let Some(parent) = default_path.parent()
-            && let Err(err) = create_dir_all(parent) {
-                return (
-                    PathBuf::from("budget.db"),
-                    Some(format!(
-                        "Database default path error: Could not create parent dir for {}: {}. Using local 'budget.db'.",
-                        default_path.display(),
-                        err
-                    )),
-                );
-            }
+            && let Err(err) = create_dir_all(parent)
+        {
+            return (
+                PathBuf::from("budget.db"),
+                Some(format!(
+                    "Database default path error: Could not create parent dir for {}: {}. Using local 'budget.db'.",
+                    default_path.display(),
+                    err
+                )),
+            );
+        }
 
         (default_path, None)
     }

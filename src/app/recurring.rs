@@ -221,33 +221,37 @@ impl App {
 
     pub(crate) fn increment_date_recurring(&mut self) {
         if self.current_recurring_field == 2
-            && let Some(new_date) = self.increment_date_field(&self.recurring_settings_fields[2]) {
-                self.recurring_settings_fields[2] = new_date;
-                self.clear_status_message();
-            }
+            && let Some(new_date) = self.increment_date_field(&self.recurring_settings_fields[2])
+        {
+            self.recurring_settings_fields[2] = new_date;
+            self.clear_status_message();
+        }
     }
 
     pub(crate) fn decrement_date_recurring(&mut self) {
         if self.current_recurring_field == 2
-            && let Some(new_date) = self.decrement_date_field(&self.recurring_settings_fields[2]) {
-                self.recurring_settings_fields[2] = new_date;
-                self.clear_status_message();
-            }
+            && let Some(new_date) = self.decrement_date_field(&self.recurring_settings_fields[2])
+        {
+            self.recurring_settings_fields[2] = new_date;
+            self.clear_status_message();
+        }
     }
 
     pub(crate) fn increment_month_recurring(&mut self) {
         if self.current_recurring_field == 2
-            && let Some(new_date) = self.increment_month_field(&self.recurring_settings_fields[2]) {
-                self.recurring_settings_fields[2] = new_date;
-                self.clear_status_message();
-            }
+            && let Some(new_date) = self.increment_month_field(&self.recurring_settings_fields[2])
+        {
+            self.recurring_settings_fields[2] = new_date;
+            self.clear_status_message();
+        }
     }
 
     pub(crate) fn decrement_month_recurring(&mut self) {
         if self.current_recurring_field == 2
-            && let Some(new_date) = self.decrement_month_field(&self.recurring_settings_fields[2]) {
-                self.recurring_settings_fields[2] = new_date;
-                self.clear_status_message();
-            }
+            && let Some(new_date) = self.decrement_month_field(&self.recurring_settings_fields[2])
+        {
+            self.recurring_settings_fields[2] = new_date;
+            self.clear_status_message();
+        }
     }
 }

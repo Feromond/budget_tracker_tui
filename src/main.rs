@@ -12,9 +12,9 @@ use crate::app::state::App;
 use events::run_app;
 
 use crossterm::{
-    event::{DisableBracketedPaste, EnableBracketedPaste},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
+    event::{DisableBracketedPaste, EnableBracketedPaste},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::prelude::{CrosstermBackend, Terminal};
 use std::io::stdout;

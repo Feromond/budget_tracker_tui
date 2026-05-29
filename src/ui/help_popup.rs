@@ -91,9 +91,10 @@ pub fn render_keybindings_popup(f: &mut Frame, app: &mut App, area: Rect) {
     if app.mode == AppMode::KeybindingDetail {
         // Ensure we get the same bindings list to index into
         if let Some(binding) = bindings.get(selected_index)
-            && let Some(desc) = binding.extended_description {
-                render_extended_help_popup(f, binding.key, desc, popup_area);
-            }
+            && let Some(desc) = binding.extended_description
+        {
+            render_extended_help_popup(f, binding.key, desc, popup_area);
+        }
     }
 }
 

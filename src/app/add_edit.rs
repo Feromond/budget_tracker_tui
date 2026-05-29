@@ -1,7 +1,7 @@
 use super::state::App;
 use crate::db::transaction_store::TransactionStore;
 use crate::model::TransactionType;
-use crate::model::{TransactionDraft, DATE_FORMAT};
+use crate::model::{DATE_FORMAT, TransactionDraft};
 use chrono::{Duration, NaiveDate};
 
 impl App {
@@ -443,11 +443,11 @@ impl App {
                 Ok(_) => {
                     if let Some(selected) = self.table_state.selected()
                         && selected >= self.filtered_indices.len()
-                            && !self.filtered_indices.is_empty()
-                        {
-                            self.table_state
-                                .select(Some(self.filtered_indices.len() - 1));
-                        }
+                        && !self.filtered_indices.is_empty()
+                    {
+                        self.table_state
+                            .select(Some(self.filtered_indices.len() - 1));
+                    }
                     self.set_status_message(
                         "Transaction deleted successfully.",
                         Some(Duration::seconds(3)),
