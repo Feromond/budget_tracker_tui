@@ -54,11 +54,10 @@ pub fn handle_help_mode(app: &mut App, key_event: KeyEvent) {
             let bindings = get_help_for_mode(mode);
             let selected = app.help_table_state.selected().unwrap_or(0);
 
-            if let Some(binding) = bindings.get(selected) {
-                if binding.extended_description.is_some() {
+            if let Some(binding) = bindings.get(selected)
+                && binding.extended_description.is_some() {
                     app.mode = AppMode::KeybindingDetail;
                 }
-            }
         }
         KeyCode::Char(c) => {
             let mode = app.previous_mode.unwrap_or(AppMode::Normal);

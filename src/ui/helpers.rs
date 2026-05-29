@@ -25,12 +25,11 @@ pub fn format_amount(amount: &Decimal) -> String {
 }
 
 pub fn format_hours(amount: &Decimal, hourly_rate: Option<Decimal>) -> String {
-    if let Some(rate) = hourly_rate {
-        if rate > Decimal::ZERO {
+    if let Some(rate) = hourly_rate
+        && rate > Decimal::ZERO {
             let hours = (amount / rate).to_f64().unwrap_or(0.0);
             return format!("{:.1}h", hours);
         }
-    }
     format_amount(amount)
 }
 

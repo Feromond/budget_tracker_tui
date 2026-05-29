@@ -90,11 +90,10 @@ pub fn render_keybindings_popup(f: &mut Frame, app: &mut App, area: Rect) {
     // If in detail mode, render the detail popup on top
     if app.mode == AppMode::KeybindingDetail {
         // Ensure we get the same bindings list to index into
-        if let Some(binding) = bindings.get(selected_index) {
-            if let Some(desc) = binding.extended_description {
+        if let Some(binding) = bindings.get(selected_index)
+            && let Some(desc) = binding.extended_description {
                 render_extended_help_popup(f, binding.key, desc, popup_area);
             }
-        }
     }
 }
 

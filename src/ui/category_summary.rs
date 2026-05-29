@@ -157,8 +157,8 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             }
             CategorySummaryItem::Subcategory(month, category, sub, summary) => {
                 let mut first_cell = Cell::from("");
-                if let Some(expanded_month) = last_expanded_month {
-                    if expanded_month == *month {
+                if let Some(expanded_month) = last_expanded_month
+                    && expanded_month == *month {
                         let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
                         let arrow_color = color_palette[month_idx % color_palette.len()];
 
@@ -181,7 +181,6 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                             Span::raw(" "),
                         ]));
                     }
-                }
                 let inc_cell = cell_income(summary.income, false);
                 let exp_cell = cell_expense(summary.expense, false);
                 let net_cell = cell_net(summary.income - summary.expense, false);
@@ -299,9 +298,9 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let mut bars: Vec<Bar> = Vec::new();
     let mut max_abs_chart_value: u64 = 10;
 
-    if let Some(selected_index) = app.category_summary_table_state.selected() {
-        if let Some(item) = items.get(selected_index) {
-            if let Some(year) = current_year {
+    if let Some(selected_index) = app.category_summary_table_state.selected()
+        && let Some(item) = items.get(selected_index)
+            && let Some(year) = current_year {
                 let selected_month = match item {
                     CategorySummaryItem::Month(m, _) => *m,
                     CategorySummaryItem::Subcategory(m, _, _, _) => *m,
@@ -381,8 +380,6 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
                 ));
                 chart_title = Line::from(title_spans);
             }
-        }
-    }
 
     if bars.is_empty() {
         bars.push(Bar::default().label("No Data").value(0));

@@ -166,9 +166,9 @@ impl App {
         }
     }
     pub(crate) fn confirm_advanced_selection(&mut self) {
-        if let Some(idx) = self.selection_list_state.selected() {
-            if let Some(fi) = self.selecting_field_index {
-                if let Some(val) = self.current_selection_list.get(idx) {
+        if let Some(idx) = self.selection_list_state.selected()
+            && let Some(fi) = self.selecting_field_index
+                && let Some(val) = self.current_selection_list.get(idx) {
                     let val_clone = val.clone();
                     self.clear_simple_filter_field_only();
                     let v = if fi == 4 && val_clone == "(None)" {
@@ -182,8 +182,6 @@ impl App {
                         return;
                     }
                 }
-            }
-        }
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
         if let Some(fi) = self.selecting_field_index {
             self.current_advanced_filter_field = fi;
@@ -220,16 +218,14 @@ impl App {
             .iter()
             .enumerate()
             .filter(|(_, tx)| {
-                if let Some(d) = date_from {
-                    if tx.date < d {
+                if let Some(d) = date_from
+                    && tx.date < d {
                         return false;
                     }
-                }
-                if let Some(d) = date_to {
-                    if tx.date > d {
+                if let Some(d) = date_to
+                    && tx.date > d {
                         return false;
                     }
-                }
                 if !desc_q.is_empty() && !tx.description.to_lowercase().contains(&desc_q) {
                     return false;
                 }
@@ -249,16 +245,14 @@ impl App {
                 {
                     return false;
                 }
-                if let Some(f) = amt_from {
-                    if tx.amount < f {
+                if let Some(f) = amt_from
+                    && tx.amount < f {
                         return false;
                     }
-                }
-                if let Some(t) = amt_to {
-                    if tx.amount > t {
+                if let Some(t) = amt_to
+                    && tx.amount > t {
                         return false;
                     }
-                }
                 true
             })
             .map(|(i, _)| i)

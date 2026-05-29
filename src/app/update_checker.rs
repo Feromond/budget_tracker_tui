@@ -19,21 +19,19 @@ pub fn check_for_updates() -> Option<String> {
         .header("User-Agent", "budget_tracker_tui_update_checker")
         .call();
 
-    if let Ok(resp) = response {
-        if let Ok(release) = resp.into_body().read_json::<Release>() {
+    if let Ok(resp) = response
+        && let Ok(release) = resp.into_body().read_json::<Release>() {
             let remote_version_str = release.tag_name.trim_start_matches('v');
 
             // Basic semver parsing and comparison
             if let (Ok(current), Ok(remote)) = (
                 semver::Version::parse(current_version),
                 semver::Version::parse(remote_version_str),
-            ) {
-                if remote > current {
+            )
+                && remote > current {
                     return Some(release.tag_name);
                 }
-            }
         }
-    }
 
     None
 }

@@ -167,11 +167,10 @@ fn create_generated_transaction(
         return None;
     }
 
-    if let Some(end_date) = recurring_tx.recurrence_end_date {
-        if target_date > end_date {
+    if let Some(end_date) = recurring_tx.recurrence_end_date
+        && target_date > end_date {
             return None;
         }
-    }
 
     let mut new_tx = recurring_tx.clone();
     new_tx.date = target_date;

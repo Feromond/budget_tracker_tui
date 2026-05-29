@@ -20,11 +20,10 @@ where
 {
     while !app.should_quit {
         // Check for status expiry
-        if let Some(expiry) = app.status_expiry {
-            if std::time::Instant::now() > expiry {
+        if let Some(expiry) = app.status_expiry
+            && std::time::Instant::now() > expiry {
                 app.clear_status_message();
             }
-        }
 
         // Check for update in background channel
         if let Ok(Some(version)) = app.update_rx.try_recv() {

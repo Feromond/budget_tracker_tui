@@ -81,9 +81,9 @@ impl App {
         }
     }
     pub(crate) fn confirm_selection(&mut self) {
-        if let Some(selected_index) = self.selection_list_state.selected() {
-            if let Some(field_index) = self.selecting_field_index {
-                if let Some(selected_value) = self.current_selection_list.get(selected_index) {
+        if let Some(selected_index) = self.selection_list_state.selected()
+            && let Some(field_index) = self.selecting_field_index
+                && let Some(selected_value) = self.current_selection_list.get(selected_index) {
                     let value_to_set = if field_index == 5 && selected_value == "(None)" {
                         ""
                     } else {
@@ -99,8 +99,6 @@ impl App {
                         self.add_edit_cursor = self.add_edit_fields[0].len();
                     }
                 }
-            }
-        }
         self.mode = if self.editing_index.is_some() {
             crate::app::state::AppMode::Editing
         } else {

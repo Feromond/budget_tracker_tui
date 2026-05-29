@@ -35,8 +35,8 @@ fn handle_category_summary(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('[') | KeyCode::Left => app.previous_category_summary_year(),
         KeyCode::Enter => {
             let items = app.get_visible_category_summary_items();
-            if let Some(selected_index) = app.category_summary_table_state.selected() {
-                if let Some(item) = items.get(selected_index) {
+            if let Some(selected_index) = app.category_summary_table_state.selected()
+                && let Some(item) = items.get(selected_index) {
                     if let CategorySummaryItem::Month(month, _) = item {
                         if app.expanded_category_summary_months.contains(month) {
                             app.expanded_category_summary_months.remove(month);
@@ -57,7 +57,6 @@ fn handle_category_summary(app: &mut App, key_event: KeyEvent) {
                             .select(Some(selected_index));
                     }
                 }
-            }
         }
         _ => {}
     }
