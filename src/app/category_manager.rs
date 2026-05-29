@@ -203,7 +203,7 @@ impl App {
         // Re-point affected transactions in the database (clears the deleted category).
         if let Err(err) = self.transaction_store().apply_category_clear(&record) {
             self.set_status_message(
-                format!(    
+                format!(
                     "Category deleted, but updating transactions failed: {}",
                     err
                 ),

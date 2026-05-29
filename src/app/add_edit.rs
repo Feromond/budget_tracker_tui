@@ -146,7 +146,7 @@ impl App {
                 }
                 Err(e) => {
                     self.set_status_message(format!("Error reloading transactions: {}", e), None);
-                }   
+                }
             },
             Err(e) => {
                 self.set_status_message(format!("Error saving transaction: {}", e), None);
