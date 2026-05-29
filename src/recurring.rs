@@ -31,11 +31,14 @@ pub fn generate_recurring_transactions(
         };
 
         match frequency {
-            RecurrenceFrequency::SemiMonthly => {
-                // Handle semi-monthly separately since it follows a different pattern
-                let semi_monthly_instances =
-                    generate_semi_monthly_instances(recurring_tx, up_to_date);
-                generated.extend(semi_monthly_instances);
+            RecurrenceFrequency::SemiMonthly | RecurrenceFrequency::SemiMonthlyWorkday => {
+                // Semi-monthly follows a fixed-day pattern rather than a recurring interval.
+                let workdays_only = frequency == RecurrenceFrequency::SemiMonthlyWorkday;
+                generated.extend(generate_semi_monthly_instances(
+                    recurring_tx,
+                    up_to_date,
+                    workdays_only,
+                ));
             }
             _ => {
                 // Handle other frequencies with the existing logic
@@ -89,7 +92,8 @@ pub fn generate_recurring_transactions(
                                     .unwrap_or(current_date + Duration::days(365))
                             }
                         }
-                        RecurrenceFrequency::SemiMonthly => unreachable!(), // Handled above
+                        RecurrenceFrequency::SemiMonthly
+                        | RecurrenceFrequency::SemiMonthlyWorkday => unreachable!(), // Handled above
                     };
                 }
             }
@@ -99,10 +103,13 @@ pub fn generate_recurring_transactions(
     generated
 }
 
-/// Generates semi-monthly transaction instances (15th and last day of each month)
+/// Generates semi-monthly transaction instances on the 15th and last day of each month. When
+/// `workdays_only` is set, a target landing on a weekend is moved back to the preceding weekday
+/// (e.g. payroll paid on the last business day on or before the 15th / month end).
 fn generate_semi_monthly_instances(
     recurring_tx: &Transaction,
     up_to_date: NaiveDate,
+    workdays_only: bool,
 ) -> Vec<Transaction> {
     let mut generated = Vec::new();
     let start_date = recurring_tx.date;
@@ -117,7 +124,10 @@ fn generate_semi_monthly_instances(
 
         // Try to generate transactions for 15th and last day of the month
         for day in [15, crate::validation::days_in_month(year, month)] {
-            if let Some(target_date) = NaiveDate::from_ymd_opt(year, month, day) {
+            if let Some(mut target_date) = NaiveDate::from_ymd_opt(year, month, day) {
+                if workdays_only {
+                    target_date = previous_weekday_on_or_before(target_date);
+                }
                 if let Some(new_tx) =
                     create_generated_transaction(recurring_tx, target_date, start_date, up_to_date)
                 {
@@ -136,6 +146,14 @@ fn generate_semi_monthly_instances(
     }
 
     generated
+}
+
+/// Moves a date back to the nearest weekday on or before it (Saturday/Sunday roll to Friday).
+fn previous_weekday_on_or_before(mut date: NaiveDate) -> NaiveDate {
+    while matches!(date.weekday(), chrono::Weekday::Sat | chrono::Weekday::Sun) {
+        date -= Duration::days(1);
+    }
+    date
 }
 
 /// Helper function to create a generated transaction if it meets the criteria
