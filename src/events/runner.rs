@@ -36,43 +36,7 @@ where
 
         if event::poll(Duration::from_millis(250))? {
             match event::read()? {
-                // Handle Paste Event
-                Event::Paste(text) if app.mode == AppMode::Settings => {
-                    let idx = app.settings_state.selected_index;
-                    if let Some(item) = app.settings_state.items.get_mut(idx) {
-                        // Allow paste for Path type
-                        if matches!(
-                            item.setting_type,
-                            crate::app::settings_types::SettingType::Path
-                        ) {
-                            let cursor = app.settings_state.edit_cursor;
-                            if cursor <= item.value.len() {
-                                item.value.insert_str(cursor, &text);
-                                app.settings_state.edit_cursor += text.chars().count();
-
-                                if item.setting_type
-                                    == crate::app::settings_types::SettingType::Path
-                                {
-                                    let stripped =
-                                        crate::validation::strip_path_quotes(&item.value);
-                                    item.value = stripped;
-                                    app.settings_state.edit_cursor = item.value.len();
-                                }
-                            }
-                        }
-                    }
-                }
-                // Handle paste into the Import/Export path prompt.
-                Event::Paste(text)
-                    if app.mode == AppMode::ImportTransactions
-                        || app.mode == AppMode::ExportTransactions =>
-                {
-                    let cursor = app.io_path_cursor.min(app.io_path_input.len());
-                    app.io_path_input.insert_str(cursor, &text);
-                    app.io_path_input = crate::validation::strip_path_quotes(&app.io_path_input);
-                    app.io_path_cursor = app.io_path_input.len();
-                }
-                // Potentially handle paste in other modes later if needed
+                Event::Paste(text) => app.handle_paste(&text),
                 Event::Key(key)
                     if key.kind == KeyEventKind::Press
                         && (key.modifiers == KeyModifiers::NONE

@@ -376,6 +376,31 @@ impl App {
         self.update_settings_visibility();
     }
 
+    /// Handle bracketed-paste into the active path field. Only the settings path fields and
+    /// the import/export prompt accept pasted text; other modes ignore it.
+    pub(crate) fn handle_paste(&mut self, text: &str) {
+        match self.mode {
+            AppMode::Settings => {
+                let idx = self.settings_state.selected_index;
+                if let Some(item) = self.settings_state.items.get_mut(idx) {
+                    if item.setting_type == crate::app::settings_types::SettingType::Path {
+                        let at = self.settings_state.edit_cursor.min(item.value.len());
+                        item.value.insert_str(at, text);
+                        item.value = crate::validation::strip_path_quotes(&item.value);
+                        self.settings_state.edit_cursor = item.value.len();
+                    }
+                }
+            }
+            AppMode::ImportTransactions | AppMode::ExportTransactions => {
+                let at = self.io_path_cursor.min(self.io_path_input.len());
+                self.io_path_input.insert_str(at, text);
+                self.io_path_input = crate::validation::strip_path_quotes(&self.io_path_input);
+                self.io_path_cursor = self.io_path_input.len();
+            }
+            _ => {}
+        }
+    }
+
     // --- Date Navigation ---
     // Date field navigation utilities for input fields - public for use by other modules
     pub fn increment_date_field(&self, field: &str) -> Option<String> {
