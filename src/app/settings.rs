@@ -1,7 +1,7 @@
 use super::state::{App, AppMode};
 use crate::app::settings_types::{SettingKey, SettingType, SettingsState};
 use crate::config::{save_settings, AppSettings};
-use crate::persistence::load_categories;
+use crate::csv_io::load_seed_categories;
 use chrono::Duration;
 use std::path::PathBuf;
 
@@ -221,7 +221,7 @@ impl App {
         let new_database_path = PathBuf::from(&new_database_path_str);
 
         let seed_categories = if self.categories.is_empty() {
-            load_categories().unwrap_or_default()
+            load_seed_categories().unwrap_or_default()
         } else {
             self.categories.clone()
         };

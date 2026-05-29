@@ -1,10 +1,10 @@
 use crate::app::update_checker;
 use crate::config::{load_settings, AppSettings};
+use crate::csv_io::{load_seed_categories, load_transactions};
 use crate::db::category_store::{CategoryStore, SqliteCategoryStore};
 use crate::db::database::SqliteDatabase;
 use crate::db::transaction_store::{SqliteTransactionStore, TransactionStore};
 use crate::model::*;
-use crate::persistence::{load_categories, load_transactions};
 use chrono::{Datelike, Duration, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
 use rust_decimal::Decimal;
@@ -199,7 +199,7 @@ impl App {
                 ),
             };
 
-        let (seed_categories, load_seed_error_msg) = match load_categories() {
+        let (seed_categories, load_seed_error_msg) = match load_seed_categories() {
             Ok(cats) => (cats, None),
             Err(e) => (vec![], Some(format!("Embedded Category Seed Error: {}", e))),
         };

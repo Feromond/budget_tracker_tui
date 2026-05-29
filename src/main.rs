@@ -1,9 +1,9 @@
 mod app;
 mod config;
+mod csv_io;
 mod db;
 mod events;
 mod model;
-mod persistence;
 mod recurring;
 mod ui;
 mod validation;

@@ -168,8 +168,8 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    /// Build a persistence draft (the real-row fields stored in the database) from a
-    /// transaction. Drops `id`, generated flags, and the in-memory `parent_id`.
+    /// Build a database draft (the real-row fields stored in the `transactions` table) from a
+    /// transaction. Drops `id`, the generated flag, and the in-memory `parent_id`.
     pub fn to_draft(&self) -> TransactionDraft {
         TransactionDraft {
             date: self.date,

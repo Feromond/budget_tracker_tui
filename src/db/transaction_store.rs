@@ -512,7 +512,7 @@ mod tests {
         )
         .unwrap();
 
-        let rows = crate::persistence::load_transactions(&csv_path).unwrap();
+        let rows = crate::csv_io::load_transactions(&csv_path).unwrap();
         assert_eq!(rows.len(), 4, "all CSV rows parse");
 
         // The import path drops generated occurrences, keeping only real rows (source + normal).

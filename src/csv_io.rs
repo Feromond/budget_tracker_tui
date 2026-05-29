@@ -1,3 +1,6 @@
+//! CSV serialization: transaction import/export (used by the one-time migration and the
+//! Import/Export actions) and parsing of the embedded category seed used to initialize the
+//! database. The database itself is the persistence layer; this module only handles CSV.
 use crate::model::{CategoryInfo, Transaction, TransactionType};
 use std::fs::{create_dir_all, File};
 use std::io::{Error, ErrorKind};
@@ -67,8 +70,8 @@ pub(crate) fn save_transactions(
     Ok(())
 }
 
-// Function to load categories from embedded data
-pub(crate) fn load_categories() -> StdResult<Vec<CategoryInfo>, Error> {
+/// Parse the embedded category list used to seed the database on first run.
+pub(crate) fn load_seed_categories() -> StdResult<Vec<CategoryInfo>, Error> {
     let embedded_csv_data = include_str!("../budget_categories.csv");
 
     let mut rdr = csv::Reader::from_reader(embedded_csv_data.as_bytes());
