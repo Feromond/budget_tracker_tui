@@ -1,6 +1,7 @@
 use super::state::App;
 use crate::model::{RecurrenceFrequency, Transaction};
 use crate::recurring::{generate_recurring_transactions, remove_generated_recurring_transactions};
+use crate::transaction_store::TransactionStore;
 use chrono::{Duration, NaiveDate};
 
 impl App {
@@ -92,16 +93,10 @@ impl App {
 
                 // Parse frequency
                 let frequency = if is_recurring {
-                    match frequency_str.as_str() {
-                        "Daily" => Some(RecurrenceFrequency::Daily),
-                        "Weekly" => Some(RecurrenceFrequency::Weekly),
-                        "Bi-Weekly" => Some(RecurrenceFrequency::BiWeekly),
-                        "Semi-Monthly" => Some(RecurrenceFrequency::SemiMonthly),
-                        "Monthly" => Some(RecurrenceFrequency::Monthly),
-                        "Quarterly" => Some(RecurrenceFrequency::Quarterly),
-                        "Yearly" => Some(RecurrenceFrequency::Yearly),
-                        _ => Some(RecurrenceFrequency::Monthly), // Default
-                    }
+                    Some(
+                        RecurrenceFrequency::from_label(frequency_str)
+                            .unwrap_or(RecurrenceFrequency::Monthly),
+                    )
                 } else {
                     None
                 };
@@ -125,25 +120,27 @@ impl App {
                     None
                 };
 
-                // Update the transaction
-                self.transactions[index].is_recurring = is_recurring;
-                self.transactions[index].recurrence_frequency = frequency;
-                self.transactions[index].recurrence_end_date = end_date;
+                // Apply the new recurring rule to the source row, then persist.
+                let Some(id) = self.transactions[index].id else {
+                    self.set_status_message("Error: transaction has no database id", None);
+                    self.exit_recurring_settings(true);
+                    return;
+                };
+                let mut draft = self.transactions[index].to_draft();
+                draft.is_recurring = is_recurring;
+                draft.recurrence_frequency = frequency;
+                draft.recurrence_end_date = end_date;
 
-                // Save to file
-                match crate::persistence::save_transactions(
-                    &self.transactions,
-                    &self.data_file_path,
-                ) {
+                match self
+                    .transaction_store()
+                    .update(id, &draft)
+                    .and_then(|_| self.reload_transactions_from_db())
+                {
                     Ok(_) => {
                         self.set_status_message(
                             "Recurring settings saved successfully.",
                             Some(Duration::seconds(3)),
                         );
-
-                        // Regenerate recurring transactions
-                        self.generate_recurring_transactions();
-
                         self.exit_recurring_settings(false);
                     }
                     Err(e) => {

@@ -2,6 +2,7 @@ use super::state::App;
 use crate::app::settings_types::{SettingType, SettingsState};
 use crate::config::{save_settings, AppSettings};
 use crate::persistence::{load_categories, load_transactions, save_transactions};
+use crate::transaction_store::TransactionStore;
 use chrono::Duration;
 use std::path::PathBuf;
 
@@ -26,17 +27,7 @@ impl App {
             "",
         );
 
-        // 1. Data File Path
-        let path_str = self.data_file_path.to_string_lossy().to_string();
-        let path_val = crate::validation::strip_path_quotes(&path_str);
-        self.settings_state.add_setting(
-            "data_file_path",
-            "Data File Path",
-            path_val,
-            SettingType::Path,
-            "Absolute path to your transactions CSV file.",
-        );
-        // 2. SQLite Database Path
+        // 1. SQLite Database Path (primary storage for transactions and categories)
         let database_path_str = self.database_path.to_string_lossy().to_string();
         let database_path_val = crate::validation::strip_path_quotes(&database_path_str);
         self.settings_state.add_setting(
@@ -44,15 +35,31 @@ impl App {
             "Database Path",
             database_path_val,
             SettingType::Path,
-            "Absolute path to your categories SQLite database.",
+            "Absolute path to your SQLite database (transactions and categories).",
         );
-        // 3. Manage Categories
+        // 2. Manage Categories
         self.settings_state.add_setting(
             "manage_categories",
             "Manage Categories",
             "Open Category Catalog".to_string(),
             SettingType::Action,
             "Open the category catalog to add, edit, or delete categories.",
+        );
+        // 3. Import Transactions (CSV) — type a path and press Enter to merge it in.
+        self.settings_state.add_setting(
+            "import_transactions",
+            "Import Transactions (CSV)",
+            self.default_io_path_value(),
+            SettingType::Path,
+            "Type a CSV path and press Enter to import (new rows are added, duplicates skipped).",
+        );
+        // 4. Export Transactions (CSV) — type a destination and press Enter to write a CSV.
+        self.settings_state.add_setting(
+            "export_transactions",
+            "Export Transactions (CSV)",
+            self.default_io_path_value(),
+            SettingType::Path,
+            "Type a destination path and press Enter to export all transactions to CSV.",
         );
 
         // --- Monthly Summary View Section ---
@@ -64,7 +71,7 @@ impl App {
             "",
         );
 
-        // 4. Target Budget
+        // 5. Target Budget
         let budget_val = loaded_settings
             .target_budget
             .map(|v| v.to_string())
@@ -86,7 +93,7 @@ impl App {
             "",
         );
 
-        // 5. Hourly Rate
+        // 6. Hourly Rate
         let hourly_rate_val = loaded_settings
             .hourly_rate
             .map(|v| v.to_string())
@@ -99,7 +106,7 @@ impl App {
             "Optional. Enter your hourly earning rate to see costs in hours.",
         );
 
-        // 6. Show Hours Toggle
+        // 7. Show Hours Toggle
         // Only show this if hourly rate is present
         if !hourly_rate_val.is_empty() {
             let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) {
@@ -125,7 +132,7 @@ impl App {
             "",
         );
 
-        // 7. Fuzzy Search Mode
+        // 8. Fuzzy Search Mode
         let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) {
             "◀ Yes "
         } else {
@@ -148,7 +155,7 @@ impl App {
             "",
         );
 
-        // 8. Hide Help Bar
+        // 9. Hide Help Bar
         let hide_help_bar_val = if loaded_settings.hide_help_bar.unwrap_or(false) {
             "◀ Yes "
         } else {
@@ -192,7 +199,6 @@ impl App {
 
     pub(crate) fn save_settings(&mut self) {
         // Retrieve values from state
-        let mut new_path_str = String::new();
         let mut new_database_path_str = String::new();
         let mut target_budget_str = String::new();
         let mut hourly_rate_str = String::new();
@@ -200,9 +206,6 @@ impl App {
         let mut fuzzy_search_val = None;
         let mut hide_help_bar_val = None;
 
-        if let Some(val) = self.settings_state.get_value("data_file_path") {
-            new_path_str = crate::validation::strip_path_quotes(val);
-        }
         if let Some(val) = self.settings_state.get_value("database_path") {
             new_database_path_str = crate::validation::strip_path_quotes(val);
         }
@@ -249,29 +252,11 @@ impl App {
         };
 
         // Validate Path
-        if new_path_str.is_empty() {
-            self.set_status_message("Error: Path cannot be empty.", None);
-            return;
-        }
         if new_database_path_str.is_empty() {
             self.set_status_message("Error: Database path cannot be empty.", None);
             return;
         }
-        let new_path = PathBuf::from(&new_path_str);
         let new_database_path = PathBuf::from(&new_database_path_str);
-        if !new_path.exists() {
-            if let Err(e) = save_transactions(&self.transactions, &new_path) {
-                self.set_status_message(
-                    format!(
-                        "Error creating transactions file '{}': {}. Check path and permissions.",
-                        new_path.display(),
-                        e
-                    ),
-                    None,
-                );
-                return;
-            }
-        }
 
         let seed_categories = if self.categories.is_empty() {
             load_categories().unwrap_or_default()
@@ -294,9 +279,10 @@ impl App {
             return;
         }
 
-        // Save to Config
+        // Save to Config. The legacy data file path is retained only so a one-time CSV
+        // migration can still locate it and as the default for import/export.
         let settings = AppSettings {
-            data_file_path: Some(new_path_str.clone()),
+            data_file_path: Some(self.data_file_path.to_string_lossy().to_string()),
             database_path: Some(new_database_path_str.clone()),
             target_budget,
             hourly_rate,
@@ -309,28 +295,23 @@ impl App {
             return;
         }
 
-        // Reload Transactions
-        self.data_file_path = new_path.clone();
+        // Point at the new database and reload everything from it.
         self.database_path = new_database_path.clone();
-        let txs = match load_transactions(&self.data_file_path) {
-            Ok(tx) => tx,
-            Err(e) => {
-                self.set_status_message(
-                    format!(
-                        "Error loading transactions from '{}': {}. Check file format and permissions.",
-                        self.data_file_path.display(),
-                        e
-                    ),
-                    None,
-                );
-                return;
-            }
-        };
-        self.transactions = txs;
         if let Err(e) = self.reload_categories_from_store() {
             self.set_status_message(
                 format!(
                     "Error loading categories from '{}': {}. Check database path and permissions.",
+                    self.database_path.display(),
+                    e
+                ),
+                None,
+            );
+            return;
+        }
+        if let Err(e) = self.reload_transactions_from_db() {
+            self.set_status_message(
+                format!(
+                    "Error loading transactions from '{}': {}. Check database path and permissions.",
                     self.database_path.display(),
                     e
                 ),
@@ -353,11 +334,7 @@ impl App {
         self.calculate_category_summaries();
 
         self.set_status_message(
-            format!(
-                "Settings saved. Data: {} | Database: {}",
-                self.data_file_path.display(),
-                self.database_path.display()
-            ),
+            format!("Settings saved. Database: {}", self.database_path.display()),
             Some(Duration::seconds(3)),
         );
         self.target_budget = target_budget;
@@ -367,68 +344,31 @@ impl App {
         self.hide_help_bar = hide_help_bar_val.unwrap_or(false);
     }
 
-    pub(crate) fn reset_settings_path_to_default(&mut self) {
-        match Self::get_default_data_file_path() {
-            Ok(default_path) => {
-                let path_str = default_path.to_string_lossy().to_string();
-                let clean_path = crate::validation::strip_path_quotes(&path_str);
+    /// Default value shown in the Import/Export path fields: the legacy data directory, which
+    /// is the most likely place a user keeps a transactions CSV.
+    fn default_io_path_value(&self) -> String {
+        crate::validation::strip_path_quotes(&self.data_file_path.to_string_lossy())
+    }
 
-                // Find index
-                if let Some(idx) = self
-                    .settings_state
-                    .items
-                    .iter()
-                    .position(|i| i.key == "data_file_path")
-                {
-                    self.settings_state.items[idx].value = clean_path;
-                    if self.settings_state.selected_index == idx {
-                        self.settings_state.edit_cursor =
-                            self.settings_state.items[idx].value.len();
-                    }
-                }
-
-                self.set_status_message("Path reset to default. Press Enter to save.", None);
-            }
-            Err(e) => {
-                let fallback_path = "transactions.csv";
-
-                if let Some(idx) = self
-                    .settings_state
-                    .items
-                    .iter()
-                    .position(|i| i.key == "data_file_path")
-                {
-                    self.settings_state.items[idx].value = fallback_path.to_string();
-                    if self.settings_state.selected_index == idx {
-                        self.settings_state.edit_cursor =
-                            self.settings_state.items[idx].value.len();
-                    }
-                }
-
-                self.set_status_message(
-                    format!(
-                        "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
-                        e, fallback_path
-                    ),
-                    None,
-                );
-            }
+    /// Reset the currently-selected Import/Export path field back to the default location.
+    pub(crate) fn reset_settings_io_path_to_default(&mut self) {
+        let default = self.default_io_path_value();
+        let idx = self.settings_state.selected_index;
+        if let Some(item) = self.settings_state.items.get_mut(idx) {
+            item.value = default;
+            self.settings_state.edit_cursor = item.value.len();
         }
+        self.set_status_message("Path reset to default location.", None);
     }
 
     pub(crate) fn reset_settings_database_path_to_default(&mut self) {
-        let data_path_value = self
-            .settings_state
-            .get_value("data_file_path")
-            .map(|value| crate::validation::strip_path_quotes(value))
-            .filter(|value| !value.trim().is_empty());
+        let data_path_value =
+            crate::validation::strip_path_quotes(&self.data_file_path.to_string_lossy());
 
-        let default_path = match data_path_value {
-            Some(path_str) => {
-                Self::default_database_path_for_data_path(PathBuf::from(path_str).as_path())
-            }
-            None => Self::get_default_database_file_path()
-                .unwrap_or_else(|_| PathBuf::from("budget.db")),
+        let default_path = if data_path_value.trim().is_empty() {
+            Self::get_default_database_file_path().unwrap_or_else(|_| PathBuf::from("budget.db"))
+        } else {
+            Self::default_database_path_for_data_path(PathBuf::from(data_path_value).as_path())
         };
 
         let clean_path =
@@ -461,7 +401,106 @@ impl App {
 
         match selected_key.as_deref() {
             Some("manage_categories") => self.open_category_catalog(),
+            Some("import_transactions") => self.import_transactions(),
+            Some("export_transactions") => self.export_transactions(),
             _ => self.save_settings(),
+        }
+    }
+
+    /// Import transactions from a CSV chosen in the Import field. Generated recurring rows in
+    /// the file are dropped (they are re-derived from sources); the rest are merged with the
+    /// database, skipping exact duplicates.
+    pub(crate) fn import_transactions(&mut self) {
+        let raw = match self.settings_state.get_value("import_transactions") {
+            Some(value) => value.clone(),
+            None => {
+                self.set_status_message("Error: import path field is missing.", None);
+                return;
+            }
+        };
+        let path_str = crate::validation::strip_path_quotes(&raw);
+        if path_str.trim().is_empty() {
+            self.set_status_message("Error: enter a CSV path to import.", None);
+            return;
+        }
+        let path = PathBuf::from(&path_str);
+        if !path.exists() {
+            self.set_status_message(format!("Error: file '{}' not found.", path.display()), None);
+            return;
+        }
+
+        let rows = match load_transactions(&path) {
+            Ok(rows) => rows,
+            Err(e) => {
+                self.set_status_message(format!("Error reading '{}': {}", path.display(), e), None);
+                return;
+            }
+        };
+        let real_rows: Vec<_> = rows
+            .into_iter()
+            .filter(|tx| !tx.is_generated_from_recurring)
+            .collect();
+
+        let summary = match self.transaction_store().import_merge(&real_rows) {
+            Ok(summary) => summary,
+            Err(e) => {
+                self.set_status_message(format!("Error importing transactions: {}", e), None);
+                return;
+            }
+        };
+        if let Err(e) = self.reload_transactions_from_db() {
+            self.set_status_message(format!("Imported, but reloading failed: {}", e), None);
+            return;
+        }
+
+        self.exit_settings_mode();
+        self.filtered_indices = (0..self.transactions.len()).collect();
+        if self.filtered_indices.is_empty() {
+            self.table_state.select(None);
+        } else {
+            self.table_state.select(Some(0));
+        }
+        self.set_status_message(
+            format!(
+                "Imported {} new, skipped {} duplicates.",
+                summary.added, summary.skipped
+            ),
+            Some(Duration::seconds(4)),
+        );
+    }
+
+    /// Export every transaction (including the materialized recurring occurrences shown in the
+    /// app) to the CSV path chosen in the Export field.
+    pub(crate) fn export_transactions(&mut self) {
+        let raw = match self.settings_state.get_value("export_transactions") {
+            Some(value) => value.clone(),
+            None => {
+                self.set_status_message("Error: export path field is missing.", None);
+                return;
+            }
+        };
+        let path_str = crate::validation::strip_path_quotes(&raw);
+        if path_str.trim().is_empty() {
+            self.set_status_message("Error: enter a destination path to export.", None);
+            return;
+        }
+        let path = PathBuf::from(&path_str);
+
+        match save_transactions(&self.transactions, &path) {
+            Ok(_) => {
+                let count = self.transactions.len();
+                self.exit_settings_mode();
+                self.set_status_message(
+                    format!("Exported {} transactions to {}.", count, path.display()),
+                    Some(Duration::seconds(4)),
+                );
+            }
+            Err(e) => {
+                self.set_status_message(
+                    format!("Error exporting to '{}': {}", path.display(), e),
+                    None,
+                );
+            }
         }
     }
 

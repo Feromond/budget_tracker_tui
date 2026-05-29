@@ -105,6 +105,21 @@ impl RecurrenceFrequency {
         }
     }
 
+    /// Parse a frequency from its display label (e.g. "Bi-Weekly"). Used for both the
+    /// recurring-settings form and database round-tripping.
+    pub fn from_label(label: &str) -> Option<RecurrenceFrequency> {
+        match label {
+            "Daily" => Some(RecurrenceFrequency::Daily),
+            "Weekly" => Some(RecurrenceFrequency::Weekly),
+            "Bi-Weekly" => Some(RecurrenceFrequency::BiWeekly),
+            "Semi-Monthly" => Some(RecurrenceFrequency::SemiMonthly),
+            "Monthly" => Some(RecurrenceFrequency::Monthly),
+            "Quarterly" => Some(RecurrenceFrequency::Quarterly),
+            "Yearly" => Some(RecurrenceFrequency::Yearly),
+            _ => None,
+        }
+    }
+
     pub fn all() -> Vec<RecurrenceFrequency> {
         vec![
             RecurrenceFrequency::Daily,
@@ -142,6 +157,47 @@ pub struct Transaction {
     pub recurrence_end_date: Option<NaiveDate>,
     #[serde(default)]
     pub is_generated_from_recurring: bool,
+    // Database identity. Excluded from CSV (import/export stay byte-compatible).
+    // `id` is set for persisted (real) rows and None for in-memory-only generated rows.
+    #[serde(skip)]
+    pub id: Option<i64>,
+    // In-memory only: the source row's id, stamped onto generated occurrences so we can
+    // jump back to the source without fragile attribute matching. Never a DB column.
+    #[serde(skip)]
+    pub parent_id: Option<i64>,
+}
+
+impl Transaction {
+    /// Build a persistence draft (the real-row fields stored in the database) from a
+    /// transaction. Drops `id`, generated flags, and the in-memory `parent_id`.
+    pub fn to_draft(&self) -> TransactionDraft {
+        TransactionDraft {
+            date: self.date,
+            description: self.description.clone(),
+            amount: self.amount,
+            transaction_type: self.transaction_type,
+            category: self.category.clone(),
+            subcategory: self.subcategory.clone(),
+            is_recurring: self.is_recurring,
+            recurrence_frequency: self.recurrence_frequency,
+            recurrence_end_date: self.recurrence_end_date,
+        }
+    }
+}
+
+/// Fields persisted for a real transaction row (regular transactions + recurring sources).
+/// Generated occurrences are never stored, so there is no generated flag or parent link here.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TransactionDraft {
+    pub date: NaiveDate,
+    pub description: String,
+    pub amount: Decimal,
+    pub transaction_type: TransactionType,
+    pub category: String,
+    pub subcategory: String,
+    pub is_recurring: bool,
+    pub recurrence_frequency: Option<RecurrenceFrequency>,
+    pub recurrence_end_date: Option<NaiveDate>,
 }
 
 fn default_category() -> String {

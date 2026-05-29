@@ -2,7 +2,7 @@ use super::state::App;
 use crate::app::state::AppMode;
 use crate::category_store::CategoryStore;
 use crate::model::{CategoryDraft, CategoryRecord, TransactionType};
-use crate::persistence::save_transactions;
+use crate::transaction_store::TransactionStore;
 use chrono::Duration;
 
 impl App {
@@ -200,11 +200,23 @@ impl App {
             return;
         }
 
-        crate::app::util::apply_category_delete(&mut self.transactions, &record);
-
-        if let Err(err) = save_transactions(&self.transactions, &self.data_file_path) {
+        // Re-point affected transactions in the database (clears the deleted category).
+        if let Err(err) = self.transaction_store().apply_category_clear(&record) {
             self.set_status_message(
-                format!("Category deleted, but saving transactions failed: {}", err),
+                format!(    
+                    "Category deleted, but updating transactions failed: {}",
+                    err
+                ),
+                None,
+            );
+            return;
+        }
+        if let Err(err) = self.reload_transactions_from_db() {
+            self.set_status_message(
+                format!(
+                    "Category deleted, but reloading transactions failed: {}",
+                    err
+                ),
                 None,
             );
             return;
@@ -218,9 +230,6 @@ impl App {
             return;
         }
 
-        self.apply_filter();
-        self.calculate_monthly_summaries();
-        self.calculate_category_summaries();
         self.mode = AppMode::CategoryCatalog;
         self.category_delete_id = None;
         self.clamp_category_catalog_selection();
@@ -268,15 +277,24 @@ impl App {
         };
 
         if let Some(old_record) = existing_record {
-            crate::app::util::apply_category_update(&mut self.transactions, &old_record, &draft);
-        }
-
-        if let Err(err) = save_transactions(&self.transactions, &self.data_file_path) {
-            self.set_status_message(
-                format!("Category saved, but saving transactions failed: {}", err),
-                None,
-            );
-            return;
+            // Propagate the rename/retype to existing transactions in the database.
+            if let Err(err) = self
+                .transaction_store()
+                .apply_category_rename(&old_record, &draft)
+            {
+                self.set_status_message(
+                    format!("Category saved, but updating transactions failed: {}", err),
+                    None,
+                );
+                return;
+            }
+            if let Err(err) = self.reload_transactions_from_db() {
+                self.set_status_message(
+                    format!("Category saved, but reloading transactions failed: {}", err),
+                    None,
+                );
+                return;
+            }
         }
 
         if let Err(err) = self.reload_categories_from_store() {
@@ -284,9 +302,6 @@ impl App {
             return;
         }
 
-        self.apply_filter();
-        self.calculate_monthly_summaries();
-        self.calculate_category_summaries();
         self.mode = AppMode::CategoryCatalog;
         self.editing_category_id = Some(saved_id);
         self.current_category_field = 0;

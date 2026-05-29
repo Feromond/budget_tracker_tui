@@ -4,6 +4,7 @@ use crate::config::{load_settings, AppSettings};
 use crate::database::SqliteDatabase;
 use crate::model::*;
 use crate::persistence::{load_categories, load_transactions};
+use crate::transaction_store::{SqliteTransactionStore, TransactionStore};
 use chrono::{Datelike, Duration, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
 use rust_decimal::Decimal;
@@ -173,15 +174,21 @@ impl App {
                 None => Self::resolve_default_database_path(&initial_data_file_path),
             };
 
-        // --- Load Transactions ---
+        // --- Migrate legacy CSV into the database (one time), then load from the database ---
+        let migration_msg =
+            match Self::run_one_time_csv_migration(&initial_database_path, &initial_data_file_path)
+            {
+                Ok(msg) => msg,
+                Err(e) => Some(format!("Transaction migration error: {}", e)),
+            };
         let (mut transactions, load_tx_specific_error_msg) =
-            match load_transactions(&initial_data_file_path) {
+            match Self::transaction_store_for_path(&initial_database_path).list() {
                 Ok(txs) => (txs, None),
                 Err(e) => (
                     vec![],
                     Some(format!(
                         "Load TX Error [{}]: {}",
-                        initial_data_file_path.display(),
+                        initial_database_path.display(),
                         e
                     )),
                 ),
@@ -216,6 +223,7 @@ impl App {
             load_tx_specific_error_msg,
             database_path_error_msg,
             load_seed_error_msg,
+            migration_msg,
         ]
         .into_iter()
         .flatten()
@@ -396,6 +404,73 @@ impl App {
 
     pub(crate) fn category_store(&self) -> SqliteCategoryStore {
         Self::category_store_for_path(&self.database_path)
+    }
+
+    fn transaction_store_for_path(database_path: &Path) -> SqliteTransactionStore {
+        SqliteTransactionStore::new(SqliteDatabase::new(database_path))
+    }
+
+    pub(crate) fn transaction_store(&self) -> SqliteTransactionStore {
+        Self::transaction_store_for_path(&self.database_path)
+    }
+
+    /// Reload the working transaction set from the database and re-derive the in-memory
+    /// generated recurring occurrences. Call after any mutation that touched the store.
+    pub(crate) fn reload_transactions_from_db(&mut self) -> Result<(), Error> {
+        self.transactions = self.transaction_store().list()?;
+        // Re-derives generated occurrences and recomputes sort/filter/summaries.
+        self.generate_recurring_transactions();
+        Ok(())
+    }
+
+    /// One-time, non-destructive migration of the legacy transactions CSV into the database.
+    /// Gated by a metadata flag so it runs at most once. Returns an optional status message.
+    fn run_one_time_csv_migration(
+        database_path: &Path,
+        data_file_path: &Path,
+    ) -> Result<Option<String>, Error> {
+        let database = SqliteDatabase::new(database_path);
+        let mut conn = database.open_connection("transaction migration")?;
+        database.run_migrations(&mut conn)?;
+
+        if database
+            .metadata_value(&conn, "transactions_migrated")?
+            .is_some()
+        {
+            return Ok(None);
+        }
+
+        let mut status = None;
+        if data_file_path.exists() {
+            // Only real rows are imported; generated occurrences are re-derived from sources.
+            let real_rows: Vec<Transaction> = load_transactions(data_file_path)?
+                .into_iter()
+                .filter(|tx| !tx.is_generated_from_recurring)
+                .collect();
+
+            if !real_rows.is_empty() {
+                let store = SqliteTransactionStore::new(database.clone());
+                let summary = store.import_merge(&real_rows)?;
+
+                // Preserve the original file (never delete) by renaming it aside.
+                let backup = {
+                    let mut name = data_file_path.to_path_buf().into_os_string();
+                    name.push(".migrated-backup");
+                    PathBuf::from(name)
+                };
+                let backup_note = match std::fs::rename(data_file_path, &backup) {
+                    Ok(_) => format!(" Original CSV saved as {}.", backup.display()),
+                    Err(_) => String::new(),
+                };
+                status = Some(format!(
+                    "Migrated {} transactions from CSV to the database.{}",
+                    summary.added, backup_note
+                ));
+            }
+        }
+
+        database.set_metadata_value(&conn, "transactions_migrated", "1")?;
+        Ok(status)
     }
 
     pub(crate) fn initialize_category_database(

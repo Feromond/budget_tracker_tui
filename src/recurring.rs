@@ -158,6 +158,9 @@ fn create_generated_transaction(
     let mut new_tx = recurring_tx.clone();
     new_tx.date = target_date;
     new_tx.is_generated_from_recurring = true;
+    // Generated occurrences are not persisted; clear the DB id and link back to the source.
+    new_tx.parent_id = recurring_tx.id;
+    new_tx.id = None;
     Some(new_tx)
 }
 

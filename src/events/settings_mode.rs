@@ -13,7 +13,10 @@ pub fn handle_settings_mode(app: &mut App, key_event: KeyEvent) {
                 .map(|item| item.key.as_str());
             match selected_key {
                 Some("database_path") => app.reset_settings_database_path_to_default(),
-                _ => app.reset_settings_path_to_default(),
+                Some("import_transactions") | Some("export_transactions") => {
+                    app.reset_settings_io_path_to_default()
+                }
+                _ => {}
             }
         }
         (KeyCode::Char('u'), KeyModifiers::CONTROL) => app.clear_settings_field(),
