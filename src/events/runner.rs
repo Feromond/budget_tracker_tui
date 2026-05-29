@@ -1,14 +1,14 @@
 use crate::app::state::{App, AppMode};
 use crate::ui::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::prelude::Backend;
 use ratatui::Terminal;
+use ratatui::prelude::Backend;
 use std::result::Result as StdResult;
 use std::time::Duration;
 
 use super::{
     add_edit_mode, budget_mode, category_manager_mode, filter_mode, fuzzy_search_mode, help_mode,
-    normal_mode, recurring_mode, selection_mode, settings_mode, summary_mode,
+    normal_mode, recurring_mode, selection_mode, settings_mode, summary_mode, transaction_io_mode,
 };
 
 pub fn run_app<B: Backend>(
@@ -20,10 +20,10 @@ where
 {
     while !app.should_quit {
         // Check for status expiry
-        if let Some(expiry) = app.status_expiry {
-            if std::time::Instant::now() > expiry {
-                app.clear_status_message();
-            }
+        if let Some(expiry) = app.status_expiry
+            && std::time::Instant::now() > expiry
+        {
+            app.clear_status_message();
         }
 
         // Check for update in background channel
@@ -36,39 +36,16 @@ where
 
         if event::poll(Duration::from_millis(250))? {
             match event::read()? {
-                // Handle Paste Event
-                Event::Paste(text) if app.mode == AppMode::Settings => {
-                    let idx = app.settings_state.selected_index;
-                    if let Some(item) = app.settings_state.items.get_mut(idx) {
-                        // Allow paste for Path type
-                        if matches!(
-                            item.setting_type,
-                            crate::app::settings_types::SettingType::Path
-                        ) {
-                            let cursor = app.settings_state.edit_cursor;
-                            if cursor <= item.value.len() {
-                                item.value.insert_str(cursor, &text);
-                                app.settings_state.edit_cursor += text.chars().count();
-
-                                if item.setting_type
-                                    == crate::app::settings_types::SettingType::Path
-                                {
-                                    let stripped =
-                                        crate::validation::strip_path_quotes(&item.value);
-                                    item.value = stripped;
-                                    app.settings_state.edit_cursor = item.value.len();
-                                }
-                            }
-                        }
-                    }
-                }
-                // Potentially handle paste in other modes later if needed
+                Event::Paste(text) => app.handle_paste(&text),
                 Event::Key(key)
                     if key.kind == KeyEventKind::Press
                         && (key.modifiers == KeyModifiers::NONE
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Let Shift+Char pass through for typing capitals/symbols in settings path
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                // Import/Export path prompt: allow Shift+Char and Ctrl+D/U
+                                || ((app.mode == AppMode::ImportTransactions || app.mode == AppMode::ExportTransactions) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                || ((app.mode == AppMode::ImportTransactions || app.mode == AppMode::ExportTransactions) && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Allow Shift+Char in Adding, Editing and FuzzyFinding modes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::FuzzyFinding || app.mode == AppMode::CategoryEditor) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Arrow in date-like navigation modes
@@ -157,6 +134,9 @@ fn update(app: &mut App, key_event: KeyEvent) {
             selection_mode::handle_selection_mode(app, key_event)
         }
         AppMode::Settings => settings_mode::handle_settings_mode(app, key_event),
+        AppMode::ImportTransactions | AppMode::ExportTransactions => {
+            transaction_io_mode::handle_transaction_io_mode(app, key_event)
+        }
         AppMode::RecurringSettings => recurring_mode::handle_recurring_mode(app, key_event),
         AppMode::CategoryCatalog | AppMode::CategoryEditor | AppMode::ConfirmCategoryDelete => {
             category_manager_mode::handle_category_manager_mode(app, key_event)

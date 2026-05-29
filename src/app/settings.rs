@@ -1,7 +1,7 @@
-use super::state::App;
-use crate::app::settings_types::{SettingType, SettingsState};
-use crate::config::{save_settings, AppSettings};
-use crate::persistence::{load_categories, load_transactions, save_transactions};
+use super::state::{App, AppMode};
+use crate::app::settings_types::{SettingKey, SettingType, SettingsState};
+use crate::config::{AppSettings, save_settings};
+use crate::csv_io::load_seed_categories;
 use chrono::Duration;
 use std::path::PathBuf;
 
@@ -18,59 +18,48 @@ impl App {
         let loaded_settings = crate::config::load_settings().unwrap_or_default();
 
         // --- Data Management Section ---
-        self.settings_state.add_setting(
-            "header_data",
-            "Data Management",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("Data Management");
 
-        // 1. Data File Path
-        let path_str = self.data_file_path.to_string_lossy().to_string();
-        let path_val = crate::validation::strip_path_quotes(&path_str);
-        self.settings_state.add_setting(
-            "data_file_path",
-            "Data File Path",
-            path_val,
-            SettingType::Path,
-            "Absolute path to your transactions CSV file.",
-        );
-        // 2. SQLite Database Path
         let database_path_str = self.database_path.to_string_lossy().to_string();
         let database_path_val = crate::validation::strip_path_quotes(&database_path_str);
         self.settings_state.add_setting(
-            "database_path",
+            SettingKey::DatabasePath,
             "Database Path",
             database_path_val,
             SettingType::Path,
-            "Absolute path to your categories SQLite database.",
+            "Absolute path to your SQLite database (transactions and categories).",
         );
-        // 3. Manage Categories
         self.settings_state.add_setting(
-            "manage_categories",
+            SettingKey::ManageCategories,
             "Manage Categories",
             "Open Category Catalog".to_string(),
             SettingType::Action,
             "Open the category catalog to add, edit, or delete categories.",
         );
-
-        // --- Monthly Summary View Section ---
         self.settings_state.add_setting(
-            "header_monthly",
-            "Monthly Summary View",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
+            SettingKey::ImportTransactions,
+            "Import Transactions (CSV)",
+            "Choose a file to import".to_string(),
+            SettingType::Action,
+            "Press Enter to choose a CSV file to import (new rows are added, duplicates skipped).",
+        );
+        self.settings_state.add_setting(
+            SettingKey::ExportTransactions,
+            "Export Transactions (CSV)",
+            "Choose a destination to export".to_string(),
+            SettingType::Action,
+            "Press Enter to choose a destination and export all transactions to CSV.",
         );
 
-        // 4. Target Budget
+        // --- Monthly Summary View Section ---
+        self.settings_state.add_header("Monthly Summary View");
+
         let budget_val = loaded_settings
             .target_budget
             .map(|v| v.to_string())
             .unwrap_or_default();
         self.settings_state.add_setting(
-            "target_budget",
+            SettingKey::TargetBudget,
             "Target Budget",
             budget_val,
             SettingType::Number,
@@ -78,29 +67,21 @@ impl App {
         );
 
         // --- Transaction View Section ---
-        self.settings_state.add_setting(
-            "header_transactions",
-            "Transaction View",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("Transaction View");
 
-        // 5. Hourly Rate
         let hourly_rate_val = loaded_settings
             .hourly_rate
             .map(|v| v.to_string())
             .unwrap_or_default();
         self.settings_state.add_setting(
-            "hourly_rate",
+            SettingKey::HourlyRate,
             "Hourly Rate ($)",
             hourly_rate_val.clone(),
             SettingType::Number,
             "Optional. Enter your hourly earning rate to see costs in hours.",
         );
 
-        // 6. Show Hours Toggle
-        // Only show this if hourly rate is present
+        // Show Hours is only relevant once an hourly rate is set.
         if !hourly_rate_val.is_empty() {
             let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) {
                 "◀ Yes "
@@ -108,7 +89,7 @@ impl App {
                 " No ▶"
             };
             self.settings_state.add_setting(
-                "show_hours",
+                SettingKey::ShowHours,
                 "Show Costs in Hours",
                 show_hours_val.to_string(),
                 SettingType::Toggle,
@@ -117,22 +98,15 @@ impl App {
         }
 
         // --- Input Preferences Section ---
-        self.settings_state.add_setting(
-            "header_input",
-            "Input Preferences",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("Input Preferences");
 
-        // 7. Fuzzy Search Mode
         let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) {
             "◀ Yes "
         } else {
             " No ▶"
         };
         self.settings_state.add_setting(
-            "fuzzy_search_mode",
+            SettingKey::FuzzySearch,
             "Fuzzy Search Categories",
             fuzzy_search_val.to_string(),
             SettingType::Toggle,
@@ -140,22 +114,15 @@ impl App {
         );
 
         // --- General Preferences Section ---
-        self.settings_state.add_setting(
-            "header_general",
-            "General Preferences",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("General Preferences");
 
-        // 8. Hide Help Bar
         let hide_help_bar_val = if loaded_settings.hide_help_bar.unwrap_or(false) {
             "◀ Yes "
         } else {
             " No ▶"
         };
         self.settings_state.add_setting(
-            "hide_help_bar",
+            SettingKey::HideHelpBar,
             "Hide Help Bar (NOT RECOMMENDED)",
             hide_help_bar_val.to_string(),
             SettingType::Toggle,
@@ -187,12 +154,13 @@ impl App {
     pub(crate) fn exit_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Normal;
         self.settings_state = SettingsState::default();
+        self.io_path_input.clear();
+        self.io_path_cursor = 0;
         self.clear_status_message();
     }
 
     pub(crate) fn save_settings(&mut self) {
         // Retrieve values from state
-        let mut new_path_str = String::new();
         let mut new_database_path_str = String::new();
         let mut target_budget_str = String::new();
         let mut hourly_rate_str = String::new();
@@ -200,25 +168,22 @@ impl App {
         let mut fuzzy_search_val = None;
         let mut hide_help_bar_val = None;
 
-        if let Some(val) = self.settings_state.get_value("data_file_path") {
-            new_path_str = crate::validation::strip_path_quotes(val);
-        }
-        if let Some(val) = self.settings_state.get_value("database_path") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::DatabasePath) {
             new_database_path_str = crate::validation::strip_path_quotes(val);
         }
-        if let Some(val) = self.settings_state.get_value("target_budget") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::TargetBudget) {
             target_budget_str = val.trim().to_string();
         }
-        if let Some(val) = self.settings_state.get_value("hourly_rate") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::HourlyRate) {
             hourly_rate_str = val.trim().to_string();
         }
-        if let Some(val) = self.settings_state.get_value("show_hours") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::ShowHours) {
             show_hours_val = Some(val.to_lowercase().contains("yes"));
         }
-        if let Some(val) = self.settings_state.get_value("fuzzy_search_mode") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::FuzzySearch) {
             fuzzy_search_val = Some(val.to_lowercase().contains("yes"));
         }
-        if let Some(val) = self.settings_state.get_value("hide_help_bar") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::HideHelpBar) {
             hide_help_bar_val = Some(val.to_lowercase().contains("yes"));
         }
 
@@ -249,32 +214,14 @@ impl App {
         };
 
         // Validate Path
-        if new_path_str.is_empty() {
-            self.set_status_message("Error: Path cannot be empty.", None);
-            return;
-        }
         if new_database_path_str.is_empty() {
             self.set_status_message("Error: Database path cannot be empty.", None);
             return;
         }
-        let new_path = PathBuf::from(&new_path_str);
         let new_database_path = PathBuf::from(&new_database_path_str);
-        if !new_path.exists() {
-            if let Err(e) = save_transactions(&self.transactions, &new_path) {
-                self.set_status_message(
-                    format!(
-                        "Error creating transactions file '{}': {}. Check path and permissions.",
-                        new_path.display(),
-                        e
-                    ),
-                    None,
-                );
-                return;
-            }
-        }
 
         let seed_categories = if self.categories.is_empty() {
-            load_categories().unwrap_or_default()
+            load_seed_categories().unwrap_or_default()
         } else {
             self.categories.clone()
         };
@@ -294,9 +241,10 @@ impl App {
             return;
         }
 
-        // Save to Config
+        // Save to Config. The legacy data file path is retained only so a one-time CSV
+        // migration can still locate it and as the default for import/export.
         let settings = AppSettings {
-            data_file_path: Some(new_path_str.clone()),
+            data_file_path: Some(self.data_file_path.to_string_lossy().to_string()),
             database_path: Some(new_database_path_str.clone()),
             target_budget,
             hourly_rate,
@@ -309,28 +257,23 @@ impl App {
             return;
         }
 
-        // Reload Transactions
-        self.data_file_path = new_path.clone();
+        // Point at the new database and reload everything from it.
         self.database_path = new_database_path.clone();
-        let txs = match load_transactions(&self.data_file_path) {
-            Ok(tx) => tx,
-            Err(e) => {
-                self.set_status_message(
-                    format!(
-                        "Error loading transactions from '{}': {}. Check file format and permissions.",
-                        self.data_file_path.display(),
-                        e
-                    ),
-                    None,
-                );
-                return;
-            }
-        };
-        self.transactions = txs;
         if let Err(e) = self.reload_categories_from_store() {
             self.set_status_message(
                 format!(
                     "Error loading categories from '{}': {}. Check database path and permissions.",
+                    self.database_path.display(),
+                    e
+                ),
+                None,
+            );
+            return;
+        }
+        if let Err(e) = self.reload_transactions_from_db() {
+            self.set_status_message(
+                format!(
+                    "Error loading transactions from '{}': {}. Check database path and permissions.",
                     self.database_path.display(),
                     e
                 ),
@@ -353,11 +296,7 @@ impl App {
         self.calculate_category_summaries();
 
         self.set_status_message(
-            format!(
-                "Settings saved. Data: {} | Database: {}",
-                self.data_file_path.display(),
-                self.database_path.display()
-            ),
+            format!("Settings saved. Database: {}", self.database_path.display()),
             Some(Duration::seconds(3)),
         );
         self.target_budget = target_budget;
@@ -367,68 +306,14 @@ impl App {
         self.hide_help_bar = hide_help_bar_val.unwrap_or(false);
     }
 
-    pub(crate) fn reset_settings_path_to_default(&mut self) {
-        match Self::get_default_data_file_path() {
-            Ok(default_path) => {
-                let path_str = default_path.to_string_lossy().to_string();
-                let clean_path = crate::validation::strip_path_quotes(&path_str);
-
-                // Find index
-                if let Some(idx) = self
-                    .settings_state
-                    .items
-                    .iter()
-                    .position(|i| i.key == "data_file_path")
-                {
-                    self.settings_state.items[idx].value = clean_path;
-                    if self.settings_state.selected_index == idx {
-                        self.settings_state.edit_cursor =
-                            self.settings_state.items[idx].value.len();
-                    }
-                }
-
-                self.set_status_message("Path reset to default. Press Enter to save.", None);
-            }
-            Err(e) => {
-                let fallback_path = "transactions.csv";
-
-                if let Some(idx) = self
-                    .settings_state
-                    .items
-                    .iter()
-                    .position(|i| i.key == "data_file_path")
-                {
-                    self.settings_state.items[idx].value = fallback_path.to_string();
-                    if self.settings_state.selected_index == idx {
-                        self.settings_state.edit_cursor =
-                            self.settings_state.items[idx].value.len();
-                    }
-                }
-
-                self.set_status_message(
-                    format!(
-                        "Error getting default path ({}). Reset to local '{}'. Press Enter to save.",
-                        e, fallback_path
-                    ),
-                    None,
-                );
-            }
-        }
-    }
-
     pub(crate) fn reset_settings_database_path_to_default(&mut self) {
-        let data_path_value = self
-            .settings_state
-            .get_value("data_file_path")
-            .map(|value| crate::validation::strip_path_quotes(value))
-            .filter(|value| !value.trim().is_empty());
+        let data_path_value =
+            crate::validation::strip_path_quotes(&self.data_file_path.to_string_lossy());
 
-        let default_path = match data_path_value {
-            Some(path_str) => {
-                Self::default_database_path_for_data_path(PathBuf::from(path_str).as_path())
-            }
-            None => Self::get_default_database_file_path()
-                .unwrap_or_else(|_| PathBuf::from("budget.db")),
+        let default_path = if data_path_value.trim().is_empty() {
+            Self::get_default_database_file_path().unwrap_or_else(|_| PathBuf::from("budget.db"))
+        } else {
+            Self::default_database_path_for_data_path(PathBuf::from(data_path_value).as_path())
         };
 
         let clean_path =
@@ -438,7 +323,7 @@ impl App {
             .settings_state
             .items
             .iter()
-            .position(|i| i.key == "database_path")
+            .position(|i| i.key == SettingKey::DatabasePath)
         {
             self.settings_state.items[idx].value = clean_path;
             if self.settings_state.selected_index == idx {
@@ -457,10 +342,16 @@ impl App {
             .settings_state
             .items
             .get(self.settings_state.selected_index)
-            .map(|item| item.key.clone());
+            .map(|item| item.key);
 
-        match selected_key.as_deref() {
-            Some("manage_categories") => self.open_category_catalog(),
+        match selected_key {
+            Some(SettingKey::ManageCategories) => self.open_category_catalog(),
+            Some(SettingKey::ImportTransactions) => {
+                self.open_transaction_io(AppMode::ImportTransactions)
+            }
+            Some(SettingKey::ExportTransactions) => {
+                self.open_transaction_io(AppMode::ExportTransactions)
+            }
             _ => self.save_settings(),
         }
     }
@@ -469,9 +360,9 @@ impl App {
     /// This handles finding the correct position and maintaining list integrity.
     fn ensure_setting_visibility<F>(
         &mut self,
-        target_key: &str,
+        target_key: SettingKey,
         should_be_visible: bool,
-        insert_after_key: &str,
+        insert_after_key: SettingKey,
         item_creator: F,
     ) where
         F: FnOnce() -> crate::app::settings_types::SettingItem,
@@ -512,21 +403,24 @@ impl App {
     }
 
     pub(crate) fn update_settings_visibility(&mut self) {
-        // Rule 1: "show_hours" depends on "hourly_rate" having a value
+        // "Show Costs in Hours" is only shown once an hourly rate has a value.
         let hourly_rate_has_value = self
             .settings_state
-            .get_value("hourly_rate")
+            .get_value(SettingKey::HourlyRate)
             .map(|v| !v.trim().is_empty())
             .unwrap_or(false);
 
-        self.ensure_setting_visibility("show_hours", hourly_rate_has_value, "hourly_rate", || {
-            crate::app::settings_types::SettingItem {
-                key: "show_hours".to_string(),
+        self.ensure_setting_visibility(
+            SettingKey::ShowHours,
+            hourly_rate_has_value,
+            SettingKey::HourlyRate,
+            || crate::app::settings_types::SettingItem {
+                key: SettingKey::ShowHours,
                 label: "Show Costs in Hours".to_string(),
-                value: " No ▶".to_string(), // Default to No
+                value: " No ▶".to_string(),
                 setting_type: crate::app::settings_types::SettingType::Toggle,
                 help: "Toggle to display transaction amounts as hours worked.".to_string(),
-            }
-        });
+            },
+        );
     }
 }

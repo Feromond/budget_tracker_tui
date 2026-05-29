@@ -1,6 +1,6 @@
-use crate::database::SqliteDatabase;
+use crate::db::database::SqliteDatabase;
 use crate::model::{CategoryDraft, CategoryInfo, CategoryRecord, TransactionType};
-use rusqlite::{params, Connection, Row};
+use rusqlite::{Connection, Row, params};
 use rust_decimal::Decimal;
 use std::io::{Error, ErrorKind, Result};
 use std::str::FromStr;
@@ -24,55 +24,6 @@ impl SqliteCategoryStore {
 
     fn open_connection(&self) -> Result<Connection> {
         self.database.open_connection("category")
-    }
-
-    fn initialize_schema(conn: &Connection) -> Result<()> {
-        conn.execute_batch(
-            "
-            CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY,
-                transaction_type TEXT NOT NULL CHECK (transaction_type IN ('Income', 'Expense')),
-                category TEXT NOT NULL,
-                subcategory TEXT NOT NULL DEFAULT '',
-                tag TEXT NULL,
-                target_budget TEXT NULL,
-                UNIQUE(transaction_type, category, subcategory)
-            );
-            ",
-        )
-        .map_err(|err| Error::other(format!("Failed to initialize category schema: {}", err)))?;
-
-        Self::ensure_target_budget_column(conn)
-    }
-
-    fn ensure_target_budget_column(conn: &Connection) -> Result<()> {
-        let mut stmt = conn
-            .prepare("PRAGMA table_info(categories)")
-            .map_err(|err| Error::other(format!("Failed to inspect category schema: {}", err)))?;
-        let columns = stmt
-            .query_map([], |row| row.get::<_, String>(1))
-            .map_err(|err| Error::other(format!("Failed to read category schema: {}", err)))?;
-
-        let has_target_budget = columns
-            .collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|err| Error::other(format!("Failed to collect category schema: {}", err)))?
-            .into_iter()
-            .any(|name| name == "target_budget");
-
-        if !has_target_budget {
-            conn.execute(
-                "ALTER TABLE categories ADD COLUMN target_budget TEXT NULL",
-                [],
-            )
-            .map_err(|err| {
-                Error::other(format!(
-                    "Failed to add target_budget column to categories: {}",
-                    err
-                ))
-            })?;
-        }
-
-        Ok(())
     }
 
     fn seed_if_empty(&self, conn: &Connection, seed_categories: &[CategoryInfo]) -> Result<()> {
@@ -186,16 +137,14 @@ impl SqliteCategoryStore {
 
 impl CategoryStore for SqliteCategoryStore {
     fn initialize(&self, seed_categories: &[CategoryInfo]) -> Result<()> {
-        let conn = self.open_connection()?;
-        self.database.ensure_metadata_table(&conn)?;
-        Self::initialize_schema(&conn)?;
+        let mut conn = self.open_connection()?;
+        self.database.run_migrations(&mut conn)?;
         self.seed_if_empty(&conn, seed_categories)
     }
 
     fn list(&self) -> Result<Vec<CategoryRecord>> {
-        let conn = self.open_connection()?;
-        self.database.ensure_metadata_table(&conn)?;
-        Self::initialize_schema(&conn)?;
+        let mut conn = self.open_connection()?;
+        self.database.run_migrations(&mut conn)?;
 
         let mut stmt = conn
             .prepare(
@@ -223,9 +172,8 @@ impl CategoryStore for SqliteCategoryStore {
     }
 
     fn insert(&self, draft: &CategoryDraft) -> Result<CategoryRecord> {
-        let conn = self.open_connection()?;
-        self.database.ensure_metadata_table(&conn)?;
-        Self::initialize_schema(&conn)?;
+        let mut conn = self.open_connection()?;
+        self.database.run_migrations(&mut conn)?;
 
         conn.execute(
             "
@@ -251,9 +199,8 @@ impl CategoryStore for SqliteCategoryStore {
     }
 
     fn update(&self, id: i64, draft: &CategoryDraft) -> Result<()> {
-        let conn = self.open_connection()?;
-        self.database.ensure_metadata_table(&conn)?;
-        Self::initialize_schema(&conn)?;
+        let mut conn = self.open_connection()?;
+        self.database.run_migrations(&mut conn)?;
 
         let updated = conn
             .execute(
@@ -289,9 +236,8 @@ impl CategoryStore for SqliteCategoryStore {
     }
 
     fn delete(&self, id: i64) -> Result<()> {
-        let conn = self.open_connection()?;
-        self.database.ensure_metadata_table(&conn)?;
-        Self::initialize_schema(&conn)?;
+        let mut conn = self.open_connection()?;
+        self.database.run_migrations(&mut conn)?;
 
         let deleted = conn
             .execute("DELETE FROM categories WHERE id = ?1", [id])

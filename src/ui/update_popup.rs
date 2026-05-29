@@ -1,10 +1,10 @@
 use crate::app::state::App;
 use crate::ui::helpers::centered_rect;
 use ratatui::{
+    Frame,
     layout::{Alignment, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
-    Frame,
 };
 
 pub fn render_update_popup(f: &mut Frame, app: &App, area: Rect) {

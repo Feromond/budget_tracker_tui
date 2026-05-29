@@ -56,20 +56,20 @@ pub fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
             // First digit of day can only be 0, 1, 2, or 3
             return None;
         }
-    } else if len == 9 {
-        if let (Ok(year), Ok(month)) = (field[0..4].parse::<i32>(), field[5..7].parse::<u32>()) {
-            let first_digit = field
-                .chars()
-                .nth(8)
-                .and_then(|ch| ch.to_digit(10))
-                .unwrap_or(0);
-            let day = first_digit * 10 + c.to_digit(10).unwrap_or(0);
-            // Use days_in_month utility for validation
-            let last_day = days_in_month(year, month);
+    } else if len == 9
+        && let (Ok(year), Ok(month)) = (field[0..4].parse::<i32>(), field[5..7].parse::<u32>())
+    {
+        let first_digit = field
+            .chars()
+            .nth(8)
+            .and_then(|ch| ch.to_digit(10))
+            .unwrap_or(0);
+        let day = first_digit * 10 + c.to_digit(10).unwrap_or(0);
+        // Use days_in_month utility for validation
+        let last_day = days_in_month(year, month);
 
-            if day == 0 || day > last_day {
-                return None;
-            }
+        if day == 0 || day > last_day {
+            return None;
         }
     }
 
@@ -79,10 +79,10 @@ pub fn validate_and_insert_date_char(field: &str, c: char) -> Option<String> {
     // Auto-insert hyphens
     if result.len() == 4 {
         // Validate year
-        if let Ok(year) = result.parse::<i32>() {
-            if !(1900..=2100).contains(&year) {
-                return None; // Reject invalid year
-            }
+        if let Ok(year) = result.parse::<i32>()
+            && !(1900..=2100).contains(&year)
+        {
+            return None; // Reject invalid year
         }
         result.push('-');
     } else if result.len() == 7 {

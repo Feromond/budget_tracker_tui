@@ -47,6 +47,11 @@ impl App {
                     input_type,
                 ))
             }
+            AppMode::ImportTransactions | AppMode::ExportTransactions => Some((
+                &mut self.io_path_input,
+                &mut self.io_path_cursor,
+                InputType::Text,
+            )),
             AppMode::AdvancedFiltering => {
                 let idx = self.current_advanced_filter_field;
                 let input_type = match idx {
@@ -68,24 +73,23 @@ impl App {
     // --- Input Handling ---
 
     pub(crate) fn move_cursor_left(&mut self) {
-        if let Some((content, cursor, _)) = self.get_active_input_mut() {
-            if *cursor > 0 {
-                let mut prev = *cursor - 1;
-                while !content.is_char_boundary(prev) {
-                    prev -= 1;
-                }
-                *cursor = prev;
+        if let Some((content, cursor, _)) = self.get_active_input_mut()
+            && *cursor > 0
+        {
+            let mut prev = *cursor - 1;
+            while !content.is_char_boundary(prev) {
+                prev -= 1;
             }
+            *cursor = prev;
         }
     }
 
     pub(crate) fn move_cursor_right(&mut self) {
-        if let Some((content, cursor, _)) = self.get_active_input_mut() {
-            if *cursor < content.len() {
-                if let Some(c) = content[*cursor..].chars().next() {
-                    *cursor += c.len_utf8();
-                }
-            }
+        if let Some((content, cursor, _)) = self.get_active_input_mut()
+            && *cursor < content.len()
+            && let Some(c) = content[*cursor..].chars().next()
+        {
+            *cursor += c.len_utf8();
         }
     }
 
@@ -147,10 +151,10 @@ impl App {
     }
 
     pub(crate) fn delete_char_after_cursor(&mut self) {
-        if let Some((content, cursor, _)) = self.get_active_input_mut() {
-            if *cursor < content.len() {
-                content.remove(*cursor);
-            }
+        if let Some((content, cursor, _)) = self.get_active_input_mut()
+            && *cursor < content.len()
+        {
+            content.remove(*cursor);
         }
     }
 
@@ -158,12 +162,12 @@ impl App {
 
     fn strip_quotes_from_current_setting(&mut self) {
         let idx = self.settings_state.selected_index;
-        if let Some(item) = self.settings_state.items.get_mut(idx) {
-            if item.setting_type == crate::app::settings_types::SettingType::Path {
-                let stripped = crate::validation::strip_path_quotes(&item.value);
-                item.value = stripped;
-                self.settings_state.edit_cursor = item.value.len();
-            }
+        if let Some(item) = self.settings_state.items.get_mut(idx)
+            && item.setting_type == crate::app::settings_types::SettingType::Path
+        {
+            let stripped = crate::validation::strip_path_quotes(&item.value);
+            item.value = stripped;
+            self.settings_state.edit_cursor = item.value.len();
         }
     }
 
@@ -359,16 +363,40 @@ impl App {
 
     pub(crate) fn clear_settings_field(&mut self) {
         let idx = self.settings_state.selected_index;
-        if let Some(item) = self.settings_state.items.get_mut(idx) {
-            if item.setting_type != crate::app::settings_types::SettingType::SectionHeader
-                && item.setting_type != crate::app::settings_types::SettingType::Action
-                && item.setting_type != crate::app::settings_types::SettingType::Toggle
-            {
-                item.value.clear();
-                self.settings_state.edit_cursor = 0;
-            }
+        if let Some(item) = self.settings_state.items.get_mut(idx)
+            && item.setting_type != crate::app::settings_types::SettingType::SectionHeader
+            && item.setting_type != crate::app::settings_types::SettingType::Action
+            && item.setting_type != crate::app::settings_types::SettingType::Toggle
+        {
+            item.value.clear();
+            self.settings_state.edit_cursor = 0;
         }
         self.update_settings_visibility();
+    }
+
+    /// Handle bracketed-paste into the active path field. Only the settings path fields and
+    /// the import/export prompt accept pasted text; other modes ignore it.
+    pub(crate) fn handle_paste(&mut self, text: &str) {
+        match self.mode {
+            AppMode::Settings => {
+                let idx = self.settings_state.selected_index;
+                if let Some(item) = self.settings_state.items.get_mut(idx)
+                    && item.setting_type == crate::app::settings_types::SettingType::Path
+                {
+                    let at = self.settings_state.edit_cursor.min(item.value.len());
+                    item.value.insert_str(at, text);
+                    item.value = crate::validation::strip_path_quotes(&item.value);
+                    self.settings_state.edit_cursor = item.value.len();
+                }
+            }
+            AppMode::ImportTransactions | AppMode::ExportTransactions => {
+                let at = self.io_path_cursor.min(self.io_path_input.len());
+                self.io_path_input.insert_str(at, text);
+                self.io_path_input = crate::validation::strip_path_quotes(&self.io_path_input);
+                self.io_path_cursor = self.io_path_input.len();
+            }
+            _ => {}
+        }
     }
 
     // --- Date Navigation ---

@@ -46,10 +46,10 @@ fn handle_recurrence_frequency_selection(app: &mut App, key_event: KeyEvent) {
             app.mode = AppMode::RecurringSettings;
         }
         KeyCode::Enter => {
-            if let Some(selected) = app.selection_list_state.selected() {
-                if let Some(frequency) = app.current_selection_list.get(selected) {
-                    app.recurring_settings_fields[1] = frequency.clone();
-                }
+            if let Some(selected) = app.selection_list_state.selected()
+                && let Some(frequency) = app.current_selection_list.get(selected)
+            {
+                app.recurring_settings_fields[1] = frequency.clone();
             }
             app.mode = AppMode::RecurringSettings;
         }

@@ -4,8 +4,8 @@ use crate::ui::helpers::{format_amount, month_to_short_str};
 use ratatui::prelude::*;
 use ratatui::text::Line;
 use ratatui::widgets::*;
-use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 use std::collections::HashMap;
 
 fn cell_income(amount: Decimal, bold: bool) -> Cell<'static> {
@@ -157,30 +157,28 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
             }
             CategorySummaryItem::Subcategory(month, category, sub, summary) => {
                 let mut first_cell = Cell::from("");
-                if let Some(expanded_month) = last_expanded_month {
-                    if expanded_month == *month {
-                        let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
-                        let arrow_color = color_palette[month_idx % color_palette.len()];
+                if let Some(expanded_month) = last_expanded_month
+                    && expanded_month == *month
+                {
+                    let month_idx = months.iter().position(|&m| m == *month).unwrap_or(0);
+                    let arrow_color = color_palette[month_idx % color_palette.len()];
 
-                        // Determine tree branch symbol
-                        let is_last_child = if let Some(next_item) = items.get(i + 1) {
-                            match next_item {
-                                CategorySummaryItem::Month(_, _) => true,
-                                CategorySummaryItem::Subcategory(next_m, _, _, _) => {
-                                    *next_m != *month
-                                }
-                            }
-                        } else {
-                            true
-                        };
+                    // Determine tree branch symbol
+                    let is_last_child = if let Some(next_item) = items.get(i + 1) {
+                        match next_item {
+                            CategorySummaryItem::Month(_, _) => true,
+                            CategorySummaryItem::Subcategory(next_m, _, _, _) => *next_m != *month,
+                        }
+                    } else {
+                        true
+                    };
 
-                        let tree_symbol = if is_last_child { "└─" } else { "├─" };
+                    let tree_symbol = if is_last_child { "└─" } else { "├─" };
 
-                        first_cell = Cell::from(Line::from(vec![
-                            Span::styled(tree_symbol, Style::default().fg(arrow_color)),
-                            Span::raw(" "),
-                        ]));
-                    }
+                    first_cell = Cell::from(Line::from(vec![
+                        Span::styled(tree_symbol, Style::default().fg(arrow_color)),
+                        Span::raw(" "),
+                    ]));
                 }
                 let inc_cell = cell_income(summary.income, false);
                 let exp_cell = cell_expense(summary.expense, false);
@@ -299,89 +297,88 @@ pub fn render_category_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let mut bars: Vec<Bar> = Vec::new();
     let mut max_abs_chart_value: u64 = 10;
 
-    if let Some(selected_index) = app.category_summary_table_state.selected() {
-        if let Some(item) = items.get(selected_index) {
-            if let Some(year) = current_year {
-                let selected_month = match item {
-                    CategorySummaryItem::Month(m, _) => *m,
-                    CategorySummaryItem::Subcategory(m, _, _, _) => *m,
-                };
-                let mut category_totals: HashMap<String, MonthlySummary> = HashMap::new();
-                if let Some(month_map) = app.category_summaries.get(&(year, selected_month)) {
-                    for ((category, _), summary) in month_map.iter() {
-                        let cat_summary = category_totals.entry(category.clone()).or_default();
-                        cat_summary.income += summary.income;
-                        cat_summary.expense += summary.expense;
-                    }
-                }
-
-                let mut category_data_for_chart: Vec<(String, Decimal)> = category_totals
-                    .into_iter()
-                    .map(|(cat, summary)| {
-                        let net_balance = summary.income - summary.expense;
-                        (cat, net_balance)
-                    })
-                    .collect();
-
-                category_data_for_chart.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
-
-                let mut current_max: i64 = 0;
-                bars = category_data_for_chart
-                    .iter()
-                    .map(|(cat, net)| {
-                        let net_val = *net;
-                        let net_i64 = net_val.round().to_i64().unwrap_or(0);
-                        let net_style = if net_val >= Decimal::ZERO {
-                            Style::default().fg(Color::LightGreen)
-                        } else {
-                            Style::default().fg(Color::LightRed)
-                        };
-                        current_max = current_max.max(net_i64.abs());
-                        Bar::default()
-                            .label(cat.chars().take(15).collect::<String>())
-                            .value(net_i64.unsigned_abs())
-                            .style(net_style)
-                    })
-                    .collect();
-                max_abs_chart_value = (current_max as u64).max(10);
-                let month_idx = months
-                    .iter()
-                    .position(|&m| m == selected_month)
-                    .unwrap_or(0);
-                let month_color = color_palette[month_idx % color_palette.len()];
-                let y = year_str.clone();
-                let mut title_spans = vec![];
-                if is_filtered {
-                    title_spans.push(Span::styled(
-                        "(Filtered) ",
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .add_modifier(Modifier::BOLD),
-                    ));
-                }
-                title_spans.push(Span::styled(
-                    "── Category Net Balance ─ ",
-                    Style::default().add_modifier(Modifier::BOLD),
-                ));
-                title_spans.push(Span::styled(
-                    month_to_short_str(selected_month),
-                    Style::default()
-                        .fg(month_color)
-                        .add_modifier(Modifier::BOLD),
-                ));
-                title_spans.push(Span::styled(
-                    " ",
-                    Style::default().add_modifier(Modifier::BOLD),
-                ));
-                title_spans.push(Span::styled(
-                    y,
-                    Style::default()
-                        .fg(Color::Magenta)
-                        .add_modifier(Modifier::BOLD),
-                ));
-                chart_title = Line::from(title_spans);
+    if let Some(selected_index) = app.category_summary_table_state.selected()
+        && let Some(item) = items.get(selected_index)
+        && let Some(year) = current_year
+    {
+        let selected_month = match item {
+            CategorySummaryItem::Month(m, _) => *m,
+            CategorySummaryItem::Subcategory(m, _, _, _) => *m,
+        };
+        let mut category_totals: HashMap<String, MonthlySummary> = HashMap::new();
+        if let Some(month_map) = app.category_summaries.get(&(year, selected_month)) {
+            for ((category, _), summary) in month_map.iter() {
+                let cat_summary = category_totals.entry(category.clone()).or_default();
+                cat_summary.income += summary.income;
+                cat_summary.expense += summary.expense;
             }
         }
+
+        let mut category_data_for_chart: Vec<(String, Decimal)> = category_totals
+            .into_iter()
+            .map(|(cat, summary)| {
+                let net_balance = summary.income - summary.expense;
+                (cat, net_balance)
+            })
+            .collect();
+
+        category_data_for_chart.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
+
+        let mut current_max: i64 = 0;
+        bars = category_data_for_chart
+            .iter()
+            .map(|(cat, net)| {
+                let net_val = *net;
+                let net_i64 = net_val.round().to_i64().unwrap_or(0);
+                let net_style = if net_val >= Decimal::ZERO {
+                    Style::default().fg(Color::LightGreen)
+                } else {
+                    Style::default().fg(Color::LightRed)
+                };
+                current_max = current_max.max(net_i64.abs());
+                Bar::default()
+                    .label(cat.chars().take(15).collect::<String>())
+                    .value(net_i64.unsigned_abs())
+                    .style(net_style)
+            })
+            .collect();
+        max_abs_chart_value = (current_max as u64).max(10);
+        let month_idx = months
+            .iter()
+            .position(|&m| m == selected_month)
+            .unwrap_or(0);
+        let month_color = color_palette[month_idx % color_palette.len()];
+        let y = year_str.clone();
+        let mut title_spans = vec![];
+        if is_filtered {
+            title_spans.push(Span::styled(
+                "(Filtered) ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
+        title_spans.push(Span::styled(
+            "── Category Net Balance ─ ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            month_to_short_str(selected_month),
+            Style::default()
+                .fg(month_color)
+                .add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            " ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        title_spans.push(Span::styled(
+            y,
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ));
+        chart_title = Line::from(title_spans);
     }
 
     if bars.is_empty() {

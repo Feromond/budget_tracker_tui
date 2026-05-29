@@ -66,18 +66,18 @@ cargo install budget_tracker_tui
 
 - **Intuitive Terminal UI:** Manage your finances directly from your terminal with a clean, responsive interface (TUI).
 - **Transaction Management:** Add, view, edit, and delete income and expenses.
-- **Recurring Transaction:** Setup transactions that automatically recur at select frequencies.
+- **Recurring Transactions:** Set up transactions that automatically recur — daily, weekly, bi-weekly, semi-monthly, semi-monthly (weekday adjusted), monthly, quarterly, or yearly — generated automatically up to today.
 - **Advanced Filtering:** Filter transactions by date, description, category, type, and amount (including advanced multi-field filters).
 - **Smart Date Navigation:** Use `+`/`-` to adjust dates by day, and `Shift + Left/Right` to jump by month in date fields.
 - **Categorization:** Hierarchical categories and subcategories for all transactions, now managed in-app and stored in a local SQLite catalog.
 - **Fuzzy Search:** Toggleable option to fuzzy search categories/subcategories for quick selection.
 - **Summaries & Charts:** Visualize your spending/income by month and by category, with interactive charts and tables.
 - **Budget Tracking:** Set a monthly target budget, assign per-category expense budgets, and review progress in the dedicated budget view.
-- **Data Persistence:** Transactions are stored in a configurable CSV file, categories are stored in a local SQLite database, and app preferences are saved in a config file.
+- **Data Persistence:** Transactions and categories are stored together in a local SQLite database, with app preferences saved in a separate config file.
 - **Cross-Platform:** Runs on Windows, macOS, and Linux.
 - **Keyboard-Driven:** Fully operable with keyboard shortcuts for every action and mode. Press `Ctrl+H` for a help menu.
 - **Update Checker:** Automatically checks for updates on startup and notifies you of new versions.
-- **Robust CSV Support:** Flexible date parsing, easy import/export, and Excel compatibility.
+- **CSV Import/Export:** Bring transactions in from a CSV (duplicates skipped) or export them out anytime, with flexible date parsing and Excel compatibility.
 - **High Precision:** Uses decimal arithmetic (no floating point errors) for accurate financial calculations.
 - **Built with Rust:** Safety, speed, and reliability.
 
@@ -149,21 +149,24 @@ cargo install --path .
 4. **Sort transactions:** Press `1-6` to sort by Date, Description, Category, Subcategory, Type, or Amount respectively.
 5. **Manage transactions:** Press `e` to edit, `d` to delete, `f` to filter, `r` to manage recurring transactions.
 6. **View summaries:** Press `s` for monthly summary, `c` for category summary, and `b` for the budget view.
-7. **Change settings:** Press `o` to open settings (change the transactions CSV path, SQLite database path, target budget, and manage categories).
+7. **Change settings:** Press `o` to open settings — set the SQLite database path, manage categories, import/export transactions as CSV, set a target budget, and more.
 8. **Quit:** Press `q` or `Esc`.
 9. **Help:** Press `Ctrl+H` at any time to view the keybindings menu for the current mode.
 
 ## ⚙️ Settings & Configuration
 
-- **Data File Path:**
-  - The path to your `transactions.csv` file is configurable in-app (press `o` for settings).
-  - Default locations: - **Linux:** `$XDG_DATA_HOME/BudgetTracker/transactions.csv` (usually `~/.local/share/BudgetTracker/transactions.csv`) - **macOS:** `~/Library/Application Support/BudgetTracker/transactions.csv` - **Windows:** `%APPDATA%\BudgetTracker\transactions.csv` (e.g.,
-    `C:\Users\<YourUsername>\AppData\Roaming\BudgetTracker\transactions.csv`)
-  - **Cross-Device Sync:** You can set your data file path to a cloud-synced folder (iCloud, Google Drive, Dropbox, OneDrive, etc.) to automatically sync your budget data across multiple devices. Just point the data file path to a location within your cloud storage folder!
-- **Database Path:**
-  - The category catalog is stored in a SQLite database file, configurable in-app from Settings.
-  - By default, the database file is named `budget.db` and is placed alongside your current transactions CSV file.
+- **Database Path (primary storage):**
+  - Your transactions and category catalog are stored together in a local SQLite database (`budget.db`), configurable in-app (press `o` for settings).
+  - Default locations:
+    - **Linux:** `$XDG_DATA_HOME/BudgetTracker/budget.db` (usually `~/.local/share/BudgetTracker/budget.db`)
+    - **macOS:** `~/Library/Application Support/BudgetTracker/budget.db`
+    - **Windows:** `%APPDATA%\BudgetTracker\budget.db` (e.g., `C:\Users\<YourUsername>\AppData\Roaming\BudgetTracker\budget.db`)
+  - **Cross-Device Sync:** Point the database path at a cloud-synced folder (iCloud, Google Drive, Dropbox, OneDrive, etc.) to automatically sync your budget across multiple devices.
   - On first run with a new database, the app seeds it with the default category catalog.
+- **Import / Export Transactions (CSV):**
+  - From Settings, choose **Import Transactions** to merge a CSV into your database — new rows are added and exact duplicates are skipped — or **Export Transactions** to write all transactions to a CSV for backup or sharing.
+- **Migrating from an older version:**
+  - Earlier versions stored transactions in a `transactions.csv` file. On first launch the app automatically imports that file into the database and renames the original to `transactions.csv.migrated-backup`. Your data is preserved — nothing is deleted.
 - **Manage Categories:**
   - From Settings, use **Manage Categories** to open the category catalog and add, edit, or delete categories/subcategories.
   - Expense categories can optionally store a per-category target budget for use in the budget view.
@@ -178,16 +181,16 @@ cargo install --path .
     - **Linux:** `~/.config/BudgetTracker/config.json`
     - **macOS:** `~/Library/Application Support/BudgetTracker/config.json`
     - **Windows:** `C:\Users\<YourUsername>\AppData\Roaming\BudgetTracker\config.json`
-  - This is separate from the data file location, which is in your OS's data directory (see above).
+  - This is separate from the database location, which lives in your OS's data directory (see above).
 
 ## 📁 Data & CSV Format
 
-- **CSV Columns:** `date, description, amount, transaction_type, category, subcategory`
+- **CSV Columns:** `date, description, amount, transaction_type, category, subcategory`. Exports also include the recurring columns (`is_recurring, recurrence_frequency, recurrence_end_date, is_generated_from_recurring`); these are optional on import and default to a non-recurring transaction.
 - **Date Format:** Flexible! Accepts `YYYY-MM-DD`, `YYYY/MM/DD`, `DD/MM/YYYY`, or `DD-MM-YYYY`.
 - **Transaction Type:** `Income` or `Expense` (case-insensitive, also accepts `i`/`e`)
 - **Category/Subcategory:** Transaction rows should reference categories that exist in the SQLite category catalog. You can manage that catalog in-app from Settings.
-- **Import/Export:** You can edit the transaction CSV in Excel/LibreOffice or import from other tools (just match the columns and use valid categories). SQLite support currently backs category data; transaction storage remains CSV for now.
-- **Data Safety:** The app will not overwrite your transaction CSV unless you save a transaction, close the program, or change settings. Category edits are written to the SQLite database.
+- **Import/Export:** Prepare a CSV in Excel/LibreOffice or export from another tool (match the columns and use valid categories), then import it from Settings. Import merges into the database and skips exact duplicates; any generated recurring rows in the file are ignored and re-derived from their source. Export writes the full set you see in the app, including generated recurring occurrences.
+- **Data Safety:** Transactions live in the SQLite database and are saved immediately as you add, edit, or delete them. CSV files are only written when you explicitly export (or as the one-time `transactions.csv.migrated-backup` created during migration).
 
 ## References
 

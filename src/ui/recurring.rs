@@ -1,10 +1,10 @@
 use crate::app::state::App;
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::Span,
     widgets::{Block, Borders, Paragraph},
-    Frame,
 };
 
 pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {

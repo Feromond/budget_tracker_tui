@@ -1,5 +1,5 @@
 use crate::app::state::App;
-use crate::model::{SortColumn, SortOrder, TransactionType, DATE_FORMAT};
+use crate::model::{DATE_FORMAT, SortColumn, SortOrder, TransactionType};
 use crate::ui::helpers::{format_amount, format_hours};
 use ratatui::prelude::*;
 use ratatui::widgets::*;

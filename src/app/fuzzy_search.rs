@@ -71,19 +71,19 @@ impl App {
     }
 
     pub(crate) fn confirm_fuzzy_selection(&mut self) {
-        if let Some(selected_index) = self.selection_list_state.selected() {
-            if let Some(selected_value) = self.current_selection_list.get(selected_index) {
-                // Parse "Category > Subcategory" or "Category"
-                let parts: Vec<&str> = selected_value.split(" > ").collect();
-                let category = parts[0];
-                let subcategory = if parts.len() > 1 { parts[1] } else { "" };
+        if let Some(selected_index) = self.selection_list_state.selected()
+            && let Some(selected_value) = self.current_selection_list.get(selected_index)
+        {
+            // Parse "Category > Subcategory" or "Category"
+            let parts: Vec<&str> = selected_value.split(" > ").collect();
+            let category = parts[0];
+            let subcategory = if parts.len() > 1 { parts[1] } else { "" };
 
-                // Set fields
-                // Index 4 is Category, 5 is Subcategory
-                self.add_edit_fields[4] = category.to_string();
-                self.add_edit_fields[5] = subcategory.to_string();
-                self.current_add_edit_field = 0;
-            }
+            // Set fields
+            // Index 4 is Category, 5 is Subcategory
+            self.add_edit_fields[4] = category.to_string();
+            self.add_edit_fields[5] = subcategory.to_string();
+            self.current_add_edit_field = 0;
         }
 
         self.exit_fuzzy_mode();

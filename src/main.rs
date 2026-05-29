@@ -1,22 +1,20 @@
 mod app;
-mod category_store;
 mod config;
-mod database;
+mod csv_io;
+mod db;
 mod events;
 mod model;
-mod persistence;
 mod recurring;
 mod ui;
 mod validation;
 
 use crate::app::state::App;
 use events::run_app;
-use persistence::save_transactions;
 
 use crossterm::{
-    event::{DisableBracketedPaste, EnableBracketedPaste},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
+    event::{DisableBracketedPaste, EnableBracketedPaste},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::prelude::{CrosstermBackend, Terminal};
 use std::io::stdout;
@@ -34,8 +32,6 @@ fn main() -> StdResult<(), Box<dyn std::error::Error>> {
 
     let run_result = run_app(&mut terminal, &mut app);
 
-    let save_result = save_transactions(&app.transactions, &app.data_file_path);
-
     stdout().execute(DisableBracketedPaste)?;
     disable_raw_mode()?;
     stdout().execute(LeaveAlternateScreen)?;
@@ -44,19 +40,10 @@ fn main() -> StdResult<(), Box<dyn std::error::Error>> {
         eprintln!("Initial Status: {}", msg);
     }
 
-    match (run_result, save_result) {
-        (Ok(_), Ok(_)) => Ok(()),
-        (Err(run_err), Ok(_)) => {
+    match run_result {
+        Ok(_) => Ok(()),
+        Err(run_err) => {
             eprintln!("Application Error: {}", run_err);
-            Err(run_err)
-        }
-        (Ok(_), Err(save_err)) => {
-            eprintln!("Error Saving Transactions: {}", save_err);
-            Err(save_err.into())
-        }
-        (Err(run_err), Err(save_err)) => {
-            eprintln!("Application Error: {}", run_err);
-            eprintln!("Error Saving Transactions: {}", save_err);
             Err(run_err)
         }
     }

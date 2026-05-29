@@ -81,24 +81,23 @@ impl App {
         }
     }
     pub(crate) fn confirm_selection(&mut self) {
-        if let Some(selected_index) = self.selection_list_state.selected() {
-            if let Some(field_index) = self.selecting_field_index {
-                if let Some(selected_value) = self.current_selection_list.get(selected_index) {
-                    let value_to_set = if field_index == 5 && selected_value == "(None)" {
-                        ""
-                    } else {
-                        selected_value.as_str()
-                    };
-                    self.add_edit_fields[field_index] = value_to_set.to_string();
-                    if field_index == 4 {
-                        self.current_add_edit_field = 5;
-                        self.start_subcategory_selection();
-                        return;
-                    } else if field_index == 5 {
-                        self.current_add_edit_field = 0;
-                        self.add_edit_cursor = self.add_edit_fields[0].len();
-                    }
-                }
+        if let Some(selected_index) = self.selection_list_state.selected()
+            && let Some(field_index) = self.selecting_field_index
+            && let Some(selected_value) = self.current_selection_list.get(selected_index)
+        {
+            let value_to_set = if field_index == 5 && selected_value == "(None)" {
+                ""
+            } else {
+                selected_value.as_str()
+            };
+            self.add_edit_fields[field_index] = value_to_set.to_string();
+            if field_index == 4 {
+                self.current_add_edit_field = 5;
+                self.start_subcategory_selection();
+                return;
+            } else if field_index == 5 {
+                self.current_add_edit_field = 0;
+                self.add_edit_cursor = self.add_edit_fields[0].len();
             }
         }
         self.mode = if self.editing_index.is_some() {

@@ -1,9 +1,10 @@
 use crate::app::update_checker;
-use crate::category_store::{CategoryStore, SqliteCategoryStore};
-use crate::config::{load_settings, AppSettings};
-use crate::database::SqliteDatabase;
+use crate::config::{AppSettings, load_settings};
+use crate::csv_io::{load_seed_categories, load_transactions};
+use crate::db::category_store::{CategoryStore, SqliteCategoryStore};
+use crate::db::database::SqliteDatabase;
+use crate::db::transaction_store::{SqliteTransactionStore, TransactionStore};
 use crate::model::*;
-use crate::persistence::{load_categories, load_transactions};
 use chrono::{Datelike, Duration, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
 use rust_decimal::Decimal;
@@ -43,6 +44,8 @@ pub enum AppMode {
     CategoryCatalog,
     CategoryEditor,
     ConfirmCategoryDelete,
+    ImportTransactions,
+    ExportTransactions,
 }
 
 #[derive(Debug)]
@@ -128,6 +131,9 @@ pub struct App {
     pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
     pub(crate) current_recurring_field: usize,
     pub(crate) recurring_transaction_index: Option<usize>,
+    // Import/Export path prompt state (shared by ImportTransactions/ExportTransactions modes)
+    pub(crate) io_path_input: String,
+    pub(crate) io_path_cursor: usize,
     // Help/Keybindings
     pub(crate) previous_mode: Option<AppMode>,
     pub(crate) help_table_state: TableState,
@@ -173,21 +179,27 @@ impl App {
                 None => Self::resolve_default_database_path(&initial_data_file_path),
             };
 
-        // --- Load Transactions ---
+        // --- Migrate legacy CSV into the database (one time), then load from the database ---
+        let migration_msg =
+            match Self::run_one_time_csv_migration(&initial_database_path, &initial_data_file_path)
+            {
+                Ok(msg) => msg,
+                Err(e) => Some(format!("Transaction migration error: {}", e)),
+            };
         let (mut transactions, load_tx_specific_error_msg) =
-            match load_transactions(&initial_data_file_path) {
+            match Self::transaction_store_for_path(&initial_database_path).list() {
                 Ok(txs) => (txs, None),
                 Err(e) => (
                     vec![],
                     Some(format!(
                         "Load TX Error [{}]: {}",
-                        initial_data_file_path.display(),
+                        initial_database_path.display(),
                         e
                     )),
                 ),
             };
 
-        let (seed_categories, load_seed_error_msg) = match load_categories() {
+        let (seed_categories, load_seed_error_msg) = match load_seed_categories() {
             Ok(cats) => (cats, None),
             Err(e) => (vec![], Some(format!("Embedded Category Seed Error: {}", e))),
         };
@@ -216,6 +228,7 @@ impl App {
             load_tx_specific_error_msg,
             database_path_error_msg,
             load_seed_error_msg,
+            migration_msg,
         ]
         .into_iter()
         .flatten()
@@ -301,6 +314,8 @@ impl App {
             recurring_settings_fields: Default::default(),
             current_recurring_field: 0,
             recurring_transaction_index: None,
+            io_path_input: String::new(),
+            io_path_cursor: 0,
             previous_mode: None,
             help_table_state: TableState::default(),
             hide_help_bar: loaded_settings.hide_help_bar.unwrap_or(false),
@@ -333,20 +348,20 @@ impl App {
         match configured_path {
             Some(path_str) => {
                 let path = PathBuf::from(path_str);
-                if let Some(parent) = path.parent() {
-                    if let Err(err) = create_dir_all(parent) {
-                        let fallback =
-                            default_path_fn().unwrap_or_else(|_| PathBuf::from(fallback_name));
-                        return (
-                            fallback,
-                            Some(format!(
-                                "{} path error: Could not create parent dir for {}: {}. Using default.",
-                                label,
-                                path.display(),
-                                err
-                            )),
-                        );
-                    }
+                if let Some(parent) = path.parent()
+                    && let Err(err) = create_dir_all(parent)
+                {
+                    let fallback =
+                        default_path_fn().unwrap_or_else(|_| PathBuf::from(fallback_name));
+                    return (
+                        fallback,
+                        Some(format!(
+                            "{} path error: Could not create parent dir for {}: {}. Using default.",
+                            label,
+                            path.display(),
+                            err
+                        )),
+                    );
                 }
 
                 (path, None)
@@ -374,17 +389,17 @@ impl App {
     fn resolve_default_database_path(data_file_path: &Path) -> (PathBuf, Option<String>) {
         let default_path = Self::default_database_path_for_data_path(data_file_path);
 
-        if let Some(parent) = default_path.parent() {
-            if let Err(err) = create_dir_all(parent) {
-                return (
-                    PathBuf::from("budget.db"),
-                    Some(format!(
-                        "Database default path error: Could not create parent dir for {}: {}. Using local 'budget.db'.",
-                        default_path.display(),
-                        err
-                    )),
-                );
-            }
+        if let Some(parent) = default_path.parent()
+            && let Err(err) = create_dir_all(parent)
+        {
+            return (
+                PathBuf::from("budget.db"),
+                Some(format!(
+                    "Database default path error: Could not create parent dir for {}: {}. Using local 'budget.db'.",
+                    default_path.display(),
+                    err
+                )),
+            );
         }
 
         (default_path, None)
@@ -396,6 +411,73 @@ impl App {
 
     pub(crate) fn category_store(&self) -> SqliteCategoryStore {
         Self::category_store_for_path(&self.database_path)
+    }
+
+    fn transaction_store_for_path(database_path: &Path) -> SqliteTransactionStore {
+        SqliteTransactionStore::new(SqliteDatabase::new(database_path))
+    }
+
+    pub(crate) fn transaction_store(&self) -> SqliteTransactionStore {
+        Self::transaction_store_for_path(&self.database_path)
+    }
+
+    /// Reload the working transaction set from the database and re-derive the in-memory
+    /// generated recurring occurrences. Call after any mutation that touched the store.
+    pub(crate) fn reload_transactions_from_db(&mut self) -> Result<(), Error> {
+        self.transactions = self.transaction_store().list()?;
+        // Re-derives generated occurrences and recomputes sort/filter/summaries.
+        self.generate_recurring_transactions();
+        Ok(())
+    }
+
+    /// One-time, non-destructive migration of the legacy transactions CSV into the database.
+    /// Gated by a metadata flag so it runs at most once. Returns an optional status message.
+    fn run_one_time_csv_migration(
+        database_path: &Path,
+        data_file_path: &Path,
+    ) -> Result<Option<String>, Error> {
+        let database = SqliteDatabase::new(database_path);
+        let mut conn = database.open_connection("transaction migration")?;
+        database.run_migrations(&mut conn)?;
+
+        if database
+            .metadata_value(&conn, "transactions_migrated")?
+            .is_some()
+        {
+            return Ok(None);
+        }
+
+        let mut status = None;
+        if data_file_path.exists() {
+            // Only real rows are imported; generated occurrences are re-derived from sources.
+            let real_rows: Vec<Transaction> = load_transactions(data_file_path)?
+                .into_iter()
+                .filter(|tx| !tx.is_generated_from_recurring)
+                .collect();
+
+            if !real_rows.is_empty() {
+                let store = SqliteTransactionStore::new(database.clone());
+                let summary = store.import_merge(&real_rows)?;
+
+                // Preserve the original file (never delete) by renaming it aside.
+                let backup = {
+                    let mut name = data_file_path.to_path_buf().into_os_string();
+                    name.push(".migrated-backup");
+                    PathBuf::from(name)
+                };
+                let backup_note = match std::fs::rename(data_file_path, &backup) {
+                    Ok(_) => format!(" Original CSV saved as {}.", backup.display()),
+                    Err(_) => String::new(),
+                };
+                status = Some(format!(
+                    "Migrated {} transactions from CSV to the database.{}",
+                    summary.added, backup_note
+                ));
+            }
+        }
+
+        database.set_metadata_value(&conn, "transactions_migrated", "1")?;
+        Ok(status)
     }
 
     pub(crate) fn initialize_category_database(
