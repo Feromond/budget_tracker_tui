@@ -1,4 +1,4 @@
-use crate::database::SqliteDatabase;
+use crate::db::database::SqliteDatabase;
 use crate::model::{
     CategoryDraft, CategoryRecord, RecurrenceFrequency, Transaction, TransactionDraft,
     TransactionType, DATE_FORMAT,
@@ -378,7 +378,7 @@ fn parse_transaction_type(index: usize, value: &str) -> rusqlite::Result<Transac
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::database::SCHEMA_VERSION;
+    use crate::db::database::SCHEMA_VERSION;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU32, Ordering};
 

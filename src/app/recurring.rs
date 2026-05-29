@@ -1,7 +1,7 @@
 use super::state::App;
+use crate::db::transaction_store::TransactionStore;
 use crate::model::{RecurrenceFrequency, Transaction};
 use crate::recurring::{generate_recurring_transactions, remove_generated_recurring_transactions};
-use crate::transaction_store::TransactionStore;
 use chrono::{Duration, NaiveDate};
 
 impl App {

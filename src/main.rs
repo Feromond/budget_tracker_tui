@@ -1,12 +1,10 @@
 mod app;
-mod category_store;
 mod config;
-mod database;
+mod db;
 mod events;
 mod model;
 mod persistence;
 mod recurring;
-mod transaction_store;
 mod ui;
 mod validation;
 

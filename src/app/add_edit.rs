@@ -1,7 +1,7 @@
 use super::state::App;
+use crate::db::transaction_store::TransactionStore;
 use crate::model::TransactionType;
 use crate::model::{TransactionDraft, DATE_FORMAT};
-use crate::transaction_store::TransactionStore;
 use chrono::{Duration, NaiveDate};
 
 impl App {

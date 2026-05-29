@@ -7,9 +7,25 @@ pub enum SettingType {
     Action,
 }
 
+/// Stable identity for each settings row, so lookups and dispatch are type-checked rather than
+/// relying on string keys. Section headers share `Section` since they are never looked up.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingKey {
+    Section,
+    DatabasePath,
+    ManageCategories,
+    ImportTransactions,
+    ExportTransactions,
+    TargetBudget,
+    HourlyRate,
+    ShowHours,
+    FuzzySearch,
+    HideHelpBar,
+}
+
 #[derive(Debug, Clone)]
 pub struct SettingItem {
-    pub key: String,
+    pub key: SettingKey,
     pub label: String,
     pub value: String,
     pub setting_type: SettingType,
@@ -35,14 +51,14 @@ impl SettingsState {
 
     pub fn add_setting(
         &mut self,
-        key: &str,
+        key: SettingKey,
         label: &str,
         value: String,
         setting_type: SettingType,
         help: &str,
     ) {
         self.items.push(SettingItem {
-            key: key.to_string(),
+            key,
             label: label.to_string(),
             value,
             setting_type,
@@ -50,7 +66,17 @@ impl SettingsState {
         });
     }
 
-    pub fn get_value(&self, key: &str) -> Option<&String> {
+    pub fn add_header(&mut self, label: &str) {
+        self.add_setting(
+            SettingKey::Section,
+            label,
+            String::new(),
+            SettingType::SectionHeader,
+            "",
+        );
+    }
+
+    pub fn get_value(&self, key: SettingKey) -> Option<&String> {
         self.items
             .iter()
             .find(|item| item.key == key)

@@ -1,3 +1,4 @@
+use crate::app::settings_types::SettingKey;
 use crate::app::state::App;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -10,8 +11,8 @@ pub fn handle_settings_mode(app: &mut App, key_event: KeyEvent) {
                 .settings_state
                 .items
                 .get(app.settings_state.selected_index)
-                .map(|item| item.key.as_str());
-            if selected_key == Some("database_path") {
+                .map(|item| item.key);
+            if selected_key == Some(SettingKey::DatabasePath) {
                 app.reset_settings_database_path_to_default();
             }
         }

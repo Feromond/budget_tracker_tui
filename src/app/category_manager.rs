@@ -1,8 +1,8 @@
 use super::state::App;
 use crate::app::state::AppMode;
-use crate::category_store::CategoryStore;
+use crate::db::category_store::CategoryStore;
+use crate::db::transaction_store::TransactionStore;
 use crate::model::{CategoryDraft, CategoryRecord, TransactionType};
-use crate::transaction_store::TransactionStore;
 use chrono::Duration;
 
 impl App {

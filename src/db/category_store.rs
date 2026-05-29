@@ -1,4 +1,4 @@
-use crate::database::SqliteDatabase;
+use crate::db::database::SqliteDatabase;
 use crate::model::{CategoryDraft, CategoryInfo, CategoryRecord, TransactionType};
 use rusqlite::{params, Connection, Row};
 use rust_decimal::Decimal;

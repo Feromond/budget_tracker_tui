@@ -1,10 +1,10 @@
 use crate::app::update_checker;
-use crate::category_store::{CategoryStore, SqliteCategoryStore};
 use crate::config::{load_settings, AppSettings};
-use crate::database::SqliteDatabase;
+use crate::db::category_store::{CategoryStore, SqliteCategoryStore};
+use crate::db::database::SqliteDatabase;
+use crate::db::transaction_store::{SqliteTransactionStore, TransactionStore};
 use crate::model::*;
 use crate::persistence::{load_categories, load_transactions};
-use crate::transaction_store::{SqliteTransactionStore, TransactionStore};
 use chrono::{Datelike, Duration, NaiveDate};
 use ratatui::widgets::{ListState, TableState};
 use rust_decimal::Decimal;

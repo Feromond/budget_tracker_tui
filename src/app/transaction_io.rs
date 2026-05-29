@@ -1,6 +1,6 @@
 use super::state::{App, AppMode};
+use crate::db::transaction_store::TransactionStore;
 use crate::persistence::{load_transactions, save_transactions};
-use crate::transaction_store::TransactionStore;
 use chrono::Duration;
 use std::path::PathBuf;
 

@@ -1,5 +1,5 @@
 use super::state::{App, AppMode};
-use crate::app::settings_types::{SettingType, SettingsState};
+use crate::app::settings_types::{SettingKey, SettingType, SettingsState};
 use crate::config::{save_settings, AppSettings};
 use crate::persistence::load_categories;
 use chrono::Duration;
@@ -18,43 +18,33 @@ impl App {
         let loaded_settings = crate::config::load_settings().unwrap_or_default();
 
         // --- Data Management Section ---
-        self.settings_state.add_setting(
-            "header_data",
-            "Data Management",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("Data Management");
 
-        // 1. SQLite Database Path (primary storage for transactions and categories)
         let database_path_str = self.database_path.to_string_lossy().to_string();
         let database_path_val = crate::validation::strip_path_quotes(&database_path_str);
         self.settings_state.add_setting(
-            "database_path",
+            SettingKey::DatabasePath,
             "Database Path",
             database_path_val,
             SettingType::Path,
             "Absolute path to your SQLite database (transactions and categories).",
         );
-        // 2. Manage Categories
         self.settings_state.add_setting(
-            "manage_categories",
+            SettingKey::ManageCategories,
             "Manage Categories",
             "Open Category Catalog".to_string(),
             SettingType::Action,
             "Open the category catalog to add, edit, or delete categories.",
         );
-        // 3. Import Transactions (CSV) — opens a focused path prompt.
         self.settings_state.add_setting(
-            "import_transactions",
+            SettingKey::ImportTransactions,
             "Import Transactions (CSV)",
             "Choose a file to import".to_string(),
             SettingType::Action,
             "Press Enter to choose a CSV file to import (new rows are added, duplicates skipped).",
         );
-        // 4. Export Transactions (CSV) — opens a focused path prompt.
         self.settings_state.add_setting(
-            "export_transactions",
+            SettingKey::ExportTransactions,
             "Export Transactions (CSV)",
             "Choose a destination to export".to_string(),
             SettingType::Action,
@@ -62,21 +52,14 @@ impl App {
         );
 
         // --- Monthly Summary View Section ---
-        self.settings_state.add_setting(
-            "header_monthly",
-            "Monthly Summary View",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("Monthly Summary View");
 
-        // 5. Target Budget
         let budget_val = loaded_settings
             .target_budget
             .map(|v| v.to_string())
             .unwrap_or_default();
         self.settings_state.add_setting(
-            "target_budget",
+            SettingKey::TargetBudget,
             "Target Budget",
             budget_val,
             SettingType::Number,
@@ -84,29 +67,21 @@ impl App {
         );
 
         // --- Transaction View Section ---
-        self.settings_state.add_setting(
-            "header_transactions",
-            "Transaction View",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("Transaction View");
 
-        // 6. Hourly Rate
         let hourly_rate_val = loaded_settings
             .hourly_rate
             .map(|v| v.to_string())
             .unwrap_or_default();
         self.settings_state.add_setting(
-            "hourly_rate",
+            SettingKey::HourlyRate,
             "Hourly Rate ($)",
             hourly_rate_val.clone(),
             SettingType::Number,
             "Optional. Enter your hourly earning rate to see costs in hours.",
         );
 
-        // 7. Show Hours Toggle
-        // Only show this if hourly rate is present
+        // Show Hours is only relevant once an hourly rate is set.
         if !hourly_rate_val.is_empty() {
             let show_hours_val = if loaded_settings.show_hours.unwrap_or(false) {
                 "◀ Yes "
@@ -114,7 +89,7 @@ impl App {
                 " No ▶"
             };
             self.settings_state.add_setting(
-                "show_hours",
+                SettingKey::ShowHours,
                 "Show Costs in Hours",
                 show_hours_val.to_string(),
                 SettingType::Toggle,
@@ -123,22 +98,15 @@ impl App {
         }
 
         // --- Input Preferences Section ---
-        self.settings_state.add_setting(
-            "header_input",
-            "Input Preferences",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("Input Preferences");
 
-        // 8. Fuzzy Search Mode
         let fuzzy_search_val = if loaded_settings.fuzzy_search_mode.unwrap_or(false) {
             "◀ Yes "
         } else {
             " No ▶"
         };
         self.settings_state.add_setting(
-            "fuzzy_search_mode",
+            SettingKey::FuzzySearch,
             "Fuzzy Search Categories",
             fuzzy_search_val.to_string(),
             SettingType::Toggle,
@@ -146,22 +114,15 @@ impl App {
         );
 
         // --- General Preferences Section ---
-        self.settings_state.add_setting(
-            "header_general",
-            "General Preferences",
-            "".to_string(),
-            SettingType::SectionHeader,
-            "",
-        );
+        self.settings_state.add_header("General Preferences");
 
-        // 9. Hide Help Bar
         let hide_help_bar_val = if loaded_settings.hide_help_bar.unwrap_or(false) {
             "◀ Yes "
         } else {
             " No ▶"
         };
         self.settings_state.add_setting(
-            "hide_help_bar",
+            SettingKey::HideHelpBar,
             "Hide Help Bar (NOT RECOMMENDED)",
             hide_help_bar_val.to_string(),
             SettingType::Toggle,
@@ -207,22 +168,22 @@ impl App {
         let mut fuzzy_search_val = None;
         let mut hide_help_bar_val = None;
 
-        if let Some(val) = self.settings_state.get_value("database_path") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::DatabasePath) {
             new_database_path_str = crate::validation::strip_path_quotes(val);
         }
-        if let Some(val) = self.settings_state.get_value("target_budget") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::TargetBudget) {
             target_budget_str = val.trim().to_string();
         }
-        if let Some(val) = self.settings_state.get_value("hourly_rate") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::HourlyRate) {
             hourly_rate_str = val.trim().to_string();
         }
-        if let Some(val) = self.settings_state.get_value("show_hours") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::ShowHours) {
             show_hours_val = Some(val.to_lowercase().contains("yes"));
         }
-        if let Some(val) = self.settings_state.get_value("fuzzy_search_mode") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::FuzzySearch) {
             fuzzy_search_val = Some(val.to_lowercase().contains("yes"));
         }
-        if let Some(val) = self.settings_state.get_value("hide_help_bar") {
+        if let Some(val) = self.settings_state.get_value(SettingKey::HideHelpBar) {
             hide_help_bar_val = Some(val.to_lowercase().contains("yes"));
         }
 
@@ -362,7 +323,7 @@ impl App {
             .settings_state
             .items
             .iter()
-            .position(|i| i.key == "database_path")
+            .position(|i| i.key == SettingKey::DatabasePath)
         {
             self.settings_state.items[idx].value = clean_path;
             if self.settings_state.selected_index == idx {
@@ -381,12 +342,16 @@ impl App {
             .settings_state
             .items
             .get(self.settings_state.selected_index)
-            .map(|item| item.key.clone());
+            .map(|item| item.key);
 
-        match selected_key.as_deref() {
-            Some("manage_categories") => self.open_category_catalog(),
-            Some("import_transactions") => self.open_transaction_io(AppMode::ImportTransactions),
-            Some("export_transactions") => self.open_transaction_io(AppMode::ExportTransactions),
+        match selected_key {
+            Some(SettingKey::ManageCategories) => self.open_category_catalog(),
+            Some(SettingKey::ImportTransactions) => {
+                self.open_transaction_io(AppMode::ImportTransactions)
+            }
+            Some(SettingKey::ExportTransactions) => {
+                self.open_transaction_io(AppMode::ExportTransactions)
+            }
             _ => self.save_settings(),
         }
     }
@@ -395,9 +360,9 @@ impl App {
     /// This handles finding the correct position and maintaining list integrity.
     fn ensure_setting_visibility<F>(
         &mut self,
-        target_key: &str,
+        target_key: SettingKey,
         should_be_visible: bool,
-        insert_after_key: &str,
+        insert_after_key: SettingKey,
         item_creator: F,
     ) where
         F: FnOnce() -> crate::app::settings_types::SettingItem,
@@ -438,21 +403,24 @@ impl App {
     }
 
     pub(crate) fn update_settings_visibility(&mut self) {
-        // Rule 1: "show_hours" depends on "hourly_rate" having a value
+        // "Show Costs in Hours" is only shown once an hourly rate has a value.
         let hourly_rate_has_value = self
             .settings_state
-            .get_value("hourly_rate")
+            .get_value(SettingKey::HourlyRate)
             .map(|v| !v.trim().is_empty())
             .unwrap_or(false);
 
-        self.ensure_setting_visibility("show_hours", hourly_rate_has_value, "hourly_rate", || {
-            crate::app::settings_types::SettingItem {
-                key: "show_hours".to_string(),
+        self.ensure_setting_visibility(
+            SettingKey::ShowHours,
+            hourly_rate_has_value,
+            SettingKey::HourlyRate,
+            || crate::app::settings_types::SettingItem {
+                key: SettingKey::ShowHours,
                 label: "Show Costs in Hours".to_string(),
-                value: " No ▶".to_string(), // Default to No
+                value: " No ▶".to_string(),
                 setting_type: crate::app::settings_types::SettingType::Toggle,
                 help: "Toggle to display transaction amounts as hours worked.".to_string(),
-            }
-        });
+            },
+        );
     }
 }
