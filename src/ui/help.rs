@@ -295,6 +295,18 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::styled("Esc", Style::default().fg(Color::LightRed)),
             Span::raw(": Cancel"),
         ],
+        AppMode::ImportTransactions | AppMode::ExportTransactions => vec![
+            Span::raw("Type path | "),
+            Span::raw("←→ Cursor | "),
+            Span::styled("Ctrl+U", Style::default().fg(Color::LightMagenta)),
+            Span::raw(" Clear | "),
+            Span::styled("Ctrl+D", Style::default().fg(Color::LightMagenta)),
+            Span::raw(" Default | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Confirm | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Back"),
+        ],
     };
 
     let help_paragraph = Paragraph::new(Line::from(help_spans))

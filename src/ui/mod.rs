@@ -12,6 +12,7 @@ pub mod settings;
 pub mod status;
 pub mod summary;
 pub mod transaction_form;
+pub mod transaction_io;
 pub mod transaction_table;
 pub mod update_popup;
 
@@ -50,6 +51,8 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             | AppMode::SelectingSubcategory
             | AppMode::KeybindingsInfo
             | AppMode::KeybindingDetail
+            | AppMode::ImportTransactions
+            | AppMode::ExportTransactions
     ) {
         0
     } else {
@@ -122,6 +125,11 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::Settings => {
             transaction_table::render_transaction_table(f, app, main_area);
             settings::render_settings_form(f, app, main_area);
+        }
+        AppMode::ImportTransactions | AppMode::ExportTransactions => {
+            transaction_table::render_transaction_table(f, app, main_area);
+            settings::render_settings_form(f, app, main_area);
+            transaction_io::render_io_prompt(f, app, main_area);
         }
         AppMode::RecurringSettings => {
             recurring::render_recurring_settings(f, app, main_area);

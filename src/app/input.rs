@@ -47,6 +47,11 @@ impl App {
                     input_type,
                 ))
             }
+            AppMode::ImportTransactions | AppMode::ExportTransactions => Some((
+                &mut self.io_path_input,
+                &mut self.io_path_cursor,
+                InputType::Text,
+            )),
             AppMode::AdvancedFiltering => {
                 let idx = self.current_advanced_filter_field;
                 let input_type = match idx {

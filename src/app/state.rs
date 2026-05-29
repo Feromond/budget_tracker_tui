@@ -44,6 +44,8 @@ pub enum AppMode {
     CategoryCatalog,
     CategoryEditor,
     ConfirmCategoryDelete,
+    ImportTransactions,
+    ExportTransactions,
 }
 
 #[derive(Debug)]
@@ -129,6 +131,9 @@ pub struct App {
     pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
     pub(crate) current_recurring_field: usize,
     pub(crate) recurring_transaction_index: Option<usize>,
+    // Import/Export path prompt state (shared by ImportTransactions/ExportTransactions modes)
+    pub(crate) io_path_input: String,
+    pub(crate) io_path_cursor: usize,
     // Help/Keybindings
     pub(crate) previous_mode: Option<AppMode>,
     pub(crate) help_table_state: TableState,
@@ -309,6 +314,8 @@ impl App {
             recurring_settings_fields: Default::default(),
             current_recurring_field: 0,
             recurring_transaction_index: None,
+            io_path_input: String::new(),
+            io_path_cursor: 0,
             previous_mode: None,
             help_table_state: TableState::default(),
             hide_help_bar: loaded_settings.hide_help_bar.unwrap_or(false),

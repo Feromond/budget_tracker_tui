@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use super::{
     add_edit_mode, budget_mode, category_manager_mode, filter_mode, fuzzy_search_mode, help_mode,
-    normal_mode, recurring_mode, selection_mode, settings_mode, summary_mode,
+    normal_mode, recurring_mode, selection_mode, settings_mode, summary_mode, transaction_io_mode,
 };
 
 pub fn run_app<B: Backend>(
@@ -62,6 +62,16 @@ where
                         }
                     }
                 }
+                // Handle paste into the Import/Export path prompt.
+                Event::Paste(text)
+                    if app.mode == AppMode::ImportTransactions
+                        || app.mode == AppMode::ExportTransactions =>
+                {
+                    let cursor = app.io_path_cursor.min(app.io_path_input.len());
+                    app.io_path_input.insert_str(cursor, &text);
+                    app.io_path_input = crate::validation::strip_path_quotes(&app.io_path_input);
+                    app.io_path_cursor = app.io_path_input.len();
+                }
                 // Potentially handle paste in other modes later if needed
                 Event::Key(key)
                     if key.kind == KeyEventKind::Press
@@ -69,6 +79,9 @@ where
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Let Shift+Char pass through for typing capitals/symbols in settings path
                                 || (app.mode == AppMode::Settings && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                // Import/Export path prompt: allow Shift+Char and Ctrl+D/U
+                                || ((app.mode == AppMode::ImportTransactions || app.mode == AppMode::ExportTransactions) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                || ((app.mode == AppMode::ImportTransactions || app.mode == AppMode::ExportTransactions) && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Allow Shift+Char in Adding, Editing and FuzzyFinding modes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::FuzzyFinding || app.mode == AppMode::CategoryEditor) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Arrow in date-like navigation modes
@@ -157,6 +170,9 @@ fn update(app: &mut App, key_event: KeyEvent) {
             selection_mode::handle_selection_mode(app, key_event)
         }
         AppMode::Settings => settings_mode::handle_settings_mode(app, key_event),
+        AppMode::ImportTransactions | AppMode::ExportTransactions => {
+            transaction_io_mode::handle_transaction_io_mode(app, key_event)
+        }
         AppMode::RecurringSettings => recurring_mode::handle_recurring_mode(app, key_event),
         AppMode::CategoryCatalog | AppMode::CategoryEditor | AppMode::ConfirmCategoryDelete => {
             category_manager_mode::handle_category_manager_mode(app, key_event)

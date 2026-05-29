@@ -1,8 +1,7 @@
-use super::state::App;
+use super::state::{App, AppMode};
 use crate::app::settings_types::{SettingType, SettingsState};
 use crate::config::{save_settings, AppSettings};
-use crate::persistence::{load_categories, load_transactions, save_transactions};
-use crate::transaction_store::TransactionStore;
+use crate::persistence::load_categories;
 use chrono::Duration;
 use std::path::PathBuf;
 
@@ -45,21 +44,21 @@ impl App {
             SettingType::Action,
             "Open the category catalog to add, edit, or delete categories.",
         );
-        // 3. Import Transactions (CSV) — type a path and press Enter to merge it in.
+        // 3. Import Transactions (CSV) — opens a focused path prompt.
         self.settings_state.add_setting(
             "import_transactions",
             "Import Transactions (CSV)",
-            self.default_io_path_value(),
-            SettingType::Path,
-            "Type a CSV path and press Enter to import (new rows are added, duplicates skipped).",
+            "Choose a file to import".to_string(),
+            SettingType::Action,
+            "Press Enter to choose a CSV file to import (new rows are added, duplicates skipped).",
         );
-        // 4. Export Transactions (CSV) — type a destination and press Enter to write a CSV.
+        // 4. Export Transactions (CSV) — opens a focused path prompt.
         self.settings_state.add_setting(
             "export_transactions",
             "Export Transactions (CSV)",
-            self.default_io_path_value(),
-            SettingType::Path,
-            "Type a destination path and press Enter to export all transactions to CSV.",
+            "Choose a destination to export".to_string(),
+            SettingType::Action,
+            "Press Enter to choose a destination and export all transactions to CSV.",
         );
 
         // --- Monthly Summary View Section ---
@@ -194,6 +193,8 @@ impl App {
     pub(crate) fn exit_settings_mode(&mut self) {
         self.mode = crate::app::state::AppMode::Normal;
         self.settings_state = SettingsState::default();
+        self.io_path_input.clear();
+        self.io_path_cursor = 0;
         self.clear_status_message();
     }
 
@@ -344,23 +345,6 @@ impl App {
         self.hide_help_bar = hide_help_bar_val.unwrap_or(false);
     }
 
-    /// Default value shown in the Import/Export path fields: the legacy data directory, which
-    /// is the most likely place a user keeps a transactions CSV.
-    fn default_io_path_value(&self) -> String {
-        crate::validation::strip_path_quotes(&self.data_file_path.to_string_lossy())
-    }
-
-    /// Reset the currently-selected Import/Export path field back to the default location.
-    pub(crate) fn reset_settings_io_path_to_default(&mut self) {
-        let default = self.default_io_path_value();
-        let idx = self.settings_state.selected_index;
-        if let Some(item) = self.settings_state.items.get_mut(idx) {
-            item.value = default;
-            self.settings_state.edit_cursor = item.value.len();
-        }
-        self.set_status_message("Path reset to default location.", None);
-    }
-
     pub(crate) fn reset_settings_database_path_to_default(&mut self) {
         let data_path_value =
             crate::validation::strip_path_quotes(&self.data_file_path.to_string_lossy());
@@ -401,106 +385,9 @@ impl App {
 
         match selected_key.as_deref() {
             Some("manage_categories") => self.open_category_catalog(),
-            Some("import_transactions") => self.import_transactions(),
-            Some("export_transactions") => self.export_transactions(),
+            Some("import_transactions") => self.open_transaction_io(AppMode::ImportTransactions),
+            Some("export_transactions") => self.open_transaction_io(AppMode::ExportTransactions),
             _ => self.save_settings(),
-        }
-    }
-
-    /// Import transactions from a CSV chosen in the Import field. Generated recurring rows in
-    /// the file are dropped (they are re-derived from sources); the rest are merged with the
-    /// database, skipping exact duplicates.
-    pub(crate) fn import_transactions(&mut self) {
-        let raw = match self.settings_state.get_value("import_transactions") {
-            Some(value) => value.clone(),
-            None => {
-                self.set_status_message("Error: import path field is missing.", None);
-                return;
-            }
-        };
-        let path_str = crate::validation::strip_path_quotes(&raw);
-        if path_str.trim().is_empty() {
-            self.set_status_message("Error: enter a CSV path to import.", None);
-            return;
-        }
-        let path = PathBuf::from(&path_str);
-        if !path.exists() {
-            self.set_status_message(format!("Error: file '{}' not found.", path.display()), None);
-            return;
-        }
-
-        let rows = match load_transactions(&path) {
-            Ok(rows) => rows,
-            Err(e) => {
-                self.set_status_message(format!("Error reading '{}': {}", path.display(), e), None);
-                return;
-            }
-        };
-        let real_rows: Vec<_> = rows
-            .into_iter()
-            .filter(|tx| !tx.is_generated_from_recurring)
-            .collect();
-
-        let summary = match self.transaction_store().import_merge(&real_rows) {
-            Ok(summary) => summary,
-            Err(e) => {
-                self.set_status_message(format!("Error importing transactions: {}", e), None);
-                return;
-            }
-        };
-        if let Err(e) = self.reload_transactions_from_db() {
-            self.set_status_message(format!("Imported, but reloading failed: {}", e), None);
-            return;
-        }
-
-        self.exit_settings_mode();
-        self.filtered_indices = (0..self.transactions.len()).collect();
-        if self.filtered_indices.is_empty() {
-            self.table_state.select(None);
-        } else {
-            self.table_state.select(Some(0));
-        }
-        self.set_status_message(
-            format!(
-                "Imported {} new, skipped {} duplicates.",
-                summary.added, summary.skipped
-            ),
-            Some(Duration::seconds(4)),
-        );
-    }
-
-    /// Export every transaction (including the materialized recurring occurrences shown in the
-    /// app) to the CSV path chosen in the Export field.
-    pub(crate) fn export_transactions(&mut self) {
-        let raw = match self.settings_state.get_value("export_transactions") {
-            Some(value) => value.clone(),
-            None => {
-                self.set_status_message("Error: export path field is missing.", None);
-                return;
-            }
-        };
-        let path_str = crate::validation::strip_path_quotes(&raw);
-        if path_str.trim().is_empty() {
-            self.set_status_message("Error: enter a destination path to export.", None);
-            return;
-        }
-        let path = PathBuf::from(&path_str);
-
-        match save_transactions(&self.transactions, &path) {
-            Ok(_) => {
-                let count = self.transactions.len();
-                self.exit_settings_mode();
-                self.set_status_message(
-                    format!("Exported {} transactions to {}.", count, path.display()),
-                    Some(Duration::seconds(4)),
-                );
-            }
-            Err(e) => {
-                self.set_status_message(
-                    format!("Error exporting to '{}': {}", path.display(), e),
-                    None,
-                );
-            }
         }
     }
 
