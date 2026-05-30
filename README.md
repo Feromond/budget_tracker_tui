@@ -183,7 +183,7 @@ cargo install --path .
     - **Windows:** `C:\Users\<YourUsername>\AppData\Roaming\BudgetTracker\config.json`
   - This is separate from the database location, which lives in your OS's data directory (see above).
 
-## 📁 Data & CSV Format
+## 📁 Data & CSV Import/Export Format
 
 - **CSV Columns:** `date, description, amount, transaction_type, category, subcategory`. Exports also include the recurring columns (`is_recurring, recurrence_frequency, recurrence_end_date, is_generated_from_recurring`); these are optional on import and default to a non-recurring transaction.
 - **Date Format:** Flexible! Accepts `YYYY-MM-DD`, `YYYY/MM/DD`, `DD/MM/YYYY`, or `DD-MM-YYYY`.
