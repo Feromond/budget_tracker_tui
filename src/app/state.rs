@@ -42,6 +42,7 @@ pub enum AppMode {
     KeybindingDetail,
     FuzzyFinding,
     CategoryCatalog,
+    CategoryCatalogFilter,
     CategoryEditor,
     ConfirmCategoryDelete,
     ImportTransactions,
@@ -116,6 +117,9 @@ pub struct App {
     pub(crate) settings_state: crate::app::settings_types::SettingsState,
     // Category catalog state
     pub(crate) category_table_state: TableState,
+    pub(crate) filtered_category_indices: Vec<usize>,
+    pub(crate) category_filter_query: String,
+    pub(crate) category_filter_cursor: usize,
     pub(crate) category_edit_fields: [String; 5], // [type, category, subcategory, tag, target_budget]
     pub(crate) current_category_field: usize,
     pub(crate) category_edit_cursor: usize,
@@ -257,6 +261,7 @@ impl App {
             initial_sort_order,
         );
         let initial_filtered_indices = (0..transactions.len()).collect();
+        let initial_filtered_category_indices = (0..category_records.len()).collect();
         let mut app = Self {
             transactions,
             filtered_indices: initial_filtered_indices,
@@ -303,6 +308,9 @@ impl App {
             budget_table_state: TableState::default(),
             settings_state: crate::app::settings_types::SettingsState::default(),
             category_table_state: TableState::default(),
+            filtered_category_indices: initial_filtered_category_indices,
+            category_filter_query: String::new(),
+            category_filter_cursor: 0,
             category_edit_fields: Default::default(),
             current_category_field: 0,
             category_edit_cursor: 0,
@@ -528,6 +536,7 @@ impl App {
     pub(crate) fn refresh_category_state(&mut self, records: Vec<CategoryRecord>) {
         self.category_records = records;
         self.categories = Self::project_categories(&self.category_records);
+        self.apply_category_filter();
     }
 
     pub(crate) fn refresh_categories_from_database(&mut self) -> Result<(), Error> {

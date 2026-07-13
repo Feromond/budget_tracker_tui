@@ -6,7 +6,14 @@ use crate::model::{CategoryDraft, CategoryRecord, TransactionType};
 use chrono::Duration;
 
 impl App {
+    /// Page size for category catalog navigation (PageUp/PageDown)
+    const CATEGORY_PAGE_SIZE: usize = 20;
+
     pub(crate) fn open_category_catalog(&mut self, origin: AppMode) {
+        // Start each visit with a clean filter so all categories are visible;
+        // the reload below re-applies it to the fresh records.
+        self.category_filter_query.clear();
+        self.category_filter_cursor = 0;
         if let Err(err) = self.reload_categories_from_store() {
             self.set_status_message(format!("Error loading categories: {}", err), None);
             return;
@@ -16,17 +23,6 @@ impl App {
         self.category_catalog_origin = origin;
         self.editing_category_id = None;
         self.category_delete_id = None;
-        let selection = if self.category_records.is_empty() {
-            None
-        } else {
-            Some(
-                self.category_table_state
-                    .selected()
-                    .unwrap_or(0)
-                    .min(self.category_records.len() - 1),
-            )
-        };
-        self.category_table_state.select(selection);
         self.clear_status_message();
     }
 
@@ -41,7 +37,7 @@ impl App {
     }
 
     pub(crate) fn next_category_record(&mut self) {
-        let len = self.category_records.len();
+        let len = self.filtered_category_indices.len();
         if len == 0 {
             return;
         }
@@ -54,7 +50,7 @@ impl App {
     }
 
     pub(crate) fn previous_category_record(&mut self) {
-        let len = self.category_records.len();
+        let len = self.filtered_category_indices.len();
         if len == 0 {
             return;
         }
@@ -64,6 +60,96 @@ impl App {
             Some(current) => current - 1,
         };
         self.category_table_state.select(Some(index));
+    }
+
+    pub(crate) fn jump_to_first_category(&mut self) {
+        if !self.filtered_category_indices.is_empty() {
+            self.category_table_state.select(Some(0));
+        }
+    }
+
+    pub(crate) fn jump_to_last_category(&mut self) {
+        let len = self.filtered_category_indices.len();
+        if len > 0 {
+            self.category_table_state.select(Some(len - 1));
+        }
+    }
+
+    pub(crate) fn page_up_category(&mut self) {
+        if self.filtered_category_indices.is_empty() {
+            return;
+        }
+        let current = self.category_table_state.selected().unwrap_or(0);
+        self.category_table_state
+            .select(Some(current.saturating_sub(Self::CATEGORY_PAGE_SIZE)));
+    }
+
+    pub(crate) fn page_down_category(&mut self) {
+        let len = self.filtered_category_indices.len();
+        if len == 0 {
+            return;
+        }
+        let current = self.category_table_state.selected().unwrap_or(0);
+        self.category_table_state
+            .select(Some((current + Self::CATEGORY_PAGE_SIZE).min(len - 1)));
+    }
+
+    // --- Catalog Filtering ---
+    // Mirrors the simple transaction filter: live filtering while typing, Enter keeps
+    // the filter applied, Esc clears it.
+    pub(crate) fn is_category_filter_active(&self) -> bool {
+        !self.category_filter_query.is_empty()
+    }
+
+    pub(crate) fn start_category_filtering(&mut self) {
+        self.mode = AppMode::CategoryCatalogFilter;
+        self.category_filter_cursor = self.category_filter_query.len();
+        self.clear_status_message();
+    }
+
+    pub(crate) fn finish_category_filtering(&mut self) {
+        self.mode = AppMode::CategoryCatalog;
+        self.clear_status_message();
+    }
+
+    pub(crate) fn reset_category_filter(&mut self) {
+        let was_active = self.is_category_filter_active();
+        self.category_filter_query.clear();
+        self.category_filter_cursor = 0;
+        self.apply_category_filter();
+        self.mode = AppMode::CategoryCatalog;
+        if was_active {
+            self.set_status_message("Category filter cleared", Some(Duration::seconds(3)));
+        } else {
+            self.clear_status_message();
+        }
+    }
+
+    pub(crate) fn apply_category_filter(&mut self) {
+        let query = self.category_filter_query.to_lowercase();
+        self.filtered_category_indices = self
+            .category_records
+            .iter()
+            .enumerate()
+            .filter(|(_, record)| {
+                if query.is_empty() {
+                    return true;
+                }
+                record.category.to_lowercase().contains(&query)
+                    || record.subcategory.to_lowercase().contains(&query)
+                    || record
+                        .tag
+                        .as_ref()
+                        .is_some_and(|tag| tag.to_lowercase().contains(&query))
+                    || record
+                        .transaction_type
+                        .to_string()
+                        .to_lowercase()
+                        .contains(&query)
+            })
+            .map(|(index, _)| index)
+            .collect();
+        self.clamp_category_catalog_selection();
     }
 
     pub(crate) fn start_adding_category(&mut self) {
@@ -237,7 +323,6 @@ impl App {
 
         self.mode = AppMode::CategoryCatalog;
         self.category_delete_id = None;
-        self.clamp_category_catalog_selection();
         self.set_status_message("Category deleted successfully.", Some(Duration::seconds(3)));
     }
 
@@ -320,18 +405,19 @@ impl App {
     fn selected_category_record(&self) -> Option<&CategoryRecord> {
         self.category_table_state
             .selected()
-            .and_then(|index| self.category_records.get(index))
+            .and_then(|index| self.filtered_category_indices.get(index))
+            .and_then(|&record_index| self.category_records.get(record_index))
     }
 
     fn clamp_category_catalog_selection(&mut self) {
-        let selection = if self.category_records.is_empty() {
+        let selection = if self.filtered_category_indices.is_empty() {
             None
         } else {
             Some(
                 self.category_table_state
                     .selected()
                     .unwrap_or(0)
-                    .min(self.category_records.len() - 1),
+                    .min(self.filtered_category_indices.len() - 1),
             )
         };
         self.category_table_state.select(selection);
@@ -339,9 +425,11 @@ impl App {
 
     fn select_saved_category(&mut self) {
         let selection = self.editing_category_id.and_then(|id| {
-            self.category_records
-                .iter()
-                .position(|record| record.id == id)
+            self.filtered_category_indices.iter().position(|&index| {
+                self.category_records
+                    .get(index)
+                    .is_some_and(|record| record.id == id)
+            })
         });
 
         if selection.is_some() {

@@ -28,7 +28,10 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             app.mode
         };
 
-    let filter_bar_height = if render_mode == AppMode::Filtering {
+    let filter_bar_height = if matches!(
+        render_mode,
+        AppMode::Filtering | AppMode::CategoryCatalogFilter
+    ) {
         3
     } else {
         0
@@ -40,6 +43,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             | AppMode::Budget
             | AppMode::Settings
             | AppMode::CategoryCatalog
+            | AppMode::CategoryCatalogFilter
             | AppMode::CategoryEditor
             | AppMode::ConfirmCategoryDelete
             | AppMode::Adding
@@ -112,7 +116,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::Budget => {
             budget::render_budget_view(f, app, main_area);
         }
-        AppMode::CategoryCatalog => {
+        AppMode::CategoryCatalog | AppMode::CategoryCatalogFilter => {
             category_manager::render_category_catalog(f, app, main_area);
         }
         AppMode::CategoryEditor => {
@@ -143,6 +147,10 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
 
     if render_mode == AppMode::Filtering {
         filter::render_filter_input(f, app, filter_area);
+    }
+
+    if render_mode == AppMode::CategoryCatalogFilter {
+        category_manager::render_category_filter_input(f, app, filter_area);
     }
 
     // Determine year filter based on current mode
@@ -179,6 +187,16 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
 
     if render_mode == AppMode::Filtering {
         let cursor_x = app.simple_filter_content[..app.simple_filter_cursor]
+            .chars()
+            .count() as u16;
+        f.set_cursor_position(ratatui::layout::Position::new(
+            filter_area.x + cursor_x + 1,
+            filter_area.y + 1,
+        ));
+    }
+
+    if render_mode == AppMode::CategoryCatalogFilter {
+        let cursor_x = app.category_filter_query[..app.category_filter_cursor]
             .chars()
             .count() as u16;
         f.set_cursor_position(ratatui::layout::Position::new(

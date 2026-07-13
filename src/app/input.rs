@@ -20,6 +20,11 @@ impl App {
                 &mut self.simple_filter_cursor,
                 InputType::Text,
             )),
+            AppMode::CategoryCatalogFilter => Some((
+                &mut self.category_filter_query,
+                &mut self.category_filter_cursor,
+                InputType::Text,
+            )),
             AppMode::Adding | AppMode::Editing => {
                 let idx = self.current_add_edit_field;
                 let input_type = match idx {
