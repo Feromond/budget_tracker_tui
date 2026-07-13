@@ -5,7 +5,9 @@ edition = "2024"
 authors = ["Jacob Mish <JacobPMish@gmail.com>"]
 description = "A feature rich TUI budget tracker app"
 license = "GPL-3.0-only"
-
+repository = "https://github.com/Feromond/budget_tracker_tui"
+keywords = ["tui", "budget", "finance", "terminal", "tracker"]
+categories = ["command-line-utilities", "finance"]
 
 [dependencies]
 ratatui = { version = "0.30.0", features = ["crossterm"] }
