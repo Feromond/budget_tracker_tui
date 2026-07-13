@@ -121,6 +121,8 @@ pub struct App {
     pub(crate) category_edit_cursor: usize,
     pub(crate) editing_category_id: Option<i64>,
     pub(crate) category_delete_id: Option<i64>,
+    // Mode to return to when leaving the category catalog (Settings or Budget)
+    pub(crate) category_catalog_origin: AppMode,
     // Budget
     pub(crate) target_budget: Option<Decimal>,
     pub(crate) hourly_rate: Option<Decimal>,
@@ -306,6 +308,7 @@ impl App {
             category_edit_cursor: 0,
             editing_category_id: None,
             category_delete_id: None,
+            category_catalog_origin: AppMode::Settings,
             target_budget: loaded_settings.target_budget,
             hourly_rate: loaded_settings.hourly_rate,
             show_hours: loaded_settings.show_hours.unwrap_or(false),

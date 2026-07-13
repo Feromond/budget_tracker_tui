@@ -345,7 +345,7 @@ impl App {
             .map(|item| item.key);
 
         match selected_key {
-            Some(SettingKey::ManageCategories) => self.open_category_catalog(),
+            Some(SettingKey::ManageCategories) => self.open_category_catalog(AppMode::Settings),
             Some(SettingKey::ImportTransactions) => {
                 self.open_transaction_io(AppMode::ImportTransactions)
             }

@@ -6,13 +6,14 @@ use crate::model::{CategoryDraft, CategoryRecord, TransactionType};
 use chrono::Duration;
 
 impl App {
-    pub(crate) fn open_category_catalog(&mut self) {
+    pub(crate) fn open_category_catalog(&mut self, origin: AppMode) {
         if let Err(err) = self.reload_categories_from_store() {
             self.set_status_message(format!("Error loading categories: {}", err), None);
             return;
         }
 
         self.mode = AppMode::CategoryCatalog;
+        self.category_catalog_origin = origin;
         self.editing_category_id = None;
         self.category_delete_id = None;
         let selection = if self.category_records.is_empty() {
@@ -30,8 +31,12 @@ impl App {
     }
 
     pub(crate) fn exit_category_catalog(&mut self) {
-        self.mode = AppMode::Settings;
+        self.mode = self.category_catalog_origin;
         self.category_delete_id = None;
+        if self.mode == AppMode::Budget {
+            // Category budgets may have changed; re-validate the month and row selection.
+            self.refresh_budget_years();
+        }
         self.clear_status_message();
     }
 
