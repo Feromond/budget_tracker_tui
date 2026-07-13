@@ -1,9 +1,10 @@
-use crate::app::state::App;
+use crate::app::state::{App, AppMode};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn handle_budget_mode(app: &mut App, key_event: KeyEvent) {
     match (key_event.code, key_event.modifiers) {
         (KeyCode::Char('q'), _) | (KeyCode::Esc, _) => app.exit_budget_mode(),
+        (KeyCode::Char('c'), KeyModifiers::NONE) => app.open_category_catalog(AppMode::Budget),
         (KeyCode::Down, KeyModifiers::NONE) => app.next_budget_category(),
         (KeyCode::Up, KeyModifiers::NONE) => app.previous_budget_category(),
         (KeyCode::Right, KeyModifiers::NONE) => app.next_budget_month(),

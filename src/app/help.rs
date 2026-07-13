@@ -329,6 +329,14 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("↑/↓", "Select Budget Row", "Navigation", None),
             KeyBindingInfo::new("←/→", "Change Month", "Navigation", None),
             KeyBindingInfo::new("Shift+←/→", "Change Year", "Navigation", None),
+            KeyBindingInfo::new(
+                "c",
+                "Manage Categories",
+                "Actions",
+                Some(
+                    "Open the category catalog to add or edit category target budgets without leaving the budget view. Esc returns here.",
+                ),
+            ),
             KeyBindingInfo::new("q/Esc", "Back to Transactions", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
@@ -435,7 +443,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("a", "Add category", "Actions", None),
             KeyBindingInfo::new("e/Enter", "Edit selected category", "Actions", None),
             KeyBindingInfo::new("d", "Delete selected category", "Actions", None),
-            KeyBindingInfo::new("q/Esc", "Back to Settings", "Actions", None),
+            KeyBindingInfo::new("q/Esc", "Back to Previous View", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         AppMode::CategoryEditor => vec![
