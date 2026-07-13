@@ -35,7 +35,11 @@ where
         terminal.draw(|f| ui(f, app))?;
 
         if event::poll(Duration::from_millis(250))? {
-            match event::read()? {
+            let event = match event::read()? {
+                Event::Key(key) => Event::Key(normalize_key(key)),
+                other => other,
+            };
+            match event {
                 Event::Paste(text) => app.handle_paste(&text),
                 Event::Key(key)
                     if key.kind == KeyEventKind::Press
@@ -75,6 +79,20 @@ where
         }
     }
     Ok(())
+}
+
+// Shift has no distinct meaning for these keys, but is often still held when
+// pressing them while typing capitals; treat them as their unmodified forms.
+fn normalize_key(mut key: KeyEvent) -> KeyEvent {
+    if key.modifiers == KeyModifiers::SHIFT
+        && matches!(
+            key.code,
+            KeyCode::Backspace | KeyCode::Delete | KeyCode::Enter
+        )
+    {
+        key.modifiers = KeyModifiers::NONE;
+    }
+    key
 }
 
 // Main input handler, dispatching based on mode
