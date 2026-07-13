@@ -13,7 +13,7 @@ The transaction list is where you land on launch, with a summary bar up top.
 - `r` opens recurring settings for the selected transaction
 - `s`, `c`, and `b` open the monthly summary, category summary, and budget views
 - `o` opens settings
-- `q` or `Esc` clears any active filter first; pressed again, quits the app
+- `q` or `Esc` clears any active filter, or quits the app when no filter is active
 
 ## Adding and editing transactions
 
@@ -46,7 +46,16 @@ Occurrences are generated automatically from the start date up to today, and an 
 
 **Category summary (`c`)** breaks down each month by category. `Enter` expands or collapses a month, `PageUp`/`PageDown` move between months, `←`/`→` between years.
 
-**Budget view (`b`)** compares spending against your monthly target and any per-category budgets. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years.
+**Budget view (`b`)** compares spending against your monthly target and any per-category budgets. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years. Press `c` to open the [category catalog](#the-category-catalog) and adjust per-category budgets without leaving the view.
+
+## The category catalog
+
+The catalog holds your categories and subcategories. Open it from Settings (*Manage Categories*) or with `c` from the budget view — `q`/`Esc` returns to whichever view you came from.
+
+- `↑`/`↓` move between entries, `PageUp`/`PageDown` jump by page, `Ctrl+↑`/`Ctrl+↓` jump to the first/last entry
+- `f` filters the catalog as you type; `Enter` keeps the filter applied, `Esc` or `Ctrl+R` clears it
+- `a` adds a category, `e` or `Enter` edits the selected one, `d` deletes it
+- Expense categories can optionally hold a per-category target budget, used by the budget view
 
 ## Settings
 
@@ -55,7 +64,7 @@ Press `o` to open settings. The menu is grouped into sections:
 **Data Management**
 
 - *Database Path* — where the SQLite database lives (see [Data storage](#data-storage) below).
-- *Manage Categories* — opens the category catalog, where you add, edit, or delete categories and subcategories. Expense categories can optionally hold a per-category budget used by the budget view.
+- *Manage Categories* — opens the [category catalog](#the-category-catalog).
 - *Import Transactions (CSV)* — merges a CSV file into your database; new rows are added, exact duplicates are skipped.
 - *Export Transactions (CSV)* — writes all transactions to a CSV file for backup or use elsewhere.
 
@@ -83,7 +92,7 @@ Transactions and categories are stored together in a local SQLite database (`bud
 - **macOS:** `~/Library/Application Support/BudgetTracker/budget.db`
 - **Windows:** `%APPDATA%\BudgetTracker\budget.db`
 
-The path is configurable in settings. Pointing it at a folder synced by iCloud, Google Drive, Dropbox, OneDrive, etc. syncs your budget across devices.
+The path is configurable in settings. Point it at a folder synced by iCloud, Google Drive, Dropbox, OneDrive, or similar to sync your budget across devices.
 
 App preferences live separately in a `config.json` in your OS config directory:
 
@@ -95,7 +104,7 @@ Changes are written to the database immediately as you add, edit, or delete — 
 
 ### Migrating from older versions
 
-Versions before 1.3 stored transactions in a `transactions.csv` file. On first launch, the app imports that file into the database automatically and renames the original to `transactions.csv.migrated-backup`. Nothing is deleted.
+Versions before 1.4.0 stored transactions in a `transactions.csv` file. On first launch, the app imports that file into the database automatically and renames the original to `transactions.csv.migrated-backup`. Nothing is deleted.
 
 ## CSV format
 
@@ -111,4 +120,4 @@ date, description, amount, transaction_type, category, subcategory
 
 Exports additionally include the recurring columns (`is_recurring, recurrence_frequency, recurrence_end_date, is_generated_from_recurring`). These are optional on import and default to a non-recurring transaction; generated recurring rows in a file are ignored on import and re-derived from their source transaction instead.
 
-Import merges into the database and skips exact duplicates, so re-importing the same file is safe. Export writes the full set you see in the app, including generated recurring occurrences.
+Importing merges into the database and skips exact duplicates, so re-importing the same file is safe. Exporting writes the full set you see in the app, including generated recurring occurrences.

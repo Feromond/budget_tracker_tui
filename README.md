@@ -53,11 +53,13 @@ cargo install budget_tracker_tui
 - Monthly and category summaries with interactive charts
 - Monthly target budget plus optional per-category budgets, tracked in a dedicated budget view
 - CSV import/export (duplicates skipped on import)
-- Local SQLite storage with decimal arithmetic — no floating point rounding errors
+- Local SQLite storage with decimal arithmetic — no floating-point rounding errors
 - Fully keyboard-driven, with a built-in help menu
 - Runs on Windows, macOS, and Linux; checks for new versions on startup
 
 ## Installation
+
+### Cargo (Linux, macOS, Windows)
 
 With Rust installed ([rustup.rs](https://rustup.rs)):
 
@@ -65,11 +67,13 @@ With Rust installed ([rustup.rs](https://rustup.rs)):
 cargo install budget_tracker_tui
 ```
 
-This puts the `Budget_Tracker` command on your path. A short alias like `alias bt='Budget_Tracker'` is handy.
+This puts the `Budget_Tracker` command on your PATH. A short alias like `alias bt='Budget_Tracker'` is handy.
 
-On Windows without Rust, download the installer from the [Releases page](https://github.com/Feromond/budget_tracker_tui/releases). I don't have a Windows developer licence, so it shows as an unknown publisher.
+### Windows installer (no Rust required)
 
-Or build from source:
+Download the latest installer from the [Releases page](https://github.com/Feromond/budget_tracker_tui/releases) and run it. I don't have a Windows developer licence, so it shows as an unknown publisher.
+
+### From source
 
 ```bash
 git clone https://github.com/Feromond/budget_tracker_tui
@@ -81,7 +85,7 @@ cargo install --path .
 
 Launch with `Budget_Tracker`. The help bar at the bottom shows the keys for the current view, and `Ctrl+H` opens the full keybindings menu. Settings (`o`) is where you configure the database path, categories, CSV import/export, and target budget.
 
-For a fuller walkthrough of every view and setting, see the [User Guide](docs/user-guide.md).
+For a more detailed walkthrough of every view and setting, see the [User Guide](docs/user-guide.md).
 
 ## Data & configuration
 
@@ -95,8 +99,8 @@ Transactions and categories live in a local SQLite database (`budget.db`), and a
 
 The database path is configurable in settings; point it at a cloud-synced folder (iCloud, Dropbox, etc.) to share your budget across devices. Changes are saved to the database immediately.
 
-Older versions stored transactions in a `transactions.csv` file. On first launch it is imported into the database automatically and renamed to `transactions.csv.migrated-backup`.
+Older versions stored transactions in a `transactions.csv` file. On first launch, it is imported into the database automatically and renamed to `transactions.csv.migrated-backup`.
 
 ## CSV format
 
-Import/export uses the columns `date, description, amount, transaction_type, category, subcategory`, with flexible date parsing. Import skips exact duplicates, so re-importing the same file is safe. Full details in the [User Guide](docs/user-guide.md#csv-format).
+Import/export uses the columns `date, description, amount, transaction_type, category, subcategory`, with flexible date parsing. Import skips exact duplicates, so re-importing the same file is safe. Full details are in the [User Guide](docs/user-guide.md#csv-format).
