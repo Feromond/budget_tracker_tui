@@ -4,7 +4,7 @@ version = "1.4.1"
 edition = "2024"
 authors = ["Jacob Mish <JacobPMish@gmail.com>"]
 description = "A feature rich TUI budget tracker app"
-license-file = "LICENSE"
+license = "GPL-3.0-only"
 
 
 [dependencies]
