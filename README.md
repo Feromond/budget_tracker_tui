@@ -4,7 +4,11 @@
   <img src="budget_tracker_icon.png" alt="Budget Tracker Logo" width="150"/>
 </p>
 
-[![Built With Ratatui](https://ratatui.rs/built-with-ratatui/badge.svg)](https://ratatui.rs/)
+<p align="center">
+  <a href="https://crates.io/crates/budget_tracker_tui"><img src="https://img.shields.io/crates/v/budget_tracker_tui" alt="Crates.io version"></a>
+  <a href="https://crates.io/crates/budget_tracker_tui"><img src="https://img.shields.io/crates/d/budget_tracker_tui" alt="Crates.io downloads"></a>
+  <a href="https://ratatui.rs/"><img src="https://ratatui.rs/built-with-ratatui/badge.svg" alt="Built With Ratatui"></a>
+</p>
 
 A terminal app for tracking your personal budget, built with [Rust](https://www.rust-lang.org) and [Ratatui](https://ratatui.rs).
 
@@ -104,3 +108,7 @@ Older versions stored transactions in a `transactions.csv` file. On first launch
 ## CSV format
 
 Import/export uses the columns `date, description, amount, transaction_type, category, subcategory`, with flexible date parsing. Import skips exact duplicates, so re-importing the same file is safe. Full details are in the [User Guide](docs/user-guide.md#csv-format).
+
+## License
+
+Licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
