@@ -440,10 +440,40 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
         ],
         AppMode::CategoryCatalog => vec![
             KeyBindingInfo::new("↑/↓", "Navigate categories", "Navigation", None),
+            KeyBindingInfo::new("PgUp/PgDn", "Scroll page up/down", "Navigation", None),
+            KeyBindingInfo::new("Ctrl+Up/Down", "Jump to First/Last", "Navigation", None),
+            KeyBindingInfo::new(
+                "f",
+                "Filter categories",
+                "Actions",
+                Some(
+                    "Opens a filter bar. Type to narrow the catalog by type, category, subcategory, or tag as you type.",
+                ),
+            ),
             KeyBindingInfo::new("a", "Add category", "Actions", None),
             KeyBindingInfo::new("e/Enter", "Edit selected category", "Actions", None),
             KeyBindingInfo::new("d", "Delete selected category", "Actions", None),
-            KeyBindingInfo::new("q/Esc", "Back to Previous View", "Actions", None),
+            KeyBindingInfo::new(
+                "q/Esc",
+                "Back to Previous View / Clear Filter",
+                "Actions",
+                Some("If a filter is active, clears it. Otherwise, returns to the previous view."),
+            ),
+            KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
+        ],
+        AppMode::CategoryCatalogFilter => vec![
+            KeyBindingInfo::new("Any Char", "Type filter text", "Input", None),
+            KeyBindingInfo::new("Bksp/Del", "Delete character", "Input", None),
+            KeyBindingInfo::new("←/→", "Move cursor", "Navigation", None),
+            KeyBindingInfo::new(
+                "↑/↓",
+                "Navigate categories",
+                "Navigation",
+                Some("Move through the filtered list without leaving the filter bar."),
+            ),
+            KeyBindingInfo::new("Ctrl+R", "Clear filter", "Actions", None),
+            KeyBindingInfo::new("Enter", "Apply filter", "Actions", None),
+            KeyBindingInfo::new("Esc", "Clear filter", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         AppMode::CategoryEditor => vec![

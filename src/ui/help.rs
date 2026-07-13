@@ -243,6 +243,8 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
         ],
         AppMode::CategoryCatalog => vec![
             Span::raw("↑↓ Nav | "),
+            Span::styled("f", Style::default().fg(Color::Cyan)),
+            Span::raw(": Filter | "),
             Span::styled("a", Style::default().fg(Color::LightGreen)),
             Span::raw(": Add | "),
             Span::styled("e/Enter", Style::default().fg(Color::LightYellow)),
@@ -251,6 +253,16 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(": Delete | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightCyan)),
             Span::raw(": Back"),
+        ],
+        AppMode::CategoryCatalogFilter => vec![
+            Span::raw("Type to Filter | "),
+            Span::raw("↑↓ Nav | "),
+            Span::styled("Ctrl+R", Style::default().fg(Color::LightYellow)),
+            Span::raw(" Clear | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Apply | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Clear & Back"),
         ],
         AppMode::CategoryEditor => vec![
             Span::raw("Tab/↑↓ Nav | "),

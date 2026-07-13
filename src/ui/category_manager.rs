@@ -3,13 +3,30 @@ use ratatui::prelude::*;
 use ratatui::widgets::*;
 
 pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
-    let title = format!(
-        " Category Catalog ({}) ",
-        app.database_path.to_string_lossy()
-    );
+    let title = if app.is_category_filter_active() {
+        format!(
+            " Category Catalog ({}/{} match \"{}\") ",
+            app.filtered_category_indices.len(),
+            app.category_records.len(),
+            app.category_filter_query
+        )
+    } else {
+        format!(
+            " Category Catalog ({}) ",
+            app.database_path.to_string_lossy()
+        )
+    };
 
     if app.category_records.is_empty() {
         let empty = Paragraph::new("No categories found. Press 'a' to add one.")
+            .block(Block::default().title(title).borders(Borders::ALL))
+            .alignment(Alignment::Center);
+        f.render_widget(empty, area);
+        return;
+    }
+
+    if app.filtered_category_indices.is_empty() {
+        let empty = Paragraph::new("No categories match the filter. Press Esc to clear it.")
             .block(Block::default().title(title).borders(Borders::ALL))
             .alignment(Alignment::Center);
         f.render_widget(empty, area);
@@ -24,28 +41,34 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
         )
         .height(1);
 
-    let rows = app.category_records.iter().map(|record| {
-        let target_budget = record.target_budget.map(|value| {
-            Cell::from(Line::from(format!("{value:.2}")).alignment(Alignment::Right)).style(
-                Style::default()
-                    .fg(Color::LightCyan)
-                    .bg(Color::Rgb(20, 20, 20))
-                    .add_modifier(Modifier::BOLD),
-            )
-        });
+    let records = &app.category_records;
+    let rows = app
+        .filtered_category_indices
+        .iter()
+        .filter_map(|&index| records.get(index))
+        .map(|record| {
+            let target_budget = record.target_budget.map(|value| {
+                Cell::from(Line::from(format!("{value:.2}")).alignment(Alignment::Right)).style(
+                    Style::default()
+                        .fg(Color::LightCyan)
+                        .bg(Color::Rgb(20, 20, 20))
+                        .add_modifier(Modifier::BOLD),
+                )
+            });
 
-        Row::new(vec![
-            Cell::from(record.transaction_type.to_string()),
-            Cell::from(record.category.clone()),
-            Cell::from(if record.subcategory.is_empty() {
-                "(None)".to_string()
-            } else {
-                record.subcategory.clone()
-            }),
-            Cell::from(record.tag.clone().unwrap_or_default()),
-            target_budget.unwrap_or_else(|| Cell::from(Line::from("").alignment(Alignment::Right))),
-        ])
-    });
+            Row::new(vec![
+                Cell::from(record.transaction_type.to_string()),
+                Cell::from(record.category.clone()),
+                Cell::from(if record.subcategory.is_empty() {
+                    "(None)".to_string()
+                } else {
+                    record.subcategory.clone()
+                }),
+                Cell::from(record.tag.clone().unwrap_or_default()),
+                target_budget
+                    .unwrap_or_else(|| Cell::from(Line::from("").alignment(Alignment::Right))),
+            ])
+        });
 
     let table = Table::new(
         rows,
@@ -63,6 +86,18 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
     .highlight_symbol("> ");
 
     f.render_stateful_widget(table, area, &mut app.category_table_state);
+}
+
+pub fn render_category_filter_input(f: &mut Frame, app: &App, area: Rect) {
+    let input = Paragraph::new(app.category_filter_query.as_str())
+        .style(Style::default().fg(Color::LightYellow))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Filter Categories (type, category, subcategory, tag)"),
+        );
+    f.render_widget(input, area);
+    // Cursor setting is handled in the main `ui` function
 }
 
 pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
