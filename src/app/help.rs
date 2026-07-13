@@ -71,6 +71,14 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 Some("Enables simple filtering mode. Type to filter by any field."),
             ),
             KeyBindingInfo::new(
+                "Ctrl+F",
+                "Advanced Filter",
+                "Actions",
+                Some(
+                    "Opens the advanced filter form directly, for filtering by date range, category, type, amount, and more.",
+                ),
+            ),
+            KeyBindingInfo::new(
                 "s",
                 "Monthly Summary",
                 "Actions",
