@@ -83,7 +83,7 @@ pub fn generate_recurring_transactions(
                         RecurrenceFrequency::Yearly => {
                             // add_months clamps Feb 29 to Feb 28 in non-leap years and
                             // restores Feb 29 when a leap year comes around again.
-                            crate::validation::add_months(recurring_tx.date, 12 * occurrence)   
+                            crate::validation::add_months(recurring_tx.date, 12 * occurrence)
                         }
                         RecurrenceFrequency::SemiMonthly
                         | RecurrenceFrequency::SemiMonthlyWorkday => unreachable!(), // Handled above
