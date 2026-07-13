@@ -60,8 +60,8 @@ where
                                 || (app.mode == AppMode::Filtering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('f') | KeyCode::Char('r')))
                                 || (app.mode == AppMode::AdvancedFiltering && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('r')))
                                 || ((app.mode == AppMode::Filtering || app.mode == AppMode::AdvancedFiltering) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
-                                // Allow Ctrl+Up/Down for jump navigation and Ctrl+C for copy in Normal mode
-                                || (app.mode == AppMode::Normal && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down | KeyCode::Char('c')))
+                                // Allow Ctrl+Up/Down for jump navigation, Ctrl+C for copy, and Ctrl+F for advanced filter in Normal mode
+                                || (app.mode == AppMode::Normal && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down | KeyCode::Char('c') | KeyCode::Char('f')))
                                 // Allow Ctrl+H for Help Toggle
                                 || (key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('h'))) =>
                 {
