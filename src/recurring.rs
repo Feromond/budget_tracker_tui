@@ -41,7 +41,7 @@ pub fn generate_recurring_transactions(
                 ));
             }
             _ => {
-                // Handle other frequencies with the existing logic
+                let mut occurrence: i32 = 0;
                 let mut current_date = recurring_tx.date;
 
                 // Generate transactions from the original date up to the specified date
@@ -62,39 +62,39 @@ pub fn generate_recurring_transactions(
                         }
                     }
 
-                    // Calculate next occurrence
-                    current_date = match frequency {
-                        RecurrenceFrequency::Daily => current_date + Duration::days(1),
-                        RecurrenceFrequency::Weekly => current_date + Duration::weeks(1),
-                        RecurrenceFrequency::BiWeekly => current_date + Duration::weeks(2),
+                    // Calculate next occurrence from the anchor date
+                    occurrence += 1;
+                    let next_date = match frequency {
+                        RecurrenceFrequency::Daily => {
+                            recurring_tx.date + Duration::days(occurrence as i64)
+                        }
+                        RecurrenceFrequency::Weekly => {
+                            recurring_tx.date + Duration::weeks(occurrence as i64)
+                        }
+                        RecurrenceFrequency::BiWeekly => {
+                            recurring_tx.date + Duration::weeks(2 * occurrence as i64)
+                        }
                         RecurrenceFrequency::Monthly => {
-                            crate::validation::add_months(current_date, 1)
+                            crate::validation::add_months(recurring_tx.date, occurrence)
                         }
                         RecurrenceFrequency::Quarterly => {
-                            crate::validation::add_months(current_date, 3)
+                            crate::validation::add_months(recurring_tx.date, 3 * occurrence)
                         }
                         RecurrenceFrequency::Yearly => {
-                            // Handle leap year edge case for Feb 29
-                            let next_year = current_date.year() + 1;
-                            if current_date.month() == 2 && current_date.day() == 29 {
-                                // If it's Feb 29 and next year is not a leap year, use Feb 28
-                                if !crate::validation::is_leap_year(next_year) {
-                                    NaiveDate::from_ymd_opt(next_year, 2, 28)
-                                        .unwrap_or(current_date + Duration::days(365))
-                                } else {
-                                    current_date
-                                        .with_year(next_year)
-                                        .unwrap_or(current_date + Duration::days(365))
-                                }
-                            } else {
-                                current_date
-                                    .with_year(next_year)
-                                    .unwrap_or(current_date + Duration::days(365))
-                            }
+                            // add_months clamps Feb 29 to Feb 28 in non-leap years and
+                            // restores Feb 29 when a leap year comes around again.
+                            crate::validation::add_months(recurring_tx.date, 12 * occurrence)   
                         }
                         RecurrenceFrequency::SemiMonthly
                         | RecurrenceFrequency::SemiMonthlyWorkday => unreachable!(), // Handled above
                     };
+
+                    // add_months falls back to the input date at its bounds; bail out
+                    // rather than loop forever if the date stops advancing.
+                    if next_date <= current_date {
+                        break;
+                    }
+                    current_date = next_date;
                 }
             }
         }
