@@ -57,11 +57,13 @@ fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
         (KeyModifiers::NONE, KeyCode::Left) => match app.current_advanced_filter_field {
             0 | 1 => app.decrement_advanced_date(),
             5 => app.toggle_advanced_transaction_type(),
+            6 => app.toggle_advanced_recurring(),
             _ => app.move_cursor_left(),
         },
         (KeyModifiers::NONE, KeyCode::Right) => match app.current_advanced_filter_field {
             0 | 1 => app.increment_advanced_date(),
             5 => app.toggle_advanced_transaction_type(),
+            6 => app.toggle_advanced_recurring(),
             _ => app.move_cursor_right(),
         },
         (KeyModifiers::SHIFT, KeyCode::Left) => match app.current_advanced_filter_field {

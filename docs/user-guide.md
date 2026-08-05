@@ -23,7 +23,9 @@ The transaction list is where you land on launch, with a summary bar up top.
 
 The quick filter (`f`) matches as you type across your transactions. `Enter` closes the input and keeps the filter applied; `Esc` or `Ctrl+R` clears it.
 
-The advanced filter (`Ctrl+F`) filters on multiple fields at once: date range, description, category, type, and amount. `Tab` or `↑`/`↓` move between fields, `Enter` applies, `Esc` cancels, and `Ctrl+R` resets everything.
+The advanced filter (`Ctrl+F`) filters on multiple fields at once: date range, description, category, type, recurring status, and amount. `Tab` or `↑`/`↓` move between fields, `Enter` applies, `Esc` cancels, and `Ctrl+R` resets everything.
+
+The Recurring field is a `←`/`→` toggle that cycles through blank (everything), `Recurring`, and `One-Time`. Setting it to `Recurring` narrows the table and the summary totals to your recurring payments and their generated occurrences, so you can see what a cycle costs.
 
 ## Recurring transactions
 

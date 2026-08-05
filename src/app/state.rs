@@ -78,7 +78,7 @@ pub struct App {
     pub(crate) add_edit_fields: [String; 6],
     pub(crate) current_add_edit_field: usize,
     pub(crate) add_edit_cursor: usize,
-    pub(crate) advanced_filter_fields: [String; 8],
+    pub(crate) advanced_filter_fields: [String; 9],
     pub(crate) current_advanced_filter_field: usize,
     pub(crate) advanced_filter_cursor: usize,
     pub(crate) delete_index: Option<usize>,
