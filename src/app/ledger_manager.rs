@@ -256,10 +256,15 @@ impl App {
             .map(|ledger| ledger.name.clone())
             .unwrap_or_default();
 
-        if let Err(err) = self.ledger_store().delete(id) {
+        let delete_result = self.ledger_store().delete(id);
+
+        // Leave the confirmation before reporting anything, so no error path can strand the
+        // dialog with an id that has already been deleted.
+        self.mode = AppMode::LedgerManager;
+        self.ledger_delete_id = None;
+
+        if let Err(err) = delete_result {
             self.set_status_message(format!("Error deleting ledger: {}", err), None);
-            self.mode = AppMode::LedgerManager;
-            self.ledger_delete_id = None;
             return;
         }
 
@@ -281,8 +286,6 @@ impl App {
             }
         }
 
-        self.mode = AppMode::LedgerManager;
-        self.ledger_delete_id = None;
         self.select_active_ledger_row();
         self.set_status_message(
             format!("Ledger '{}' deleted.", name),
