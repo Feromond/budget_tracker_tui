@@ -1,0 +1,178 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BIN_NAME: Budget_Tracker
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify tag & test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check tag matches Cargo.toml version
+        id: version
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          pkg_version=$(awk -F'"' '/^\[/{s=$0} s=="[package]" && /^version = /{print $2; exit}' Cargo.toml)
+          bundle_version=$(awk -F'"' '/^\[/{s=$0} s=="[package.metadata.bundle]" && /^version = /{print $2; exit}' Cargo.toml)
+
+          echo "tag:    $tag_version"
+          echo "package: $pkg_version"
+          echo "bundle:  $bundle_version"
+
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match [package] version $pkg_version in Cargo.toml."
+            exit 1
+          fi
+          if [ "$tag_version" != "$bundle_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match [package.metadata.bundle] version $bundle_version in Cargo.toml."
+            exit 1
+          fi
+          echo "version=$tag_version" >> "$GITHUB_OUTPUT"
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Run tests
+        run: cargo test --verbose
+
+      - name: Verify the crate packages cleanly for crates.io
+        run: cargo publish --dry-run --locked
+
+  build:
+    name: Build ${{ matrix.asset_name }}
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 22.04 links against an older glibc, which widens the range of
+          # distributions the binary will run on.
+          - os: ubuntu-22.04
+            asset_name: Budget_Tracker_linux
+            built_name: Budget_Tracker
+          # macos-latest runners are Apple Silicon.
+          - os: macos-latest
+            asset_name: Budget_Tracker_MacOS
+            built_name: Budget_Tracker
+          - os: windows-latest
+            asset_name: Budget_Tracker.exe
+            built_name: Budget_Tracker.exe
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Stage asset under its release name
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "target/release/${{ matrix.built_name }}" "dist/${{ matrix.asset_name }}"
+          ls -l dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}
+          if-no-files-found: error
+          retention-days: 7
+
+  draft_release:
+    name: Create draft release
+    needs: [verify, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List assets
+        run: ls -l dist
+
+      - name: Create or update the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; replacing the binaries only."
+            gh release upload "$TAG" dist/* --clobber
+            exit 0
+          fi
+
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -q .body > generated_notes.md
+
+          {
+            echo "# Budget Tracker TUI $VERSION"
+            echo
+            cat generated_notes.md
+            echo
+            cat <<'EOF'
+
+          To update/install easily without downloading anything you can use cargo! (**If you are not using the installer below**)
+          ```bash
+          cargo install budget_tracker_tui
+          ```
+
+          ### TLDR:
+
+          <!-- Add the summary, screenshot, and installer before publishing, then delete this line. -->
+          EOF
+          } > release_notes.md
+
+          gh release create "$TAG" \
+            --draft \
+            --verify-tag \
+            --title "Budget Tracker $VERSION" \
+            --notes-file release_notes.md \
+            dist/*
+
+          echo "Draft release created: $(gh release view "$TAG" --json url -q .url)"
