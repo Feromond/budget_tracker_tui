@@ -1,3 +1,4 @@
+use crate::app::fields::{AddEditField, FieldKey, FieldKind};
 use crate::app::state::{App, AppMode};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -18,12 +19,11 @@ pub fn handle_add_edit_mode(app: &mut App, key_event: KeyEvent) {
         }
         (KeyModifiers::NONE, KeyCode::Enter) => {
             // Toggle Type, trigger selection popups, or save transaction
-            match app.current_add_edit_field {
-                3 => app.toggle_transaction_type(), // Enter on Type field toggles it
-                4 => app.start_category_selection(), // Enter on Category field
-                5 => app.start_subcategory_selection(), // Enter on Subcategory field
-                _ => {
-                    // Enter on any other field: Save
+            match app.add_edit_fields.focused() {
+                AddEditField::TransactionType => app.toggle_transaction_type(),
+                AddEditField::Category => app.start_category_selection(),
+                AddEditField::Subcategory => app.start_subcategory_selection(),
+                AddEditField::Date | AddEditField::Description | AddEditField::Amount => {
                     if app.mode == AppMode::Adding {
                         app.add_transaction();
                     } else {
@@ -34,41 +34,55 @@ pub fn handle_add_edit_mode(app: &mut App, key_event: KeyEvent) {
         }
         (KeyModifiers::NONE, KeyCode::Up) => app.previous_add_edit_field(),
         (KeyModifiers::NONE, KeyCode::Down) => app.next_add_edit_field(),
-        (KeyModifiers::NONE, KeyCode::Left) => match app.current_add_edit_field {
-            0 => app.decrement_date(),
-            3 => app.toggle_transaction_type(),
-            _ => app.move_cursor_left(),
+        (KeyModifiers::NONE, KeyCode::Left) => match app.add_edit_fields.focused() {
+            AddEditField::Date => app.decrement_date(),
+            AddEditField::TransactionType => app.toggle_transaction_type(),
+            AddEditField::Description
+            | AddEditField::Amount
+            | AddEditField::Category
+            | AddEditField::Subcategory => app.move_cursor_left(),
         },
-        (KeyModifiers::NONE, KeyCode::Right) => match app.current_add_edit_field {
-            0 => app.increment_date(),
-            3 => app.toggle_transaction_type(),
-            _ => app.move_cursor_right(),
+        (KeyModifiers::NONE, KeyCode::Right) => match app.add_edit_fields.focused() {
+            AddEditField::Date => app.increment_date(),
+            AddEditField::TransactionType => app.toggle_transaction_type(),
+            AddEditField::Description
+            | AddEditField::Amount
+            | AddEditField::Category
+            | AddEditField::Subcategory => app.move_cursor_right(),
         },
-        (KeyModifiers::SHIFT, KeyCode::Left) if app.current_add_edit_field == 0 => {
+        (KeyModifiers::SHIFT, KeyCode::Left)
+            if app.add_edit_fields.focused() == AddEditField::Date =>
+        {
             app.decrement_month()
         }
-        (KeyModifiers::SHIFT, KeyCode::Right) if app.current_add_edit_field == 0 => {
+        (KeyModifiers::SHIFT, KeyCode::Right)
+            if app.add_edit_fields.focused() == AddEditField::Date =>
+        {
             app.increment_month()
         }
-        (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_add_edit_field {
-            0 if c == '+' || c == '=' => app.increment_date(),
-            0 if c == '-' => app.decrement_date(),
-            // Only allow digits for the date field (field 0)
-            0 if c.is_ascii_digit() => app.insert_char_at_cursor(c),
-            // Allow any character for other non-special fields (1, 2)
-            field if ![0, 3, 4, 5].contains(&field) => app.insert_char_at_cursor(c),
-            _ => {} // Ignore char input for fields 0 (non-digit), 3, 4, 5
-        },
-        (KeyModifiers::SHIFT, KeyCode::Char(c)) if app.current_add_edit_field == 1 => {
+        (KeyModifiers::NONE, KeyCode::Char(c)) => {
+            let field = app.add_edit_fields.focused();
+            match field.kind() {
+                FieldKind::Date if c == '+' || c == '=' => app.increment_date(),
+                FieldKind::Date if c == '-' => app.decrement_date(),
+                FieldKind::Date if c.is_ascii_digit() => app.insert_char_at_cursor(c),
+                FieldKind::Date => {}
+                kind if !kind.is_editable() => {}
+                _ => app.insert_char_at_cursor(c),
+            }
+        }
+        (KeyModifiers::SHIFT, KeyCode::Char(c))
+            if app.add_edit_fields.focused() == AddEditField::Description =>
+        {
             app.insert_char_at_cursor(c);
         }
         (KeyModifiers::NONE, KeyCode::Backspace)
-            if ![3, 4, 5].contains(&app.current_add_edit_field) =>
+            if app.add_edit_fields.focused().kind().is_editable() =>
         {
             app.delete_char_before_cursor();
         }
         (KeyModifiers::NONE, KeyCode::Delete)
-            if ![3, 4, 5].contains(&app.current_add_edit_field) =>
+            if app.add_edit_fields.focused().kind().is_editable() =>
         {
             app.delete_char_after_cursor();
         }

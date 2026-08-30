@@ -1,3 +1,4 @@
+use crate::app::fields::{CategoryEditField, FieldKey, FieldKind};
 use crate::app::state::App;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -101,35 +102,27 @@ pub fn render_category_filter_input(f: &mut Frame, app: &App, area: Rect) {
 }
 
 pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
-    let income_category = app.category_edit_fields[0].eq_ignore_ascii_case("income");
-    let field_definitions = [
-        ("Transaction Type", "(Left/Right or Enter to toggle)"),
-        ("Category", ""),
-        ("Subcategory", "(Optional)"),
-        ("Tag", "(Optional)"),
-        (
-            "Target Budget",
-            if income_category {
-                "(Expense categories only)"
-            } else {
-                "(Optional, positive number)"
-            },
-        ),
-    ];
+    let income_category =
+        app.category_edit_fields[CategoryEditField::TransactionType].eq_ignore_ascii_case("income");
+    let focused_field = app.category_edit_fields.focused();
     let input_widgets: Vec<_> = app
         .category_edit_fields
         .iter()
-        .zip(field_definitions.iter())
-        .enumerate()
-        .map(|(index, (text, (base_title, hint)))| {
-            let is_focused = app.current_category_field == index;
-            let title = format!("{} {}", base_title, hint).trim_end().to_string();
-            let content = if index == 0 {
+        .map(|(field, text)| {
+            let is_focused = field == focused_field;
+            let hint = if field == CategoryEditField::TargetBudget && income_category {
+                "(Expense categories only)"
+            } else {
+                field.hint()
+            };
+            let title = format!("{} {}", field.label(), hint).trim_end().to_string();
+            let content = if field.kind() == FieldKind::Toggle {
                 Span::styled(
                     format!(" < {} > ", text),
                     Style::default().fg(Color::White).bold(),
                 )
-            } else if index == 4 && income_category && text.is_empty() {
+            } else if field == CategoryEditField::TargetBudget && income_category && text.is_empty()
+            {
                 Span::styled(
                     "Expense categories only",
                     Style::default().fg(Color::DarkGray),
@@ -158,8 +151,8 @@ pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
     let max_visible_fields = ((available_height / field_height) as usize)
         .max(1)
         .min(total_fields);
-    let scroll_offset = app
-        .current_category_field
+    let scroll_offset = focused_field
+        .index()
         .saturating_sub(max_visible_fields - 1)
         .min(total_fields - max_visible_fields);
 
@@ -196,9 +189,9 @@ pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL);
     f.render_widget(form_block, area);
 
-    if app.current_category_field != 0 {
-        let field_idx = app.current_category_field;
-        let text = &app.category_edit_fields[field_idx];
+    if focused_field.kind().is_editable() {
+        let field_idx = focused_field.index();
+        let text = &app.category_edit_fields[focused_field];
         let cursor_byte_idx = app.category_edit_cursor.min(text.len());
         let visual_cursor = text[..cursor_byte_idx].chars().count() as u16;
 

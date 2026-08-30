@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::app::fields::{AddEditField, SelectingField};
 use crate::model::TransactionType;
 use ratatui::widgets::ListState;
 use std::collections::HashSet;
@@ -7,7 +8,7 @@ impl App {
     // --- Fuzzy Search Logic ---
 
     pub(crate) fn start_fuzzy_selection(&mut self) {
-        self.selecting_field_index = Some(4); // Start pretending we are selecting category
+        self.selecting_field = Some(SelectingField::AddEdit(AddEditField::Category));
         self.mode = crate::app::state::AppMode::FuzzyFinding;
         self.search_query = String::new();
         self.update_fuzzy_search_results();
@@ -20,7 +21,7 @@ impl App {
     }
 
     pub(crate) fn update_fuzzy_search_results(&mut self) {
-        let current_type_str = self.add_edit_fields[3].trim();
+        let current_type_str = self.add_edit_fields[AddEditField::TransactionType].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
             self.current_selection_list.clear();
             return;
@@ -79,11 +80,9 @@ impl App {
             let category = parts[0];
             let subcategory = if parts.len() > 1 { parts[1] } else { "" };
 
-            // Set fields
-            // Index 4 is Category, 5 is Subcategory
-            self.add_edit_fields[4] = category.to_string();
-            self.add_edit_fields[5] = subcategory.to_string();
-            self.current_add_edit_field = 0;
+            self.add_edit_fields[AddEditField::Category] = category.to_string();
+            self.add_edit_fields[AddEditField::Subcategory] = subcategory.to_string();
+            self.add_edit_fields.focus(AddEditField::Date);
         }
 
         self.exit_fuzzy_mode();
@@ -92,7 +91,7 @@ impl App {
     pub(crate) fn cancel_fuzzy_selection(&mut self) {
         self.exit_fuzzy_mode();
         // Return to category field focus
-        self.current_add_edit_field = 4;
+        self.add_edit_fields.focus(AddEditField::Category);
     }
 
     fn exit_fuzzy_mode(&mut self) {
@@ -101,7 +100,7 @@ impl App {
         } else {
             crate::app::state::AppMode::Adding
         };
-        self.selecting_field_index = None;
+        self.selecting_field = None;
         self.current_selection_list.clear();
         self.search_query.clear();
     }

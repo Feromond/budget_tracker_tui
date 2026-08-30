@@ -2,6 +2,7 @@ pub mod add_edit;
 pub mod budget;
 pub mod category_manager;
 pub mod category_select;
+pub mod fields;
 pub mod filter;
 pub mod fuzzy_search;
 pub mod help;

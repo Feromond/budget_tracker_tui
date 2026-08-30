@@ -1,3 +1,4 @@
+use crate::app::fields::RecurringField;
 use crate::app::state::{App, AppMode};
 use crossterm::event::{KeyCode, KeyEvent};
 
@@ -49,7 +50,7 @@ fn handle_recurrence_frequency_selection(app: &mut App, key_event: KeyEvent) {
             if let Some(selected) = app.selection_list_state.selected()
                 && let Some(frequency) = app.current_selection_list.get(selected)
             {
-                app.recurring_settings_fields[1] = frequency.clone();
+                app.recurring_settings_fields[RecurringField::Frequency] = frequency.clone();
             }
             app.mode = AppMode::RecurringSettings;
         }

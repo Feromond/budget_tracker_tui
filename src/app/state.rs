@@ -1,3 +1,6 @@
+use crate::app::fields::{
+    AddEditField, AdvancedFilterField, CategoryEditField, FieldSet, RecurringField, SelectingField,
+};
 use crate::app::update_checker;
 use crate::config::{AppSettings, load_settings};
 use crate::csv_io::{load_seed_categories, load_transactions};
@@ -81,11 +84,9 @@ pub struct App {
     pub(crate) mode: AppMode,
     pub(crate) simple_filter_content: String,
     pub(crate) simple_filter_cursor: usize,
-    pub(crate) add_edit_fields: [String; 6],
-    pub(crate) current_add_edit_field: usize,
+    pub(crate) add_edit_fields: FieldSet<AddEditField, 6>,
     pub(crate) add_edit_cursor: usize,
-    pub(crate) advanced_filter_fields: [String; 9],
-    pub(crate) current_advanced_filter_field: usize,
+    pub(crate) advanced_filter_fields: FieldSet<AdvancedFilterField, 9>,
     pub(crate) advanced_filter_cursor: usize,
     pub(crate) delete_index: Option<usize>,
     pub(crate) editing_index: Option<usize>,
@@ -101,7 +102,7 @@ pub struct App {
     pub(crate) summary_multi_month_mode: bool,
     pub(crate) summary_cumulative_mode: bool,
     // Category/Subcategory Selection Popup State
-    pub(crate) selecting_field_index: Option<usize>,
+    pub(crate) selecting_field: Option<SelectingField>,
     pub(crate) current_selection_list: Vec<String>,
     pub(crate) selection_list_state: ListState,
     pub(crate) type_to_select: crate::app::util::TypeToSelect,
@@ -126,8 +127,7 @@ pub struct App {
     pub(crate) filtered_category_indices: Vec<usize>,
     pub(crate) category_filter_query: String,
     pub(crate) category_filter_cursor: usize,
-    pub(crate) category_edit_fields: [String; 5], // [type, category, subcategory, tag, target_budget]
-    pub(crate) current_category_field: usize,
+    pub(crate) category_edit_fields: FieldSet<CategoryEditField, 5>,
     pub(crate) category_edit_cursor: usize,
     pub(crate) editing_category_id: Option<i64>,
     pub(crate) category_delete_id: Option<i64>,
@@ -148,8 +148,7 @@ pub struct App {
     pub(crate) fuzzy_search_mode: bool,
     pub(crate) search_query: String,
     // Recurring transaction state
-    pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
-    pub(crate) current_recurring_field: usize,
+    pub(crate) recurring_settings_fields: FieldSet<RecurringField, 3>,
     pub(crate) recurring_transaction_index: Option<usize>,
     // Months past today that recurring occurrences are projected; 0 stops at today.
     pub(crate) recurring_forecast_months: u32,
@@ -312,10 +311,8 @@ impl App {
             simple_filter_content: String::new(),
             simple_filter_cursor: 0,
             add_edit_fields: Default::default(),
-            current_add_edit_field: 0,
             add_edit_cursor: 0,
             advanced_filter_fields: Default::default(),
-            current_advanced_filter_field: 0,
             advanced_filter_cursor: 0,
             delete_index: None,
             editing_index: None,
@@ -329,7 +326,7 @@ impl App {
             selected_summary_month: None,
             summary_multi_month_mode: false,
             summary_cumulative_mode: false,
-            selecting_field_index: None,
+            selecting_field: None,
             current_selection_list: Vec::new(),
             selection_list_state: ListState::default(),
             type_to_select: crate::app::util::TypeToSelect::new(),
@@ -349,7 +346,6 @@ impl App {
             category_filter_query: String::new(),
             category_filter_cursor: 0,
             category_edit_fields: Default::default(),
-            current_category_field: 0,
             category_edit_cursor: 0,
             editing_category_id: None,
             category_delete_id: None,
@@ -367,7 +363,6 @@ impl App {
             fuzzy_search_mode: loaded_settings.fuzzy_search_mode.unwrap_or(false),
             search_query: String::new(),
             recurring_settings_fields: Default::default(),
-            current_recurring_field: 0,
             recurring_transaction_index: None,
             recurring_forecast_months: loaded_settings
                 .recurring_forecast_months
@@ -886,10 +881,11 @@ impl App {
         }
     }
     pub(crate) fn adjust_date(&mut self, amount: i64, unit: DateUnit) {
-        if self.current_add_edit_field == 0 {
-            if let Ok(current_date) =
-                NaiveDate::parse_from_str(&self.add_edit_fields[0], crate::model::DATE_FORMAT)
-            {
+        if self.add_edit_fields.focused() == AddEditField::Date {
+            if let Ok(current_date) = NaiveDate::parse_from_str(
+                &self.add_edit_fields[AddEditField::Date],
+                crate::model::DATE_FORMAT,
+            ) {
                 let new_date = match unit {
                     DateUnit::Day => {
                         if amount > 0 {
@@ -903,14 +899,15 @@ impl App {
                         crate::validation::add_months(current_date, amount as i32)
                     }
                 };
-                self.add_edit_fields[0] = new_date.format(crate::model::DATE_FORMAT).to_string();
-                self.add_edit_cursor = self.add_edit_fields[0].len();
+                self.add_edit_fields[AddEditField::Date] =
+                    new_date.format(crate::model::DATE_FORMAT).to_string();
+                self.add_edit_cursor = self.add_edit_fields[AddEditField::Date].len();
                 self.clear_status_message() // Clear status on successful adjustment
             } else {
                 self.set_status_message(
                     format!(
                         "Error: Could not parse date '{}'. Use YYYY-MM-DD format.",
-                        self.add_edit_fields[0]
+                        self.add_edit_fields[AddEditField::Date]
                     ),
                     None,
                 );
@@ -961,10 +958,7 @@ impl App {
 
         // Preserve the current filter type when sorting
         // Check if any advanced filter fields are active
-        let has_advanced_filters = self
-            .advanced_filter_fields
-            .iter()
-            .any(|field| !field.is_empty());
+        let has_advanced_filters = !self.advanced_filter_fields.all_empty();
 
         if has_advanced_filters {
             self.apply_advanced_filter();

@@ -3,9 +3,8 @@ use ratatui::style::Color;
 use rust_decimal::{Decimal, RoundingStrategy};
 
 pub fn format_amount(amount: &Decimal) -> String {
-    // Format straight off the Decimal: going through f64 first would round monetary values
-    // against their binary approximation rather than their stored decimal digits. Half-away-from-
-    // zero is the usual currency convention, where round_dp alone would round half to even.
+    // Rounding via f64 would go off the binary approximation, not the stored decimal digits.
+    // round_dp alone rounds half to even, so ask for the usual currency convention instead.
     let rounded = amount.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
     let s = format!("{:.2}", rounded.abs());
     let (int_part, frac_part) = s.split_once('.').unwrap_or((s.as_str(), "00"));

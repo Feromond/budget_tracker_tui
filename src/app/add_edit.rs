@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::app::fields::{AddEditField, FieldSet};
 use crate::db::transaction_store::TransactionStore;
 use crate::model::TransactionType;
 use crate::model::{DATE_FORMAT, TransactionDraft};
@@ -57,18 +58,16 @@ impl App {
     pub(crate) fn start_adding(&mut self) {
         self.mode = crate::app::state::AppMode::Adding;
         self.editing_index = None;
-        self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
         let today = chrono::Local::now().date_naive();
-        self.add_edit_fields[0] = today.format(DATE_FORMAT).to_string();
-        self.add_edit_fields[3] = "Expense".to_string();
-        self.add_edit_cursor = self.add_edit_fields[0].len();
+        self.add_edit_fields[AddEditField::Date] = today.format(DATE_FORMAT).to_string();
+        self.add_edit_fields[AddEditField::TransactionType] = "Expense".to_string();
+        self.add_edit_cursor = self.add_edit_fields[AddEditField::Date].len();
         self.clear_status_message();
     }
     pub(crate) fn exit_adding(&mut self, cancelled: bool) {
         self.mode = crate::app::state::AppMode::Normal;
         self.editing_index = None;
-        self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
         if cancelled {
             self.set_status_message("Add transaction cancelled.", Some(Duration::seconds(3)));
@@ -76,12 +75,15 @@ impl App {
     }
     pub(crate) fn add_transaction(&mut self) {
         // Parse and validate all fields for a new transaction.
-        let date_res = NaiveDate::parse_from_str(&self.add_edit_fields[0], DATE_FORMAT);
-        let description = self.add_edit_fields[1].trim();
-        let amount_str = self.add_edit_fields[2].trim();
-        let type_str = self.add_edit_fields[3].trim().to_lowercase();
-        let category = self.add_edit_fields[4].trim();
-        let subcategory = self.add_edit_fields[5].trim();
+        let date_res =
+            NaiveDate::parse_from_str(&self.add_edit_fields[AddEditField::Date], DATE_FORMAT);
+        let description = self.add_edit_fields[AddEditField::Description].trim();
+        let amount_str = self.add_edit_fields[AddEditField::Amount].trim();
+        let type_str = self.add_edit_fields[AddEditField::TransactionType]
+            .trim()
+            .to_lowercase();
+        let category = self.add_edit_fields[AddEditField::Category].trim();
+        let subcategory = self.add_edit_fields[AddEditField::Subcategory].trim();
 
         let transaction_type = if type_str.starts_with('i') {
             TransactionType::Income
@@ -169,8 +171,7 @@ impl App {
 
                     self.mode = crate::app::state::AppMode::Editing;
                     self.editing_index = Some(target_index);
-                    self.current_add_edit_field = 0;
-                    self.add_edit_fields = [
+                    self.add_edit_fields = FieldSet::new([
                         target_tx.date.format(DATE_FORMAT).to_string(),
                         target_tx.description.clone(),
                         format!("{:.2}", target_tx.amount),
@@ -181,8 +182,8 @@ impl App {
                         },
                         target_tx.category.clone(),
                         target_tx.subcategory.clone(),
-                    ];
-                    self.add_edit_cursor = self.add_edit_fields[0].len();
+                    ]);
+                    self.add_edit_cursor = self.add_edit_fields[AddEditField::Date].len();
 
                     if target_index == original_index {
                         self.clear_status_message();
@@ -198,7 +199,6 @@ impl App {
     pub(crate) fn exit_editing(&mut self, cancelled: bool) {
         self.mode = crate::app::state::AppMode::Normal;
         self.editing_index = None;
-        self.current_add_edit_field = 0;
         self.add_edit_fields = Default::default();
         if cancelled {
             self.set_status_message("Edit transaction cancelled.", Some(Duration::seconds(3)));
@@ -208,12 +208,15 @@ impl App {
     }
     pub(crate) fn update_transaction(&mut self) {
         if let Some(index) = self.editing_index {
-            let date_res = NaiveDate::parse_from_str(&self.add_edit_fields[0], DATE_FORMAT);
-            let description = self.add_edit_fields[1].trim();
-            let amount_str = self.add_edit_fields[2].trim();
-            let type_str = self.add_edit_fields[3].trim().to_lowercase();
-            let category = self.add_edit_fields[4].trim();
-            let subcategory = self.add_edit_fields[5].trim();
+            let date_res =
+                NaiveDate::parse_from_str(&self.add_edit_fields[AddEditField::Date], DATE_FORMAT);
+            let description = self.add_edit_fields[AddEditField::Description].trim();
+            let amount_str = self.add_edit_fields[AddEditField::Amount].trim();
+            let type_str = self.add_edit_fields[AddEditField::TransactionType]
+                .trim()
+                .to_lowercase();
+            let category = self.add_edit_fields[AddEditField::Category].trim();
+            let subcategory = self.add_edit_fields[AddEditField::Subcategory].trim();
 
             let transaction_type = if type_str.starts_with('i') {
                 TransactionType::Income
@@ -309,31 +312,29 @@ impl App {
     }
     // --- Field Navigation ---
     pub(crate) fn next_add_edit_field(&mut self) {
-        self.current_add_edit_field =
-            (self.current_add_edit_field + 1) % self.add_edit_fields.len();
-        self.add_edit_cursor = self.add_edit_fields[self.current_add_edit_field].len();
+        self.add_edit_fields.focus_next();
+        self.add_edit_cursor = self.add_edit_fields.focused_value().len();
     }
 
     pub(crate) fn previous_add_edit_field(&mut self) {
-        if self.current_add_edit_field == 0 {
-            self.current_add_edit_field = self.add_edit_fields.len() - 1;
-        } else {
-            self.current_add_edit_field -= 1;
-        }
-        self.add_edit_cursor = self.add_edit_fields[self.current_add_edit_field].len();
+        self.add_edit_fields.focus_previous();
+        self.add_edit_cursor = self.add_edit_fields.focused_value().len();
     }
 
     // --- Toggle Transaction Type ---
     // Switches between Income and Expense, and clears category/subcategory if type changes.
     pub(crate) fn toggle_transaction_type(&mut self) {
-        if self.current_add_edit_field == 3 {
-            self.add_edit_fields[3] = if self.add_edit_fields[3].eq_ignore_ascii_case("income") {
+        if self.add_edit_fields.focused() == AddEditField::TransactionType {
+            self.add_edit_fields[AddEditField::TransactionType] = if self.add_edit_fields
+                [AddEditField::TransactionType]
+                .eq_ignore_ascii_case("income")
+            {
                 "Expense".to_string()
             } else {
                 "Income".to_string()
             };
-            self.add_edit_fields[4] = String::new();
-            self.add_edit_fields[5] = String::new();
+            self.add_edit_fields[AddEditField::Category] = String::new();
+            self.add_edit_fields[AddEditField::Subcategory] = String::new();
         }
     }
     // --- Copying Logic ---

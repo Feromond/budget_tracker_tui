@@ -1,3 +1,4 @@
+use crate::app::fields::{FieldKey, FieldKind};
 use crate::app::state::App;
 use ratatui::{
     Frame,
@@ -8,57 +9,35 @@ use ratatui::{
 };
 
 pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {
-    // Field definitions with titles and hints
-    let field_definitions = [
-        ("Is Recurring", "(◀/▶ to toggle)"),
-        ("Frequency", "(Enter to select)"),
-        (
-            "End Date (YYYY-MM-DD)",
-            "(Optional - ◀/▶ days, Shift+◀/▶ months, jumps to today if empty)",
-        ),
-    ];
-
+    let focused_field = app.recurring_settings_fields.focused();
     let input_widgets: Vec<_> = app
         .recurring_settings_fields
         .iter()
-        .zip(field_definitions.iter())
-        .enumerate()
-        .map(|(i, (text, (base_title, hint)))| {
-            let is_focused = app.current_recurring_field == i;
-            let title = format!("{} {}", base_title, hint).trim_end().to_string();
+        .map(|(field, text)| {
+            let is_focused = field == focused_field;
+            let title = format!("{} {}", field.label(), field.hint())
+                .trim_end()
+                .to_string();
 
-            let content = match i {
-                0 => {
-                    // Is Recurring field - show as toggle
-                    Span::styled(
-                        format!(" < {} > ", text),
-                        Style::default()
-                            .fg(Color::White)
-                            .add_modifier(Modifier::BOLD),
-                    )
-                }
-                1 => {
-                    // Frequency field - show as selection
-                    Span::styled(
-                        format!("  {}  ", text),
-                        Style::default()
-                            .fg(Color::White)
-                            .add_modifier(Modifier::BOLD),
-                    )
-                }
-                2 => {
-                    // End Date field - show as text input
-                    if text.is_empty() {
-                        Span::styled(
-                            " (Optional - leave empty for no end date) ",
-                            Style::default()
-                                .fg(Color::DarkGray)
-                                .add_modifier(Modifier::ITALIC),
-                        )
-                    } else {
-                        Span::raw(text.as_str())
-                    }
-                }
+            let content = match field.kind() {
+                FieldKind::Toggle => Span::styled(
+                    format!(" < {} > ", text),
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                FieldKind::Selection => Span::styled(
+                    format!("  {}  ", text),
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                _ if text.is_empty() => Span::styled(
+                    " (Optional - leave empty for no end date) ",
+                    Style::default()
+                        .fg(Color::DarkGray)
+                        .add_modifier(Modifier::ITALIC),
+                ),
                 _ => Span::raw(text.as_str()),
             };
 
@@ -85,8 +64,8 @@ pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {
     let max_visible_fields = ((available_height / field_height) as usize)
         .max(1)
         .min(total_fields);
-    let scroll_offset = app
-        .current_recurring_field
+    let scroll_offset = focused_field
+        .index()
         .saturating_sub(max_visible_fields - 1)
         .min(total_fields - max_visible_fields);
 
@@ -119,10 +98,9 @@ pub fn render_recurring_settings(f: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL);
     f.render_widget(form_block, area);
 
-    // Set cursor position for the end date field (field 2), adjusting for scrolling
-    if app.current_recurring_field == 2 {
-        let field_idx = app.current_recurring_field;
-        let text_len = app.recurring_settings_fields[field_idx].len() as u16;
+    if focused_field.kind().is_editable() {
+        let field_idx = focused_field.index();
+        let text_len = app.recurring_settings_fields[focused_field].len() as u16;
         if field_idx >= scroll_offset && field_idx < scroll_offset + max_visible_fields {
             let visible_idx = field_idx - scroll_offset;
             if let Some(chunk) = form_chunks.get(visible_idx) {

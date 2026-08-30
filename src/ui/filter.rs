@@ -1,3 +1,4 @@
+use crate::app::fields::{FieldKey, FieldKind};
 use crate::app::state::App;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -15,32 +16,15 @@ pub fn render_filter_input(f: &mut Frame, app: &App, area: Rect) {
 }
 
 pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
-    let field_definitions = [
-        (
-            "Date From (YYYY-MM-DD)",
-            "(◀/▶ or +/- days, Shift+◀/▶ months (jumps to today if empty), Digits to enter)",
-        ),
-        (
-            "Date To (YYYY-MM-DD)",
-            "(◀/▶ or +/- days, Shift+◀/▶ months (jumps to today if empty), Digits to enter)",
-        ),
-        ("Description", ""),
-        ("Category", "(Enter to select)"),
-        ("Subcategory", "(Enter to select)"),
-        ("Type", "(◀/▶)"),
-        ("Recurring", "(◀/▶)"),
-        ("Amount From", ""),
-        ("Amount To", ""),
-    ];
+    let focused_field = app.advanced_filter_fields.focused();
     let widgets: Vec<_> = app
         .advanced_filter_fields
         .iter()
-        .zip(field_definitions.iter())
-        .enumerate()
-        .map(|(i, (text, (title, hint)))| {
-            let focused = app.current_advanced_filter_field == i;
-            let label = format!("{} {}", title, hint).trim_end().to_string();
-            let content = if i == 5 || i == 6 {
+        .map(|(field, text)| {
+            let label = format!("{} {}", field.label(), field.hint())
+                .trim_end()
+                .to_string();
+            let content = if field.kind() == FieldKind::Toggle {
                 Span::styled(
                     format!(" < {} > ", text),
                     Style::default().fg(Color::White).bold(),
@@ -54,7 +38,7 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
                     Block::default()
                         .borders(Borders::ALL)
                         .title(label)
-                        .border_style(if focused {
+                        .border_style(if field == focused_field {
                             Style::default().fg(Color::Yellow)
                         } else {
                             Style::default()
@@ -67,8 +51,8 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
     let total = widgets.len();
     let avail = area.height.saturating_sub(margin * 2);
     let maxv = ((avail / fh) as usize).max(1).min(total);
-    let offset = app
-        .current_advanced_filter_field
+    let offset = focused_field
+        .index()
         .saturating_sub(maxv - 1)
         .min(total - maxv);
     let mut cons = vec![Constraint::Length(fh); maxv];
@@ -87,9 +71,9 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
             .title("Advanced Filters"),
         area,
     );
-    if ![3, 4, 5, 6].contains(&app.current_advanced_filter_field) {
-        let field_idx = app.current_advanced_filter_field;
-        let text = &app.advanced_filter_fields[field_idx];
+    if focused_field.kind().is_editable() {
+        let field_idx = focused_field.index();
+        let text = &app.advanced_filter_fields[focused_field];
         let cursor_pos = app.advanced_filter_cursor.min(text.len());
         // Calculate visual cursor position (accounting for potential multi-byte chars)
         let visual_cursor = text[..cursor_pos].chars().count() as u16;
