@@ -5,6 +5,8 @@ use rust_decimal::Decimal;
 use std::io::{Error, ErrorKind, Result};
 use std::str::FromStr;
 
+/// The category catalog is shared by every ledger, so updating or deleting a category re-points
+/// the matching transactions across all of them, in one transaction with the catalog write.
 pub trait CategoryStore {
     fn initialize(&self, seed_categories: &[CategoryInfo]) -> Result<()>;
     fn list(&self) -> Result<Vec<CategoryRecord>>;
@@ -22,8 +24,8 @@ impl SqliteCategoryStore {
         Self { database }
     }
 
-    fn open_connection(&self) -> Result<Connection> {
-        self.database.open_connection("category")
+    fn ready_connection(&self) -> Result<Connection> {
+        self.database.ready_connection("category")
     }
 
     fn seed_if_empty(&self, conn: &Connection, seed_categories: &[CategoryInfo]) -> Result<()> {
@@ -137,14 +139,12 @@ impl SqliteCategoryStore {
 
 impl CategoryStore for SqliteCategoryStore {
     fn initialize(&self, seed_categories: &[CategoryInfo]) -> Result<()> {
-        let mut conn = self.open_connection()?;
-        self.database.run_migrations(&mut conn)?;
+        let conn = self.ready_connection()?;
         self.seed_if_empty(&conn, seed_categories)
     }
 
     fn list(&self) -> Result<Vec<CategoryRecord>> {
-        let mut conn = self.open_connection()?;
-        self.database.run_migrations(&mut conn)?;
+        let conn = self.ready_connection()?;
 
         let mut stmt = conn
             .prepare(
@@ -172,8 +172,7 @@ impl CategoryStore for SqliteCategoryStore {
     }
 
     fn insert(&self, draft: &CategoryDraft) -> Result<CategoryRecord> {
-        let mut conn = self.open_connection()?;
-        self.database.run_migrations(&mut conn)?;
+        let conn = self.ready_connection()?;
 
         conn.execute(
             "
@@ -199,57 +198,107 @@ impl CategoryStore for SqliteCategoryStore {
     }
 
     fn update(&self, id: i64, draft: &CategoryDraft) -> Result<()> {
-        let mut conn = self.open_connection()?;
-        self.database.run_migrations(&mut conn)?;
+        let mut conn = self.ready_connection()?;
+        let previous = Self::load_record_by_id(&conn, id)?;
 
-        let updated = conn
-            .execute(
-                "
-                UPDATE categories
-                SET
-                    transaction_type = ?1,
-                    category = ?2,
-                    subcategory = ?3,
-                    tag = ?4,
-                    target_budget = ?5
-                WHERE id = ?6
-                ",
-                params![
-                    draft.transaction_type.as_str(),
-                    &draft.category,
-                    &draft.subcategory,
-                    &draft.tag,
-                    draft.target_budget.map(|value| value.to_string()),
-                    id
-                ],
-            )
-            .map_err(|err| Error::other(format!("Failed to update category: {}", err)))?;
+        let tx = conn
+            .transaction()
+            .map_err(|err| Error::other(format!("Failed to begin category update: {}", err)))?;
 
-        if updated == 0 {
-            return Err(Error::new(
-                ErrorKind::NotFound,
-                format!("Category with id {} was not found.", id),
-            ));
-        }
+        tx.execute(
+            "
+            UPDATE categories
+            SET
+                transaction_type = ?1,
+                category = ?2,
+                subcategory = ?3,
+                tag = ?4,
+                target_budget = ?5
+            WHERE id = ?6
+            ",
+            params![
+                draft.transaction_type.as_str(),
+                &draft.category,
+                &draft.subcategory,
+                &draft.tag,
+                draft.target_budget.map(|value| value.to_string()),
+                id
+            ],
+        )
+        .map_err(|err| Error::other(format!("Failed to update category: {}", err)))?;
 
-        Ok(())
+        tx.execute(
+            "
+            UPDATE transactions
+            SET transaction_type = ?1, category = ?2, subcategory = ?3
+            WHERE transaction_type = ?4
+              AND LOWER(category) = LOWER(?5)
+              AND LOWER(subcategory) = LOWER(?6)
+            ",
+            params![
+                draft.transaction_type.as_str(),
+                &draft.category,
+                &draft.subcategory,
+                previous.transaction_type.as_str(),
+                &previous.category,
+                &previous.subcategory,
+            ],
+        )
+        .map_err(|err| {
+            Error::other(format!(
+                "Failed to update transactions for category: {}",
+                err
+            ))
+        })?;
+
+        tx.commit()
+            .map_err(|err| Error::other(format!("Failed to commit category update: {}", err)))
     }
 
     fn delete(&self, id: i64) -> Result<()> {
-        let mut conn = self.open_connection()?;
-        self.database.run_migrations(&mut conn)?;
+        let mut conn = self.ready_connection()?;
+        let record = Self::load_record_by_id(&conn, id)?;
 
-        let deleted = conn
-            .execute("DELETE FROM categories WHERE id = ?1", [id])
+        // Deleting a top-level category resets its transactions to Uncategorized; deleting a
+        // subcategory only clears the subcategory field.
+        let set_clause = if record.subcategory.is_empty() {
+            "category = 'Uncategorized', subcategory = ''"
+        } else {
+            "subcategory = ''"
+        };
+
+        let tx = conn
+            .transaction()
+            .map_err(|err| Error::other(format!("Failed to begin category delete: {}", err)))?;
+
+        tx.execute("DELETE FROM categories WHERE id = ?1", [id])
             .map_err(|err| Error::other(format!("Failed to delete category: {}", err)))?;
 
-        if deleted == 0 {
-            return Err(Error::new(
-                ErrorKind::NotFound,
-                format!("Category with id {} was not found.", id),
-            ));
-        }
+        tx.execute(
+            &format!(
+                "
+                UPDATE transactions
+                SET {}
+                WHERE transaction_type = ?1
+                  AND LOWER(category) = LOWER(?2)
+                  AND LOWER(subcategory) = LOWER(?3)
+                ",
+                set_clause
+            ),
+            params![
+                record.transaction_type.as_str(),
+                &record.category,
+                &record.subcategory,
+            ],
+        )
+        .map_err(|err| {
+            Error::other(format!(
+                "Failed to clear transactions for category: {}",
+                err
+            ))
+        })?;
 
-        Ok(())
+        tx.commit()
+            .map_err(|err| Error::other(format!("Failed to commit category delete: {}", err)))
     }
 }

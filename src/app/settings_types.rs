@@ -14,6 +14,7 @@ pub enum SettingType {
 pub enum SettingKey {
     Section,
     DatabasePath,
+    ManageLedgers,
     ManageCategories,
     ImportTransactions,
     ExportTransactions,

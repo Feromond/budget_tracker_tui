@@ -8,7 +8,8 @@ use std::time::Duration;
 
 use super::{
     add_edit_mode, budget_mode, category_manager_mode, filter_mode, fuzzy_search_mode, help_mode,
-    normal_mode, recurring_mode, selection_mode, settings_mode, summary_mode, transaction_io_mode,
+    ledger_manager_mode, normal_mode, recurring_mode, selection_mode, settings_mode, summary_mode,
+    transaction_io_mode,
 };
 
 pub fn run_app<B: Backend>(
@@ -51,7 +52,7 @@ where
                                 || ((app.mode == AppMode::ImportTransactions || app.mode == AppMode::ExportTransactions) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 || ((app.mode == AppMode::ImportTransactions || app.mode == AppMode::ExportTransactions) && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Char('d') | KeyCode::Char('u') | KeyCode::Char('v')))
                                 // Allow Shift+Char in Adding, Editing and FuzzyFinding modes
-                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::FuzzyFinding || app.mode == AppMode::CategoryEditor || app.mode == AppMode::CategoryCatalogFilter) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
+                                || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::FuzzyFinding || app.mode == AppMode::CategoryEditor || app.mode == AppMode::CategoryCatalogFilter || app.mode == AppMode::LedgerEditor) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Shift+Arrow in date-like navigation modes
                                 || ((app.mode == AppMode::Adding || app.mode == AppMode::Editing || app.mode == AppMode::AdvancedFiltering || app.mode == AppMode::RecurringSettings || app.mode == AppMode::Budget)
                                     && key.modifiers == KeyModifiers::SHIFT
@@ -63,6 +64,8 @@ where
                                 || ((app.mode == AppMode::Filtering || app.mode == AppMode::AdvancedFiltering) && key.modifiers == KeyModifiers::SHIFT && matches!(key.code, KeyCode::Char(_)))
                                 // Allow Ctrl+Up/Down for jump navigation, Ctrl+C for copy, and Ctrl+F for advanced filter in Normal mode
                                 || (app.mode == AppMode::Normal && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down | KeyCode::Char('c') | KeyCode::Char('f')))
+                                // Allow Ctrl+C to copy the selected ledger
+                                || (app.mode == AppMode::LedgerManager && key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('c'))
                                 // Allow Ctrl+Up/Down for jump navigation in the category catalog
                                 || (app.mode == AppMode::CategoryCatalog && key.modifiers == KeyModifiers::CONTROL && matches!(key.code, KeyCode::Up | KeyCode::Down))
                                 // Allow Ctrl+H for Help Toggle
@@ -164,6 +167,9 @@ fn update(app: &mut App, key_event: KeyEvent) {
         | AppMode::CategoryEditor
         | AppMode::ConfirmCategoryDelete => {
             category_manager_mode::handle_category_manager_mode(app, key_event)
+        }
+        AppMode::LedgerManager | AppMode::LedgerEditor | AppMode::ConfirmLedgerDelete => {
+            ledger_manager_mode::handle_ledger_manager_mode(app, key_event)
         }
     }
 }

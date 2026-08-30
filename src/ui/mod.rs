@@ -7,6 +7,7 @@ pub mod fuzzy_search;
 pub mod help;
 pub mod help_popup;
 pub mod helpers;
+pub mod ledger_manager;
 pub mod recurring;
 pub mod settings;
 pub mod status;
@@ -57,6 +58,9 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             | AppMode::KeybindingDetail
             | AppMode::ImportTransactions
             | AppMode::ExportTransactions
+            | AppMode::LedgerManager
+            | AppMode::LedgerEditor
+            | AppMode::ConfirmLedgerDelete
     ) {
         0
     } else {
@@ -134,6 +138,17 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             transaction_table::render_transaction_table(f, app, main_area);
             settings::render_settings_form(f, app, main_area);
             transaction_io::render_io_prompt(f, app, main_area);
+        }
+        AppMode::LedgerManager => {
+            ledger_manager::render_ledger_manager(f, app, main_area);
+        }
+        AppMode::LedgerEditor => {
+            ledger_manager::render_ledger_manager(f, app, main_area);
+            ledger_manager::render_ledger_editor(f, app, main_area);
+        }
+        AppMode::ConfirmLedgerDelete => {
+            ledger_manager::render_ledger_manager(f, app, main_area);
+            dialog::render_confirmation_dialog(f, &app.ledger_delete_prompt, main_area);
         }
         AppMode::RecurringSettings => {
             recurring::render_recurring_settings(f, app, main_area);

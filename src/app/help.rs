@@ -357,6 +357,14 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 ),
             ),
             KeyBindingInfo::new(
+                "Ledger",
+                "Switch or Manage Ledgers",
+                "Fields",
+                Some(
+                    "Shows the ledger currently open. Press Enter to switch to another ledger, or to add, rename, and delete them. Ledgers are independent sets of transactions inside one database, useful for separate accounts or for forecasting without touching your real data. They all share the same category catalog.",
+                ),
+            ),
+            KeyBindingInfo::new(
                 "Manage Categories",
                 "Open Category Catalog",
                 "Fields",
@@ -507,6 +515,50 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("y", "Confirm delete", "Actions", None),
             KeyBindingInfo::new("n/Esc", "Cancel delete", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
+        ],
+        AppMode::LedgerManager => vec![
+            KeyBindingInfo::new("↑/↓", "Navigate ledgers", "Navigation", None),
+            KeyBindingInfo::new(
+                "Enter",
+                "Switch to selected ledger",
+                "Actions",
+                Some(
+                    "Opens the selected ledger. The transaction table, summaries, and budget view all follow the ledger that is open; the category catalog is shared by every ledger.",
+                ),
+            ),
+            KeyBindingInfo::new(
+                "a",
+                "Add ledger",
+                "Actions",
+                Some("Creates a new, empty ledger in the same database file."),
+            ),
+            KeyBindingInfo::new("e", "Rename selected ledger", "Actions", None),
+            KeyBindingInfo::new(
+                "Ctrl+C",
+                "Copy selected ledger",
+                "Actions",
+                Some(
+                    "Creates a new ledger holding a copy of every transaction in the selected one, so you can experiment or forecast without touching the original.",
+                ),
+            ),
+            KeyBindingInfo::new(
+                "d",
+                "Delete selected ledger",
+                "Actions",
+                Some(
+                    "Permanently deletes the ledger and every transaction in it, after confirmation. The last remaining ledger cannot be deleted.",
+                ),
+            ),
+            KeyBindingInfo::new("q/Esc", "Back to Settings", "System", None),
+        ],
+        AppMode::LedgerEditor => vec![
+            KeyBindingInfo::new("←/→", "Move cursor", "Navigation", None),
+            KeyBindingInfo::new("Enter", "Save ledger name", "Actions", None),
+            KeyBindingInfo::new("Esc", "Cancel", "System", None),
+        ],
+        AppMode::ConfirmLedgerDelete => vec![
+            KeyBindingInfo::new("y", "Confirm deletion", "Actions", None),
+            KeyBindingInfo::new("n/Esc", "Cancel", "Actions", None),
         ],
         AppMode::RecurringSettings => vec![
             KeyBindingInfo::new("Tab/↑/↓", "Navigate fields", "Navigation", None),

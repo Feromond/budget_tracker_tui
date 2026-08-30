@@ -1,11 +1,11 @@
 use rusqlite::{Connection, OptionalExtension};
 use std::fs::create_dir_all;
-use std::io::{Error, Result};
+use std::io::{Error, ErrorKind, Result};
 use std::path::{Path, PathBuf};
 
 /// The latest schema version understood by this build. Bump this and add a matching arm in
 /// [`SqliteDatabase::apply_migration`] whenever the schema changes.
-pub const SCHEMA_VERSION: i64 = 2;
+pub const SCHEMA_VERSION: i64 = 3;
 
 #[derive(Debug, Clone)]
 pub struct SqliteDatabase {
@@ -31,6 +31,13 @@ impl SqliteDatabase {
         })
     }
 
+    /// Open a connection with the schema guaranteed up to date.
+    pub fn ready_connection(&self, purpose: &str) -> Result<Connection> {
+        let mut conn = self.open_connection(purpose)?;
+        self.run_migrations(&mut conn)?;
+        Ok(conn)
+    }
+
     pub fn ensure_parent_dir(&self) -> Result<()> {
         if let Some(parent) = self.path.parent() {
             create_dir_all(parent)?;
@@ -47,7 +54,22 @@ impl SqliteDatabase {
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .map_err(|err| Error::other(format!("Failed to read schema version: {}", err)))?;
 
-        if current >= SCHEMA_VERSION {
+        // A newer build may have added columns this one does not know about, so refuse the
+        // file rather than reading or writing a schema we cannot honour.
+        if current > SCHEMA_VERSION {
+            return Err(Error::new(
+                ErrorKind::Unsupported,
+                format!(
+                    "Database '{}' was created by a newer version of Budget Tracker \
+                     (data version {}; this build supports up to {}). Update Budget Tracker to open it.",
+                    self.path.display(),
+                    current,
+                    SCHEMA_VERSION
+                ),
+            ));
+        }
+
+        if current == SCHEMA_VERSION {
             return Ok(());
         }
 
@@ -91,7 +113,7 @@ impl SqliteDatabase {
                 // Databases created before target_budget existed need the column added.
                 Self::ensure_column(conn, "categories", "target_budget", "TEXT NULL")
             }
-            // v2: transactions (real rows only — generated occurrences are derived in-memory).
+            // v2: transactions (real rows only; generated occurrences are derived in-memory).
             2 => conn
                 .execute_batch(
                     "
@@ -111,6 +133,34 @@ impl SqliteDatabase {
                     ",
                 )
                 .map_err(|err| Error::other(format!("Migration v2 failed: {}", err))),
+            // v3: ledgers (independent sets of transactions sharing one category catalog).
+            3 => {
+                conn.execute_batch(
+                    "
+                    CREATE TABLE IF NOT EXISTS ledgers (
+                        id INTEGER PRIMARY KEY,
+                        name TEXT NOT NULL COLLATE NOCASE,
+                        position INTEGER NOT NULL DEFAULT 0,
+                        created_at TEXT NOT NULL,
+                        UNIQUE(name)
+                    );
+                    INSERT INTO ledgers (id, name, position, created_at)
+                    SELECT 1, 'Main', 0, datetime('now')
+                    WHERE NOT EXISTS (SELECT 1 FROM ledgers);
+                    ",
+                )
+                .map_err(|err| Error::other(format!("Migration v3 failed: {}", err)))?;
+                // SQLite rejects a REFERENCES clause on an added NOT NULL column, so the link
+                // to `ledgers` is enforced by the store rather than by a foreign key.
+                Self::ensure_column(conn, "transactions", "ledger_id", "INTEGER NOT NULL DEFAULT 1")?;
+                conn.execute_batch(
+                    "
+                    CREATE INDEX IF NOT EXISTS idx_transactions_ledger_date
+                        ON transactions(ledger_id, date);
+                    ",
+                )
+                .map_err(|err| Error::other(format!("Migration v3 failed: {}", err)))
+            }
             _ => Ok(()),
         }
     }

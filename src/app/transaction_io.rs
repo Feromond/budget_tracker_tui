@@ -66,18 +66,15 @@ impl App {
                 return;
             }
         };
+        // Clear filters so the freshly imported rows are actually visible.
+        self.clear_all_filter_fields();
         if let Err(e) = self.reload_transactions_from_db() {
             self.set_status_message(format!("Imported, but reloading failed: {}", e), None);
             return;
         }
 
         self.exit_settings_mode();
-        self.filtered_indices = (0..self.transactions.len()).collect();
-        if self.filtered_indices.is_empty() {
-            self.table_state.select(None);
-        } else {
-            self.table_state.select(Some(0));
-        }
+        self.reset_table_selection();
         self.set_status_message(
             format!(
                 "Imported {} new, skipped {} duplicates.",

@@ -70,17 +70,16 @@ impl App {
         self.clear_status_message()
     }
 
-    pub(crate) fn reset_all_filters(&mut self) {
-        let was_active = self.is_filter_active();
-        // Clear simple filter field
+    /// Clear both filter forms without touching the current mode or the visible rows.
+    pub(crate) fn clear_all_filter_fields(&mut self) {
         self.simple_filter_content.clear();
         self.simple_filter_cursor = 0;
+        self.clear_advanced_filter_fields_only();
+    }
 
-        // Clear advanced filter fields
-        for f in self.advanced_filter_fields.iter_mut() {
-            f.clear();
-        }
-        self.current_advanced_filter_field = 0;
+    pub(crate) fn reset_all_filters(&mut self) {
+        let was_active = self.is_filter_active();
+        self.clear_all_filter_fields();
 
         // Apply basic filter (shows all transactions) and return to normal mode
         self.apply_filter();

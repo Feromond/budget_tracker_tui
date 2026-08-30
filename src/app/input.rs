@@ -52,6 +52,11 @@ impl App {
                     input_type,
                 ))
             }
+            AppMode::LedgerEditor => Some((
+                &mut self.ledger_name_input,
+                &mut self.ledger_name_cursor,
+                InputType::Text,
+            )),
             AppMode::ImportTransactions | AppMode::ExportTransactions => Some((
                 &mut self.io_path_input,
                 &mut self.io_path_cursor,

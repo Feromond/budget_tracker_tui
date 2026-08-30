@@ -2,7 +2,8 @@ use crate::app::update_checker;
 use crate::config::{AppSettings, load_settings};
 use crate::csv_io::{load_seed_categories, load_transactions};
 use crate::db::category_store::{CategoryStore, SqliteCategoryStore};
-use crate::db::database::SqliteDatabase;
+use crate::db::database::{SCHEMA_VERSION, SqliteDatabase};
+use crate::db::ledger_store::{DEFAULT_LEDGER_ID, LedgerRecord, LedgerStore, SqliteLedgerStore};
 use crate::db::transaction_store::{SqliteTransactionStore, TransactionStore};
 use crate::model::*;
 use chrono::{Datelike, Duration, NaiveDate};
@@ -47,6 +48,9 @@ pub enum AppMode {
     ConfirmCategoryDelete,
     ImportTransactions,
     ExportTransactions,
+    LedgerManager,
+    LedgerEditor,
+    ConfirmLedgerDelete,
 }
 
 #[derive(Debug)]
@@ -68,6 +72,8 @@ pub struct App {
     pub(crate) filtered_indices: Vec<usize>,
     pub(crate) categories: Vec<CategoryInfo>,
     pub(crate) category_records: Vec<CategoryRecord>,
+    pub(crate) ledgers: Vec<LedgerRecord>,
+    pub(crate) active_ledger_id: i64,
     pub(crate) data_file_path: PathBuf,
     pub(crate) database_path: PathBuf,
     pub(crate) should_quit: bool,
@@ -127,6 +133,14 @@ pub struct App {
     pub(crate) category_delete_id: Option<i64>,
     // Mode to return to when leaving the category catalog (Settings or Budget)
     pub(crate) category_catalog_origin: AppMode,
+    // Ledger manager state
+    pub(crate) ledger_table_state: TableState,
+    pub(crate) ledger_name_input: String,
+    pub(crate) ledger_name_cursor: usize,
+    pub(crate) editing_ledger_id: Option<i64>,
+    pub(crate) ledger_delete_id: Option<i64>,
+    pub(crate) ledger_delete_prompt: String,
+    pub(crate) ledger_copy_source_id: Option<i64>,
     // Budget
     pub(crate) target_budget: Option<Decimal>,
     pub(crate) hourly_rate: Option<Decimal>,
@@ -187,15 +201,33 @@ impl App {
                 None => Self::resolve_default_database_path(&initial_data_file_path),
             };
 
-        // --- Migrate legacy CSV into the database (one time), then load from the database ---
-        let migration_msg =
-            match Self::run_one_time_csv_migration(&initial_database_path, &initial_data_file_path)
-            {
-                Ok(msg) => msg,
-                Err(e) => Some(format!("Transaction migration error: {}", e)),
+        // --- Resolve the ledger to open before anything reads the transactions table ---
+        let (ledgers, active_ledger_id, ledger_error_msg) =
+            match Self::ledger_store_for_path(&initial_database_path).initialize() {
+                Ok(selection) => (selection.ledgers, selection.active_id, None),
+                Err(e) => (
+                    Vec::new(),
+                    DEFAULT_LEDGER_ID,
+                    Some(format!(
+                        "Ledger Error [{}]: {}",
+                        initial_database_path.display(),
+                        e
+                    )),
+                ),
             };
+
+        // --- Migrate legacy CSV into the database (one time), then load from the database ---
+        let migration_msg = match Self::run_one_time_csv_migration(
+            &initial_database_path,
+            &initial_data_file_path,
+            active_ledger_id,
+        ) {
+            Ok(msg) => msg,
+            Err(e) => Some(format!("Transaction migration error: {}", e)),
+        };
         let (mut transactions, load_tx_specific_error_msg) =
-            match Self::transaction_store_for_path(&initial_database_path).list() {
+            match Self::transaction_store_for_path(&initial_database_path, active_ledger_id).list()
+            {
                 Ok(txs) => (txs, None),
                 Err(e) => (
                     vec![],
@@ -237,6 +269,7 @@ impl App {
             database_path_error_msg,
             load_seed_error_msg,
             migration_msg,
+            ledger_error_msg,
         ]
         .into_iter()
         .flatten()
@@ -269,6 +302,8 @@ impl App {
             filtered_indices: initial_filtered_indices,
             categories,
             category_records,
+            ledgers,
+            active_ledger_id,
             data_file_path: initial_data_file_path,
             database_path: initial_database_path,
             should_quit: false,
@@ -319,6 +354,13 @@ impl App {
             editing_category_id: None,
             category_delete_id: None,
             category_catalog_origin: AppMode::Settings,
+            ledger_table_state: TableState::default(),
+            ledger_name_input: String::new(),
+            ledger_name_cursor: 0,
+            editing_ledger_id: None,
+            ledger_delete_id: None,
+            ledger_delete_prompt: String::new(),
+            ledger_copy_source_id: None,
             target_budget: loaded_settings.target_budget,
             hourly_rate: loaded_settings.hourly_rate,
             show_hours: loaded_settings.show_hours.unwrap_or(false),
@@ -340,6 +382,18 @@ impl App {
             show_update_popup: false,
             update_rx: rx,
         };
+        if let Some(version) = Self::newer_schema_version(&app.database_path) {
+            app.status_message = Some(format!(
+                "Cannot open '{}': it was created by a newer version of Budget Tracker \
+                 (data version {}; this build supports up to {}). Update Budget Tracker to open it.",
+                app.database_path.display(),
+                version,
+                SCHEMA_VERSION
+            ));
+            app.should_quit = true;
+            return app;
+        }
+
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
         app.refresh_budget_years();
@@ -430,12 +484,39 @@ impl App {
         Self::category_store_for_path(&self.database_path)
     }
 
-    fn transaction_store_for_path(database_path: &Path) -> SqliteTransactionStore {
-        SqliteTransactionStore::new(SqliteDatabase::new(database_path))
+    fn transaction_store_for_path(database_path: &Path, ledger_id: i64) -> SqliteTransactionStore {
+        SqliteTransactionStore::new(SqliteDatabase::new(database_path), ledger_id)
     }
 
     pub(crate) fn transaction_store(&self) -> SqliteTransactionStore {
-        Self::transaction_store_for_path(&self.database_path)
+        Self::transaction_store_for_path(&self.database_path, self.active_ledger_id)
+    }
+
+    /// The schema version stored in a database file when it is newer than this build handles.
+    fn newer_schema_version(database_path: &Path) -> Option<i64> {
+        let conn = SqliteDatabase::new(database_path)
+            .open_connection("version check")
+            .ok()?;
+        let current: i64 = conn
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .ok()?;
+        (current > SCHEMA_VERSION).then_some(current)
+    }
+
+    fn ledger_store_for_path(database_path: &Path) -> SqliteLedgerStore {
+        SqliteLedgerStore::new(SqliteDatabase::new(database_path))
+    }
+
+    pub(crate) fn ledger_store(&self) -> SqliteLedgerStore {
+        Self::ledger_store_for_path(&self.database_path)
+    }
+
+    pub(crate) fn active_ledger_name(&self) -> &str {
+        self.ledgers
+            .iter()
+            .find(|ledger| ledger.id == self.active_ledger_id)
+            .map(|ledger| ledger.name.as_str())
+            .unwrap_or("Main")
     }
 
     /// Reload the working transaction set from the database and re-derive the in-memory
@@ -447,11 +528,50 @@ impl App {
         Ok(())
     }
 
+    pub(crate) fn reset_table_selection(&mut self) {
+        if self.filtered_indices.is_empty() {
+            self.table_state.select(None);
+        } else {
+            self.table_state.select(Some(0));
+        }
+    }
+
+    /// Reload everything that is derived from the database after the active ledger or the
+    /// database path changes. Leaves `mode` alone so callers control navigation.
+    pub(crate) fn reload_working_set(&mut self) -> Result<(), Error> {
+        self.reload_categories_from_store()?;
+        self.reload_transactions_from_db()?;
+        self.refresh_budget_years();
+        self.reset_table_selection();
+        Ok(())
+    }
+
+    /// Point the app at another ledger in the same database and reload from it. Filters are
+    /// cleared because they were written against a different set of transactions.
+    pub(crate) fn switch_ledger(&mut self, ledger_id: i64) -> Result<(), Error> {
+        if ledger_id != self.active_ledger_id {
+            self.ledger_store().set_active_id(ledger_id)?;
+            self.active_ledger_id = ledger_id;
+        }
+        self.clear_all_filter_fields();
+        self.reload_working_set()
+    }
+
+    /// Re-resolve the ledgers of the current database, repairing the active selection when it
+    /// no longer exists (a different database file, or the active ledger was deleted).
+    pub(crate) fn refresh_ledgers(&mut self) -> Result<(), Error> {
+        let selection = self.ledger_store().initialize()?;
+        self.ledgers = selection.ledgers;
+        self.active_ledger_id = selection.active_id;
+        Ok(())
+    }
+
     /// One-time, non-destructive migration of the legacy transactions CSV into the database.
     /// Gated by a metadata flag so it runs at most once. Returns an optional status message.
     fn run_one_time_csv_migration(
         database_path: &Path,
         data_file_path: &Path,
+        ledger_id: i64,
     ) -> Result<Option<String>, Error> {
         let database = SqliteDatabase::new(database_path);
         let mut conn = database.open_connection("transaction migration")?;
@@ -473,7 +593,7 @@ impl App {
                 .collect();
 
             if !real_rows.is_empty() {
-                let store = SqliteTransactionStore::new(database.clone());
+                let store = SqliteTransactionStore::new(database.clone(), ledger_id);
                 let summary = store.import_merge(&real_rows)?;
 
                 // Preserve the original file (never delete) by renaming it aside.
