@@ -136,7 +136,10 @@ jobs:
 
       - name: Create or update the draft release
         env:
-          GH_TOKEN: ${{ github.token }}
+          # RELEASE_TOKEN is a personal access token, so the release is
+          # attributed to the account that owns it rather than to the bot.
+          # Falls back to the built-in token when the secret is absent.
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
           TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.verify.outputs.version }}
         run: |

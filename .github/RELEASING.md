@@ -4,7 +4,11 @@ A release starts with a tag push and ends with you publishing the draft. Two wor
 
 ## Setup
 
-The crates.io publish needs an API token with the `publish-update` scope, created at <https://crates.io/settings/tokens> and stored as the repository secret `CARGO_REGISTRY_TOKEN` under Settings > Secrets and variables > Actions.
+Two repository secrets, both under Settings > Secrets and variables > Actions.
+
+`CARGO_REGISTRY_TOKEN` is a crates.io API token with the `publish-update` scope, created at <https://crates.io/settings/tokens>. Without it the crate publish fails.
+
+`RELEASE_TOKEN` is a fine-grained personal access token limited to this repository with `Contents: Read and write`, created at <https://github.com/settings/personal-access-tokens>. It makes the release show up as authored by you instead of by `github-actions[bot]`, which is what watchers see in their notification emails. Without it the release is still created, just under the bot's name. Fine-grained tokens expire, so this one needs renewing when it does.
 
 ## Steps
 
