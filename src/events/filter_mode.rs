@@ -1,3 +1,4 @@
+use crate::app::fields::{AdvancedFilterField, FieldKey, FieldKind};
 use crate::app::state::{App, AppMode};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -45,43 +46,65 @@ fn handle_advanced_filtering(app: &mut App, key_event: KeyEvent) {
     match (key_event.modifiers, key_event.code) {
         (KeyModifiers::CONTROL, KeyCode::Char('r')) => app.reset_all_filters(),
         (KeyModifiers::NONE, KeyCode::Esc) => app.cancel_advanced_filtering(),
-        (KeyModifiers::NONE, KeyCode::Enter) => match app.current_advanced_filter_field {
-            3 => app.start_advanced_category_selection(),
-            4 => app.start_advanced_subcategory_selection(),
-            _ => app.finish_advanced_filtering(),
+        (KeyModifiers::NONE, KeyCode::Enter) => match app.advanced_filter_fields.focused() {
+            AdvancedFilterField::Category => app.start_advanced_category_selection(),
+            AdvancedFilterField::Subcategory => app.start_advanced_subcategory_selection(),
+            AdvancedFilterField::DateFrom
+            | AdvancedFilterField::DateTo
+            | AdvancedFilterField::Description
+            | AdvancedFilterField::TransactionType
+            | AdvancedFilterField::Recurring
+            | AdvancedFilterField::AmountFrom
+            | AdvancedFilterField::AmountTo => app.finish_advanced_filtering(),
         },
         (KeyModifiers::NONE, KeyCode::Tab) => app.next_advanced_filter_field(),
         (KeyModifiers::NONE, KeyCode::BackTab) => app.previous_advanced_filter_field(),
         (KeyModifiers::NONE, KeyCode::Up) => app.previous_advanced_filter_field(),
         (KeyModifiers::NONE, KeyCode::Down) => app.next_advanced_filter_field(),
-        (KeyModifiers::NONE, KeyCode::Left) => match app.current_advanced_filter_field {
-            0 | 1 => app.decrement_advanced_date(),
-            5 => app.toggle_advanced_transaction_type(),
-            6 => app.toggle_advanced_recurring(),
-            _ => app.move_cursor_left(),
-        },
-        (KeyModifiers::NONE, KeyCode::Right) => match app.current_advanced_filter_field {
-            0 | 1 => app.increment_advanced_date(),
-            5 => app.toggle_advanced_transaction_type(),
-            6 => app.toggle_advanced_recurring(),
-            _ => app.move_cursor_right(),
-        },
-        (KeyModifiers::SHIFT, KeyCode::Left) => match app.current_advanced_filter_field {
-            0 | 1 => app.decrement_advanced_month(),
-            _ => {}
-        },
-        (KeyModifiers::SHIFT, KeyCode::Right) => match app.current_advanced_filter_field {
-            0 | 1 => app.increment_advanced_month(),
-            _ => {}
-        },
-        (KeyModifiers::NONE, KeyCode::Char(c)) => match app.current_advanced_filter_field {
-            0 | 1 if c == '+' || c == '=' => app.increment_advanced_date(),
-            0 | 1 if c == '-' => app.decrement_advanced_date(),
-            _ => {
-                app.clear_simple_filter_field_only();
-                app.insert_char_at_cursor(c);
+        (KeyModifiers::NONE, KeyCode::Left) => match app.advanced_filter_fields.focused() {
+            AdvancedFilterField::DateFrom | AdvancedFilterField::DateTo => {
+                app.decrement_advanced_date()
             }
+            AdvancedFilterField::TransactionType => app.toggle_advanced_transaction_type(),
+            AdvancedFilterField::Recurring => app.toggle_advanced_recurring(),
+            AdvancedFilterField::Description
+            | AdvancedFilterField::Category
+            | AdvancedFilterField::Subcategory
+            | AdvancedFilterField::AmountFrom
+            | AdvancedFilterField::AmountTo => app.move_cursor_left(),
         },
+        (KeyModifiers::NONE, KeyCode::Right) => match app.advanced_filter_fields.focused() {
+            AdvancedFilterField::DateFrom | AdvancedFilterField::DateTo => {
+                app.increment_advanced_date()
+            }
+            AdvancedFilterField::TransactionType => app.toggle_advanced_transaction_type(),
+            AdvancedFilterField::Recurring => app.toggle_advanced_recurring(),
+            AdvancedFilterField::Description
+            | AdvancedFilterField::Category
+            | AdvancedFilterField::Subcategory
+            | AdvancedFilterField::AmountFrom
+            | AdvancedFilterField::AmountTo => app.move_cursor_right(),
+        },
+        (KeyModifiers::SHIFT, KeyCode::Left)
+            if app.advanced_filter_fields.focused().kind() == FieldKind::Date =>
+        {
+            app.decrement_advanced_month()
+        }
+        (KeyModifiers::SHIFT, KeyCode::Right)
+            if app.advanced_filter_fields.focused().kind() == FieldKind::Date =>
+        {
+            app.increment_advanced_month()
+        }
+        (KeyModifiers::NONE, KeyCode::Char(c)) => {
+            match app.advanced_filter_fields.focused().kind() {
+                FieldKind::Date if c == '+' || c == '=' => app.increment_advanced_date(),
+                FieldKind::Date if c == '-' => app.decrement_advanced_date(),
+                _ => {
+                    app.clear_simple_filter_field_only();
+                    app.insert_char_at_cursor(c);
+                }
+            }
+        }
         (KeyModifiers::SHIFT, KeyCode::Char(c)) => {
             app.clear_simple_filter_field_only();
             app.insert_char_at_cursor(c);

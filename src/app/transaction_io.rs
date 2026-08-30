@@ -84,8 +84,8 @@ impl App {
         );
     }
 
-    /// Resolve a path for comparison. The destination usually does not exist yet, so fall back to
-    /// canonicalizing the parent so relative paths and symlinked directories still compare equal.
+    /// The destination usually does not exist yet, so fall back to canonicalizing its parent to
+    /// keep relative paths and symlinked directories comparable.
     fn resolve_io_path(path: &Path) -> PathBuf {
         if let Ok(canonical) = path.canonicalize() {
             return canonical;
@@ -115,7 +115,7 @@ impl App {
         }
         let path = PathBuf::from(&path_str);
 
-        // save_transactions truncates whatever it opens, so refuse the live database outright.
+        // save_transactions truncates whatever it opens.
         if Self::resolve_io_path(&path) == Self::resolve_io_path(&self.database_path) {
             self.set_status_message(
                 "Error: that is the active database file. Choose a different export destination.",

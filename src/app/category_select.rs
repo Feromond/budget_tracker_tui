@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::app::fields::{AddEditField, SelectingField};
 use crate::model::TransactionType;
 use ratatui::widgets::ListState;
 use std::collections::HashSet;
@@ -13,9 +14,9 @@ impl App {
         }
         self.type_to_select.clear();
 
-        self.selecting_field_index = Some(4);
+        self.selecting_field = Some(SelectingField::AddEdit(AddEditField::Category));
         self.mode = crate::app::state::AppMode::SelectingCategory;
-        let current_type_str = self.add_edit_fields[3].trim();
+        let current_type_str = self.add_edit_fields[AddEditField::TransactionType].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
             self.set_status_message("Error: Invalid transaction type for category lookup.", None);
             self.mode = if self.editing_index.is_some() {
@@ -41,10 +42,10 @@ impl App {
     }
     pub(crate) fn start_subcategory_selection(&mut self) {
         self.type_to_select.clear();
-        self.selecting_field_index = Some(5);
+        self.selecting_field = Some(SelectingField::AddEdit(AddEditField::Subcategory));
         self.mode = crate::app::state::AppMode::SelectingSubcategory;
-        let current_type_str = self.add_edit_fields[3].trim();
-        let current_category = self.add_edit_fields[4].trim();
+        let current_type_str = self.add_edit_fields[AddEditField::TransactionType].trim();
+        let current_category = self.add_edit_fields[AddEditField::Category].trim();
         let Ok(current_type) = TransactionType::try_from(current_type_str) else {
             self.set_status_message(
                 "Error: Invalid transaction type for subcategory lookup.",
@@ -82,22 +83,22 @@ impl App {
     }
     pub(crate) fn confirm_selection(&mut self) {
         if let Some(selected_index) = self.selection_list_state.selected()
-            && let Some(field_index) = self.selecting_field_index
+            && let Some(field) = self.selecting_field.and_then(SelectingField::add_edit)
             && let Some(selected_value) = self.current_selection_list.get(selected_index)
         {
-            let value_to_set = if field_index == 5 && selected_value == "(None)" {
+            let value_to_set = if field == AddEditField::Subcategory && selected_value == "(None)" {
                 ""
             } else {
                 selected_value.as_str()
             };
-            self.add_edit_fields[field_index] = value_to_set.to_string();
-            if field_index == 4 {
-                self.current_add_edit_field = 5;
+            self.add_edit_fields[field] = value_to_set.to_string();
+            if field == AddEditField::Category {
+                self.add_edit_fields.focus(AddEditField::Subcategory);
                 self.start_subcategory_selection();
                 return;
-            } else if field_index == 5 {
-                self.current_add_edit_field = 0;
-                self.add_edit_cursor = self.add_edit_fields[0].len();
+            } else if field == AddEditField::Subcategory {
+                self.add_edit_fields.focus(AddEditField::Date);
+                self.add_edit_cursor = self.add_edit_fields[AddEditField::Date].len();
             }
         }
         self.mode = if self.editing_index.is_some() {
@@ -105,7 +106,7 @@ impl App {
         } else {
             crate::app::state::AppMode::Adding
         };
-        self.selecting_field_index = None;
+        self.selecting_field = None;
         self.current_selection_list.clear();
     }
     pub(crate) fn cancel_selection(&mut self) {
@@ -114,10 +115,10 @@ impl App {
         } else {
             crate::app::state::AppMode::Adding
         };
-        if let Some(field_index) = self.selecting_field_index {
-            self.current_add_edit_field = field_index;
+        if let Some(field) = self.selecting_field.and_then(SelectingField::add_edit) {
+            self.add_edit_fields.focus(field);
         }
-        self.selecting_field_index = None;
+        self.selecting_field = None;
         self.current_selection_list.clear();
     }
     pub(crate) fn select_next_list_item(&mut self) {

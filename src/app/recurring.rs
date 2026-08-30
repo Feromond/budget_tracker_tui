@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::app::fields::RecurringField;
 use crate::db::transaction_store::TransactionStore;
 use crate::model::{RecurrenceFrequency, Transaction};
 use crate::recurring::{generate_recurring_transactions, remove_generated_recurring_transactions};
@@ -48,16 +49,17 @@ impl App {
 
                     self.mode = crate::app::state::AppMode::RecurringSettings;
                     self.recurring_transaction_index = Some(target_index);
-                    self.current_recurring_field = 0;
+                    self.recurring_settings_fields
+                        .focus(RecurringField::IsRecurring);
 
                     // Initialize fields with current values
-                    self.recurring_settings_fields[0] =
+                    self.recurring_settings_fields[RecurringField::IsRecurring] =
                         if target_tx.is_recurring { "Yes" } else { "No" }.to_string();
-                    self.recurring_settings_fields[1] = target_tx
+                    self.recurring_settings_fields[RecurringField::Frequency] = target_tx
                         .recurrence_frequency
                         .map(|f| f.to_string().to_string())
                         .unwrap_or(String::from("Monthly"));
-                    self.recurring_settings_fields[2] = target_tx
+                    self.recurring_settings_fields[RecurringField::EndDate] = target_tx
                         .recurrence_end_date
                         .map(|d| d.format(crate::model::DATE_FORMAT).to_string())
                         .unwrap_or_default();
@@ -78,7 +80,6 @@ impl App {
     pub(crate) fn exit_recurring_settings(&mut self, cancelled: bool) {
         self.mode = crate::app::state::AppMode::Normal;
         self.recurring_transaction_index = None;
-        self.current_recurring_field = 0;
         self.recurring_settings_fields = Default::default();
         if cancelled {
             self.set_status_message("Recurring settings cancelled.", Some(Duration::seconds(3)));
@@ -88,9 +89,11 @@ impl App {
     pub(crate) fn save_recurring_settings(&mut self) {
         if let Some(index) = self.recurring_transaction_index {
             if index < self.transactions.len() {
-                let is_recurring = self.recurring_settings_fields[0].to_lowercase() == "yes";
-                let frequency_str = &self.recurring_settings_fields[1];
-                let end_date_str = &self.recurring_settings_fields[2];
+                let is_recurring = self.recurring_settings_fields[RecurringField::IsRecurring]
+                    .to_lowercase()
+                    == "yes";
+                let frequency_str = &self.recurring_settings_fields[RecurringField::Frequency];
+                let end_date_str = &self.recurring_settings_fields[RecurringField::EndDate];
 
                 // Parse frequency
                 let frequency = if is_recurring {
@@ -165,29 +168,26 @@ impl App {
     }
 
     pub(crate) fn next_recurring_field(&mut self) {
-        self.current_recurring_field = (self.current_recurring_field + 1) % 3;
+        self.recurring_settings_fields.focus_next();
     }
 
     pub(crate) fn previous_recurring_field(&mut self) {
-        self.current_recurring_field = if self.current_recurring_field == 0 {
-            2
-        } else {
-            self.current_recurring_field - 1
-        };
+        self.recurring_settings_fields.focus_previous();
     }
 
     pub(crate) fn toggle_recurring_enabled(&mut self) {
-        if self.current_recurring_field == 0 {
-            self.recurring_settings_fields[0] = if self.recurring_settings_fields[0] == "Yes" {
-                "No".to_string()
-            } else {
-                "Yes".to_string()
-            };
+        if self.recurring_settings_fields.focused() == RecurringField::IsRecurring {
+            self.recurring_settings_fields[RecurringField::IsRecurring] =
+                if self.recurring_settings_fields[RecurringField::IsRecurring] == "Yes" {
+                    "No".to_string()
+                } else {
+                    "Yes".to_string()
+                };
         }
     }
 
     pub(crate) fn start_frequency_selection(&mut self) {
-        if self.current_recurring_field == 1 {
+        if self.recurring_settings_fields.focused() == RecurringField::Frequency {
             self.mode = crate::app::state::AppMode::SelectingRecurrenceFrequency;
             self.current_selection_list = RecurrenceFrequency::all()
                 .iter()
@@ -198,13 +198,13 @@ impl App {
     }
 
     pub(crate) fn insert_char_recurring(&mut self, c: char) {
-        if self.current_recurring_field == 2 {
+        if self.recurring_settings_fields.focused() == RecurringField::EndDate {
             // Use the centralized date validation from validation module
             if let Some(new_date) = crate::validation::validate_and_insert_date_char(
-                &self.recurring_settings_fields[2],
+                &self.recurring_settings_fields[RecurringField::EndDate],
                 c,
             ) {
-                self.recurring_settings_fields[2] = new_date;
+                self.recurring_settings_fields[RecurringField::EndDate] = new_date;
                 self.clear_status_message(); // Clear any previous error messages
             } else {
                 // Invalid character or date, show error message
@@ -214,44 +214,50 @@ impl App {
     }
 
     pub(crate) fn delete_char_recurring(&mut self) {
-        if self.current_recurring_field == 2 {
-            crate::validation::handle_date_backspace(&mut self.recurring_settings_fields[2]);
+        if self.recurring_settings_fields.focused() == RecurringField::EndDate {
+            crate::validation::handle_date_backspace(
+                &mut self.recurring_settings_fields[RecurringField::EndDate],
+            );
             self.clear_status_message();
         }
     }
 
     pub(crate) fn increment_date_recurring(&mut self) {
-        if self.current_recurring_field == 2
-            && let Some(new_date) = self.increment_date_field(&self.recurring_settings_fields[2])
+        if self.recurring_settings_fields.focused() == RecurringField::EndDate
+            && let Some(new_date) =
+                self.increment_date_field(&self.recurring_settings_fields[RecurringField::EndDate])
         {
-            self.recurring_settings_fields[2] = new_date;
+            self.recurring_settings_fields[RecurringField::EndDate] = new_date;
             self.clear_status_message();
         }
     }
 
     pub(crate) fn decrement_date_recurring(&mut self) {
-        if self.current_recurring_field == 2
-            && let Some(new_date) = self.decrement_date_field(&self.recurring_settings_fields[2])
+        if self.recurring_settings_fields.focused() == RecurringField::EndDate
+            && let Some(new_date) =
+                self.decrement_date_field(&self.recurring_settings_fields[RecurringField::EndDate])
         {
-            self.recurring_settings_fields[2] = new_date;
+            self.recurring_settings_fields[RecurringField::EndDate] = new_date;
             self.clear_status_message();
         }
     }
 
     pub(crate) fn increment_month_recurring(&mut self) {
-        if self.current_recurring_field == 2
-            && let Some(new_date) = self.increment_month_field(&self.recurring_settings_fields[2])
+        if self.recurring_settings_fields.focused() == RecurringField::EndDate
+            && let Some(new_date) =
+                self.increment_month_field(&self.recurring_settings_fields[RecurringField::EndDate])
         {
-            self.recurring_settings_fields[2] = new_date;
+            self.recurring_settings_fields[RecurringField::EndDate] = new_date;
             self.clear_status_message();
         }
     }
 
     pub(crate) fn decrement_month_recurring(&mut self) {
-        if self.current_recurring_field == 2
-            && let Some(new_date) = self.decrement_month_field(&self.recurring_settings_fields[2])
+        if self.recurring_settings_fields.focused() == RecurringField::EndDate
+            && let Some(new_date) =
+                self.decrement_month_field(&self.recurring_settings_fields[RecurringField::EndDate])
         {
-            self.recurring_settings_fields[2] = new_date;
+            self.recurring_settings_fields[RecurringField::EndDate] = new_date;
             self.clear_status_message();
         }
     }

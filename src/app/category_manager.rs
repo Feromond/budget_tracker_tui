@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::app::fields::{CategoryEditField, FieldSet};
 use crate::app::state::AppMode;
 use crate::db::category_store::CategoryStore;
 use crate::model::{CategoryDraft, CategoryRecord, TransactionType};
@@ -154,15 +155,15 @@ impl App {
     pub(crate) fn start_adding_category(&mut self) {
         self.mode = AppMode::CategoryEditor;
         self.editing_category_id = None;
-        self.current_category_field = 0;
-        self.category_edit_fields = [
+        self.category_edit_fields = FieldSet::new([
             TransactionType::Expense.to_string(),
             String::new(),
             String::new(),
             String::new(),
             String::new(),
-        ];
-        self.category_edit_cursor = self.category_edit_fields[0].len();
+        ]);
+        self.category_edit_cursor =
+            self.category_edit_fields[CategoryEditField::TransactionType].len();
         self.clear_status_message();
     }
 
@@ -174,7 +175,6 @@ impl App {
 
         self.mode = AppMode::CategoryEditor;
         self.editing_category_id = Some(record.id);
-        self.current_category_field = 0;
         let draft = record.to_draft();
         let target_budget = if draft.transaction_type == TransactionType::Expense {
             draft
@@ -184,21 +184,21 @@ impl App {
         } else {
             String::new()
         };
-        self.category_edit_fields = [
+        self.category_edit_fields = FieldSet::new([
             draft.transaction_type.to_string(),
             draft.category,
             draft.subcategory,
             draft.tag.unwrap_or_default(),
             target_budget,
-        ];
-        self.category_edit_cursor = self.category_edit_fields[0].len();
+        ]);
+        self.category_edit_cursor =
+            self.category_edit_fields[CategoryEditField::TransactionType].len();
         self.clear_status_message();
     }
 
     pub(crate) fn exit_category_editor(&mut self, cancelled: bool) {
         self.mode = AppMode::CategoryCatalog;
         self.editing_category_id = None;
-        self.current_category_field = 0;
         self.category_edit_fields = Default::default();
         self.category_edit_cursor = 0;
 
@@ -210,33 +210,30 @@ impl App {
     }
 
     pub(crate) fn next_category_field(&mut self) {
-        self.current_category_field =
-            (self.current_category_field + 1) % self.category_edit_fields.len();
-        self.category_edit_cursor = self.category_edit_fields[self.current_category_field].len();
+        self.category_edit_fields.focus_next();
+        self.category_edit_cursor = self.category_edit_fields.focused_value().len();
     }
 
     pub(crate) fn previous_category_field(&mut self) {
-        if self.current_category_field == 0 {
-            self.current_category_field = self.category_edit_fields.len() - 1;
-        } else {
-            self.current_category_field -= 1;
-        }
-        self.category_edit_cursor = self.category_edit_fields[self.current_category_field].len();
+        self.category_edit_fields.focus_previous();
+        self.category_edit_cursor = self.category_edit_fields.focused_value().len();
     }
 
     pub(crate) fn toggle_category_transaction_type(&mut self) {
-        if self.current_category_field != 0 {
+        if self.category_edit_fields.focused() != CategoryEditField::TransactionType {
             return;
         }
 
-        let switching_to_income = !self.category_edit_fields[0].eq_ignore_ascii_case("income");
-        self.category_edit_fields[0] = if switching_to_income {
-            self.category_edit_fields[4].clear();
+        let switching_to_income = !self.category_edit_fields[CategoryEditField::TransactionType]
+            .eq_ignore_ascii_case("income");
+        self.category_edit_fields[CategoryEditField::TransactionType] = if switching_to_income {
+            self.category_edit_fields[CategoryEditField::TargetBudget].clear();
             TransactionType::Income.to_string()
         } else {
             TransactionType::Expense.to_string()
         };
-        self.category_edit_cursor = self.category_edit_fields[0].len();
+        self.category_edit_cursor =
+            self.category_edit_fields[CategoryEditField::TransactionType].len();
     }
 
     pub(crate) fn prepare_delete_category(&mut self) {
@@ -320,9 +317,8 @@ impl App {
         });
         let editing_category_id = self.editing_category_id;
 
-        // The schema's UNIQUE constraint compares case-sensitively, but rename and delete
-        // propagate to transactions with LOWER(), so a case-variant pair would let an edit to
-        // one record rewrite the other's transactions. Reject the duplicate here instead.
+        // The schema's UNIQUE is case-sensitive but rename and delete propagate with LOWER(), so
+        // a case-variant pair would let an edit to one record rewrite the other's transactions.
         let duplicate = self.category_records.iter().any(|record| {
             Some(record.id) != editing_category_id
                 && record.transaction_type == draft.transaction_type
@@ -377,7 +373,6 @@ impl App {
 
         self.mode = AppMode::CategoryCatalog;
         self.editing_category_id = Some(saved_id);
-        self.current_category_field = 0;
         self.category_edit_fields = Default::default();
         self.category_edit_cursor = 0;
         self.select_saved_category();
@@ -423,12 +418,18 @@ impl App {
     }
 
     fn build_category_draft_from_editor(&self) -> Result<CategoryDraft, String> {
-        let transaction_type = TransactionType::try_from(self.category_edit_fields[0].trim())
-            .map_err(|_| "Transaction type must be Income or Expense.".to_string())?;
-        let category = self.category_edit_fields[1].trim().to_string();
-        let subcategory = self.category_edit_fields[2].trim().to_string();
-        let tag = self.category_edit_fields[3].trim();
-        let target_budget_str = self.category_edit_fields[4].trim();
+        let transaction_type = TransactionType::try_from(
+            self.category_edit_fields[CategoryEditField::TransactionType].trim(),
+        )
+        .map_err(|_| "Transaction type must be Income or Expense.".to_string())?;
+        let category = self.category_edit_fields[CategoryEditField::Category]
+            .trim()
+            .to_string();
+        let subcategory = self.category_edit_fields[CategoryEditField::Subcategory]
+            .trim()
+            .to_string();
+        let tag = self.category_edit_fields[CategoryEditField::Tag].trim();
+        let target_budget_str = self.category_edit_fields[CategoryEditField::TargetBudget].trim();
 
         if category.is_empty() {
             return Err("Category cannot be empty.".to_string());

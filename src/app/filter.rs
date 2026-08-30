@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::app::fields::{AdvancedFilterField, FieldKey, FieldKind, SelectingField};
 use crate::model::{DATE_FORMAT, TransactionType};
 use chrono::{Duration, NaiveDate};
 use ratatui::widgets::ListState;
@@ -7,8 +8,7 @@ use std::collections::HashSet;
 
 impl App {
     pub(crate) fn is_filter_active(&self) -> bool {
-        !self.simple_filter_content.is_empty()
-            || self.advanced_filter_fields.iter().any(|f| !f.is_empty())
+        !self.simple_filter_content.is_empty() || !self.advanced_filter_fields.all_empty()
     }
     // --- Filtering Logic ---
     // Handles entering/exiting filtering mode, applying basic filter, and updating filtered indices.
@@ -55,8 +55,9 @@ impl App {
     // Handles advanced filter UI, field navigation, and applying advanced filters to transactions.
     pub(crate) fn start_advanced_filtering(&mut self) {
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
-        self.current_advanced_filter_field = 0;
-        self.advanced_filter_cursor = self.advanced_filter_fields[0].len();
+        self.advanced_filter_fields
+            .focus(AdvancedFilterField::DateFrom);
+        self.advanced_filter_cursor = self.advanced_filter_fields.focused_value().len();
         self.clear_status_message()
     }
     pub(crate) fn cancel_advanced_filtering(&mut self) {
@@ -92,10 +93,7 @@ impl App {
     }
     pub(crate) fn clear_advanced_filter_fields_only(&mut self) {
         // Clear advanced filter fields without changing mode
-        for f in self.advanced_filter_fields.iter_mut() {
-            f.clear();
-        }
-        self.current_advanced_filter_field = 0;
+        self.advanced_filter_fields.reset();
     }
     pub(crate) fn clear_simple_filter_field_only(&mut self) {
         // Clear simple filter field without changing mode
@@ -103,23 +101,16 @@ impl App {
         self.simple_filter_cursor = 0;
     }
     pub(crate) fn next_advanced_filter_field(&mut self) {
-        self.current_advanced_filter_field =
-            (self.current_advanced_filter_field + 1) % self.advanced_filter_fields.len();
-        self.advanced_filter_cursor =
-            self.advanced_filter_fields[self.current_advanced_filter_field].len();
+        self.advanced_filter_fields.focus_next();
+        self.advanced_filter_cursor = self.advanced_filter_fields.focused_value().len();
     }
     pub(crate) fn previous_advanced_filter_field(&mut self) {
-        if self.current_advanced_filter_field == 0 {
-            self.current_advanced_filter_field = self.advanced_filter_fields.len() - 1;
-        } else {
-            self.current_advanced_filter_field -= 1;
-        }
-        self.advanced_filter_cursor =
-            self.advanced_filter_fields[self.current_advanced_filter_field].len();
+        self.advanced_filter_fields.focus_previous();
+        self.advanced_filter_cursor = self.advanced_filter_fields.focused_value().len();
     }
     pub(crate) fn toggle_advanced_transaction_type(&mut self) {
         self.clear_simple_filter_field_only();
-        let ft = self.advanced_filter_fields[5].trim();
+        let ft = self.advanced_filter_fields[AdvancedFilterField::TransactionType].trim();
         let new_val = if ft.is_empty() {
             "Income"
         } else if ft.eq_ignore_ascii_case("Income") {
@@ -127,11 +118,11 @@ impl App {
         } else {
             ""
         };
-        self.advanced_filter_fields[5] = new_val.to_string();
+        self.advanced_filter_fields[AdvancedFilterField::TransactionType] = new_val.to_string();
     }
     pub(crate) fn toggle_advanced_recurring(&mut self) {
         self.clear_simple_filter_field_only();
-        let fr = self.advanced_filter_fields[6].trim();
+        let fr = self.advanced_filter_fields[AdvancedFilterField::Recurring].trim();
         let new_val = if fr.is_empty() {
             "Recurring"
         } else if fr.eq_ignore_ascii_case("Recurring") {
@@ -139,11 +130,13 @@ impl App {
         } else {
             ""
         };
-        self.advanced_filter_fields[6] = new_val.to_string();
+        self.advanced_filter_fields[AdvancedFilterField::Recurring] = new_val.to_string();
     }
     pub(crate) fn start_advanced_category_selection(&mut self) {
         self.type_to_select.clear();
-        self.selecting_field_index = Some(3);
+        self.selecting_field = Some(SelectingField::AdvancedFilter(
+            AdvancedFilterField::Category,
+        ));
         self.mode = crate::app::state::AppMode::SelectingFilterCategory;
         let mut unique: HashSet<String> =
             self.categories.iter().map(|c| c.category.clone()).collect();
@@ -157,9 +150,11 @@ impl App {
     }
     pub(crate) fn start_advanced_subcategory_selection(&mut self) {
         self.type_to_select.clear();
-        self.selecting_field_index = Some(4);
+        self.selecting_field = Some(SelectingField::AdvancedFilter(
+            AdvancedFilterField::Subcategory,
+        ));
         self.mode = crate::app::state::AppMode::SelectingFilterSubcategory;
-        let current_cat = self.advanced_filter_fields[3].trim();
+        let current_cat = self.advanced_filter_fields[AdvancedFilterField::Category].trim();
         let mut unique: HashSet<String> = self
             .categories
             .iter()
@@ -178,36 +173,44 @@ impl App {
     }
     pub(crate) fn confirm_advanced_selection(&mut self) {
         if let Some(idx) = self.selection_list_state.selected()
-            && let Some(fi) = self.selecting_field_index
+            && let Some(field) = self
+                .selecting_field
+                .and_then(SelectingField::advanced_filter)
             && let Some(val) = self.current_selection_list.get(idx)
         {
             let val_clone = val.clone();
             self.clear_simple_filter_field_only();
-            let v = if fi == 4 && val_clone == "(None)" {
+            let v = if field == AdvancedFilterField::Subcategory && val_clone == "(None)" {
                 ""
             } else {
                 val_clone.as_str()
             };
-            self.advanced_filter_fields[fi] = v.to_string();
-            if fi == 3 {
+            self.advanced_filter_fields[field] = v.to_string();
+            if field == AdvancedFilterField::Category {
                 self.start_advanced_subcategory_selection();
                 return;
             }
         }
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
-        if let Some(fi) = self.selecting_field_index {
-            self.current_advanced_filter_field = fi;
-            self.advanced_filter_cursor = self.advanced_filter_fields[fi].len();
+        if let Some(field) = self
+            .selecting_field
+            .and_then(SelectingField::advanced_filter)
+        {
+            self.advanced_filter_fields.focus(field);
+            self.advanced_filter_cursor = self.advanced_filter_fields.focused_value().len();
         }
-        self.selecting_field_index = None;
+        self.selecting_field = None;
         self.current_selection_list.clear();
     }
     pub(crate) fn cancel_advanced_selection(&mut self) {
         self.mode = crate::app::state::AppMode::AdvancedFiltering;
-        if let Some(fi) = self.selecting_field_index {
-            self.current_advanced_filter_field = fi;
+        if let Some(field) = self
+            .selecting_field
+            .and_then(SelectingField::advanced_filter)
+        {
+            self.advanced_filter_fields.focus(field);
         }
-        self.selecting_field_index = None;
+        self.selecting_field = None;
         self.current_selection_list.clear();
     }
     pub(crate) fn apply_advanced_filter(&mut self) {
@@ -216,16 +219,27 @@ impl App {
             self.sort_by,
             self.sort_order,
         );
-        let date_from =
-            NaiveDate::parse_from_str(&self.advanced_filter_fields[0], DATE_FORMAT).ok();
-        let date_to = NaiveDate::parse_from_str(&self.advanced_filter_fields[1], DATE_FORMAT).ok();
-        let desc_q = self.advanced_filter_fields[2].to_lowercase();
-        let cat_q = self.advanced_filter_fields[3].to_lowercase();
-        let sub_q = self.advanced_filter_fields[4].to_lowercase();
-        let type_q = self.advanced_filter_fields[5].trim();
-        let recurring_q = self.advanced_filter_fields[6].trim();
-        let amt_from = self.advanced_filter_fields[7].parse::<Decimal>().ok();
-        let amt_to = self.advanced_filter_fields[8].parse::<Decimal>().ok();
+        let date_from = NaiveDate::parse_from_str(
+            &self.advanced_filter_fields[AdvancedFilterField::DateFrom],
+            DATE_FORMAT,
+        )
+        .ok();
+        let date_to = NaiveDate::parse_from_str(
+            &self.advanced_filter_fields[AdvancedFilterField::DateTo],
+            DATE_FORMAT,
+        )
+        .ok();
+        let desc_q = self.advanced_filter_fields[AdvancedFilterField::Description].to_lowercase();
+        let cat_q = self.advanced_filter_fields[AdvancedFilterField::Category].to_lowercase();
+        let sub_q = self.advanced_filter_fields[AdvancedFilterField::Subcategory].to_lowercase();
+        let type_q = self.advanced_filter_fields[AdvancedFilterField::TransactionType].trim();
+        let recurring_q = self.advanced_filter_fields[AdvancedFilterField::Recurring].trim();
+        let amt_from = self.advanced_filter_fields[AdvancedFilterField::AmountFrom]
+            .parse::<Decimal>()
+            .ok();
+        let amt_to = self.advanced_filter_fields[AdvancedFilterField::AmountTo]
+            .parse::<Decimal>()
+            .ok();
         self.filtered_indices = self
             .transactions
             .iter()
@@ -291,42 +305,44 @@ impl App {
         self.calculate_monthly_summaries();
     }
     pub(crate) fn increment_advanced_date(&mut self) {
-        let idx = self.current_advanced_filter_field;
-        if idx == 0 || idx == 1 {
+        let field = self.advanced_filter_fields.focused();
+        if field.kind() == FieldKind::Date {
             self.clear_simple_filter_field_only();
-            if let Some(new_date) = self.increment_date_field(&self.advanced_filter_fields[idx]) {
-                self.advanced_filter_fields[idx] = new_date;
-                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
+            if let Some(new_date) = self.increment_date_field(&self.advanced_filter_fields[field]) {
+                self.advanced_filter_fields[field] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[field].len();
             }
         }
     }
     pub(crate) fn decrement_advanced_date(&mut self) {
-        let idx = self.current_advanced_filter_field;
-        if idx == 0 || idx == 1 {
+        let field = self.advanced_filter_fields.focused();
+        if field.kind() == FieldKind::Date {
             self.clear_simple_filter_field_only();
-            if let Some(new_date) = self.decrement_date_field(&self.advanced_filter_fields[idx]) {
-                self.advanced_filter_fields[idx] = new_date;
-                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
+            if let Some(new_date) = self.decrement_date_field(&self.advanced_filter_fields[field]) {
+                self.advanced_filter_fields[field] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[field].len();
             }
         }
     }
     pub(crate) fn increment_advanced_month(&mut self) {
-        let idx = self.current_advanced_filter_field;
-        if idx == 0 || idx == 1 {
+        let field = self.advanced_filter_fields.focused();
+        if field.kind() == FieldKind::Date {
             self.clear_simple_filter_field_only();
-            if let Some(new_date) = self.increment_month_field(&self.advanced_filter_fields[idx]) {
-                self.advanced_filter_fields[idx] = new_date;
-                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
+            if let Some(new_date) = self.increment_month_field(&self.advanced_filter_fields[field])
+            {
+                self.advanced_filter_fields[field] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[field].len();
             }
         }
     }
     pub(crate) fn decrement_advanced_month(&mut self) {
-        let idx = self.current_advanced_filter_field;
-        if idx == 0 || idx == 1 {
+        let field = self.advanced_filter_fields.focused();
+        if field.kind() == FieldKind::Date {
             self.clear_simple_filter_field_only();
-            if let Some(new_date) = self.decrement_month_field(&self.advanced_filter_fields[idx]) {
-                self.advanced_filter_fields[idx] = new_date;
-                self.advanced_filter_cursor = self.advanced_filter_fields[idx].len();
+            if let Some(new_date) = self.decrement_month_field(&self.advanced_filter_fields[field])
+            {
+                self.advanced_filter_fields[field] = new_date;
+                self.advanced_filter_cursor = self.advanced_filter_fields[field].len();
             }
         }
     }

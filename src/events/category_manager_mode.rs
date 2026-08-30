@@ -1,3 +1,4 @@
+use crate::app::fields::{CategoryEditField, FieldKey, FieldKind};
 use crate::app::state::{App, AppMode};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -71,41 +72,45 @@ fn handle_category_editor(app: &mut App, key_event: KeyEvent) {
             app.previous_category_field()
         }
         (KeyCode::Enter, KeyModifiers::NONE) => {
-            if app.current_category_field == 0 {
+            if app.category_edit_fields.focused() == CategoryEditField::TransactionType {
                 app.toggle_category_transaction_type();
             } else {
                 app.save_category();
             }
         }
         (KeyCode::Left, KeyModifiers::NONE) => {
-            if app.current_category_field == 0 {
+            if app.category_edit_fields.focused() == CategoryEditField::TransactionType {
                 app.toggle_category_transaction_type();
             } else {
                 app.move_cursor_left();
             }
         }
         (KeyCode::Right, KeyModifiers::NONE) => {
-            if app.current_category_field == 0 {
+            if app.category_edit_fields.focused() == CategoryEditField::TransactionType {
                 app.toggle_category_transaction_type();
             } else {
                 app.move_cursor_right();
             }
         }
-        (KeyCode::Char(c), KeyModifiers::NONE) => match app.current_category_field {
-            0 => {}
-            4 if c.is_ascii_digit() || c == '.' => app.insert_char_at_cursor(c),
-            1..=3 => app.insert_char_at_cursor(c),
+        (KeyCode::Char(c), KeyModifiers::NONE) => match app.category_edit_fields.focused().kind() {
+            FieldKind::Amount if c.is_ascii_digit() || c == '.' => app.insert_char_at_cursor(c),
+            FieldKind::Amount => {}
+            FieldKind::Text => app.insert_char_at_cursor(c),
             _ => {}
         },
         (KeyCode::Char(c), KeyModifiers::SHIFT)
-            if (1..=3).contains(&app.current_category_field) =>
+            if app.category_edit_fields.focused().kind() == FieldKind::Text =>
         {
             app.insert_char_at_cursor(c);
         }
-        (KeyCode::Backspace, KeyModifiers::NONE) if app.current_category_field != 0 => {
+        (KeyCode::Backspace, KeyModifiers::NONE)
+            if app.category_edit_fields.focused().kind().is_editable() =>
+        {
             app.delete_char_before_cursor();
         }
-        (KeyCode::Delete, KeyModifiers::NONE) if app.current_category_field != 0 => {
+        (KeyCode::Delete, KeyModifiers::NONE)
+            if app.category_edit_fields.focused().kind().is_editable() =>
+        {
             app.delete_char_after_cursor();
         }
         _ => {}

@@ -1,79 +1,65 @@
 use super::state::App;
+use crate::app::fields::{FieldKey, FieldKind};
 use crate::app::state::AppMode;
 use crate::model::DATE_FORMAT;
 use chrono::NaiveDate;
 
-#[derive(PartialEq)]
-pub enum InputType {
-    Text,
-    Date,
-    Amount,
-}
-
 impl App {
-    // Helper to get the active mutable input field state based on the current mode and field index.
-    // Returns: (content_string, cursor_position, input_type)
-    fn get_active_input_mut(&mut self) -> Option<(&mut String, &mut usize, InputType)> {
+    // Returns (content, cursor, kind) for the field being typed into, or None if the current
+    // field is not one (a toggle or a picker).
+    fn get_active_input_mut(&mut self) -> Option<(&mut String, &mut usize, FieldKind)> {
         match self.mode {
             AppMode::Filtering => Some((
                 &mut self.simple_filter_content,
                 &mut self.simple_filter_cursor,
-                InputType::Text,
+                FieldKind::Text,
             )),
             AppMode::CategoryCatalogFilter => Some((
                 &mut self.category_filter_query,
                 &mut self.category_filter_cursor,
-                InputType::Text,
+                FieldKind::Text,
             )),
             AppMode::Adding | AppMode::Editing => {
-                let idx = self.current_add_edit_field;
-                let input_type = match idx {
-                    0 => InputType::Date,
-                    2 => InputType::Amount,
-                    1 => InputType::Text,
-                    _ => return None, // Other fields (Type, Category, Subcategory) are not standard text inputs
-                };
+                let field = self.add_edit_fields.focused();
+                if !field.kind().is_editable() {
+                    return None;
+                }
                 Some((
-                    &mut self.add_edit_fields[idx],
+                    &mut self.add_edit_fields[field],
                     &mut self.add_edit_cursor,
-                    input_type,
+                    field.kind(),
                 ))
             }
             AppMode::CategoryEditor => {
-                let idx = self.current_category_field;
-                let input_type = match idx {
-                    1..=3 => InputType::Text,
-                    4 => InputType::Amount,
-                    _ => return None,
-                };
+                let field = self.category_edit_fields.focused();
+                if !field.kind().is_editable() {
+                    return None;
+                }
                 Some((
-                    &mut self.category_edit_fields[idx],
+                    &mut self.category_edit_fields[field],
                     &mut self.category_edit_cursor,
-                    input_type,
+                    field.kind(),
                 ))
             }
             AppMode::LedgerEditor => Some((
                 &mut self.ledger_name_input,
                 &mut self.ledger_name_cursor,
-                InputType::Text,
+                FieldKind::Text,
             )),
             AppMode::ImportTransactions | AppMode::ExportTransactions => Some((
                 &mut self.io_path_input,
                 &mut self.io_path_cursor,
-                InputType::Text,
+                FieldKind::Text,
             )),
             AppMode::AdvancedFiltering => {
-                let idx = self.current_advanced_filter_field;
-                let input_type = match idx {
-                    0 | 1 => InputType::Date,
-                    2 => InputType::Text, // Description
-                    7 | 8 => InputType::Amount,
-                    _ => return None, // Category(3), Subcategory(4), Type(5), Recurring(6) are selections/toggles
-                };
+                let field = self.advanced_filter_fields.focused();
+                if !field.kind().is_editable() {
+                    return None;
+                }
                 Some((
-                    &mut self.advanced_filter_fields[idx],
+                    &mut self.advanced_filter_fields[field],
                     &mut self.advanced_filter_cursor,
-                    input_type,
+                    field.kind(),
                 ))
             }
             _ => None,
@@ -104,9 +90,9 @@ impl App {
     }
 
     pub(crate) fn insert_char_at_cursor(&mut self, c: char) {
-        if let Some((content, cursor, input_type)) = self.get_active_input_mut() {
-            match input_type {
-                InputType::Date => {
+        if let Some((content, cursor, kind)) = self.get_active_input_mut() {
+            match kind {
+                FieldKind::Date => {
                     if let Some(new_content) =
                         crate::validation::validate_and_insert_date_char(content, c)
                     {
@@ -114,7 +100,7 @@ impl App {
                         *cursor = content.len();
                     }
                 }
-                InputType::Amount => {
+                FieldKind::Amount => {
                     if crate::validation::validate_amount_char(content, c) {
                         if *cursor >= content.len() {
                             content.push(c);
@@ -124,7 +110,7 @@ impl App {
                         *cursor += c.len_utf8();
                     }
                 }
-                InputType::Text => {
+                FieldKind::Text => {
                     if *cursor >= content.len() {
                         content.push(c);
                     } else {
@@ -132,14 +118,16 @@ impl App {
                     }
                     *cursor += c.len_utf8();
                 }
+                // get_active_input_mut never yields these.
+                FieldKind::Toggle | FieldKind::Selection => {}
             }
         }
     }
 
     pub(crate) fn delete_char_before_cursor(&mut self) {
-        if let Some((content, cursor, input_type)) = self.get_active_input_mut() {
-            match input_type {
-                InputType::Date => {
+        if let Some((content, cursor, kind)) = self.get_active_input_mut() {
+            match kind {
+                FieldKind::Date => {
                     // Date backspace logic is specific
                     crate::validation::handle_date_backspace(content);
                     *cursor = content.len();

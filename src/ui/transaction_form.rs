@@ -1,29 +1,19 @@
+use crate::app::fields::{FieldKey, FieldKind};
 use crate::app::state::App;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
 pub fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
-    // Field titles and hints
-    let field_definitions = [
-        (
-            "Date (YYYY-MM-DD)",
-            "(◀/▶ or +/- for days, Shift+◀/▶ for months, Digits to enter)",
-        ),
-        ("Description", ""),
-        ("Amount", ""),
-        ("Type", "(◀/▶ or Enter to toggle)"),
-        ("Category", "(Enter to select)"),
-        ("Subcategory", "(Enter to select)"),
-    ];
+    let focused_field = app.add_edit_fields.focused();
     let input_widgets: Vec<_> = app
         .add_edit_fields
         .iter()
-        .zip(field_definitions.iter())
-        .enumerate()
-        .map(|(i, (text, (base_title, hint)))| {
-            let is_focused = app.current_add_edit_field == i;
-            let title = format!("{} {}", base_title, hint).trim_end().to_string();
-            let content = if i == 3 {
+        .map(|(field, text)| {
+            let is_focused = field == focused_field;
+            let title = format!("{} {}", field.label(), field.hint())
+                .trim_end()
+                .to_string();
+            let content = if field.kind() == FieldKind::Toggle {
                 Span::styled(
                     format!(" < {} > ", text),
                     Style::default().fg(Color::White).bold(),
@@ -54,8 +44,8 @@ pub fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
     let max_visible_fields = ((available_height / field_height) as usize)
         .max(1)
         .min(total_fields);
-    let scroll_offset = app
-        .current_add_edit_field
+    let scroll_offset = focused_field
+        .index()
         .saturating_sub(max_visible_fields - 1)
         .min(total_fields - max_visible_fields);
 
@@ -92,9 +82,9 @@ pub fn render_transaction_form(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(form_block, area);
 
     // Set cursor position for editable text fields, adjusting for scrolling
-    if ![3, 4, 5].contains(&app.current_add_edit_field) {
-        let field_idx = app.current_add_edit_field;
-        let text = &app.add_edit_fields[field_idx];
+    if focused_field.kind().is_editable() {
+        let field_idx = focused_field.index();
+        let text = &app.add_edit_fields[focused_field];
         let cursor_byte_idx = app.add_edit_cursor.min(text.len());
         let visual_cursor = text[..cursor_byte_idx].chars().count() as u16;
 
