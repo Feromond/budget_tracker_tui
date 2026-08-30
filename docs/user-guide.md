@@ -65,6 +65,34 @@ The catalog holds your categories and subcategories. Open it from Settings (*Man
 - `a` adds a category, `e` or `Enter` edits the selected one, `d` deletes it
 - Expense categories can optionally hold a per-category target budget, used by the budget view
 
+## Ledgers
+
+A ledger is a self-contained set of transactions. One database can hold several of them, so you
+can keep separate books for different accounts or goals, or copy of a scenario to experiment with
+forecasting without touching your real data. Every ledger in a database **shares the same category
+catalog**, including per-category target budgets, so a category you rename or delete updates the
+transactions in all of them.
+
+Open the list from Settings (*Ledger*, which shows the ledger currently open).
+
+- `↑`/`↓` move between ledgers; the open one is marked with a dot
+- `Enter` switches to the selected ledger and returns to settings
+- `a` adds an empty ledger, `e` renames the selected one
+- `Ctrl+C` copies the selected ledger, transactions and all, into a new one. Handy for trying a
+  forecast or a what-if against real numbers without touching the original. You're offered a name
+  like `Main (copy)`, which you can edit before saving.
+- `d` deletes the selected ledger **and every transaction in it**, after a confirmation that names
+  the ledger and its transaction count. The last remaining ledger can't be deleted.
+- `q`/`Esc` returns to settings
+
+The name of the open ledger is shown in the transaction list's title. The transaction list,
+filters, summary views, budget view, and CSV import/export all apply to the open ledger only.
+
+Existing databases upgrade automatically: all of your current transactions land in a ledger named
+`Main`, and nothing else changes.
+
+To move transactions between ledgers, export them to CSV, switch ledgers, then import that file.
+
 ## Settings
 
 Press `o` to open settings. The menu is grouped into sections:
@@ -72,9 +100,10 @@ Press `o` to open settings. The menu is grouped into sections:
 **Data Management**
 
 - *Database Path*: where the SQLite database lives (see [Data storage](#data-storage) below).
+- *Ledger*: shows the ledger currently open; opens the [ledger list](#ledgers) to switch or manage them.
 - *Manage Categories*: opens the [category catalog](#the-category-catalog).
-- *Import Transactions (CSV)*: merges a CSV file into your database; new rows are added, exact duplicates are skipped.
-- *Export Transactions (CSV)*: writes all transactions to a CSV file for backup or use elsewhere.
+- *Import Transactions (CSV)*: merges a CSV file into the open ledger; new rows are added, exact duplicates are skipped.
+- *Export Transactions (CSV)*: writes the open ledger's transactions to a CSV file for backup or use elsewhere.
 
 **Monthly Summary View**
 
@@ -98,7 +127,7 @@ Press `o` to open settings. The menu is grouped into sections:
 
 ## Data storage
 
-Transactions and categories are stored together in a local SQLite database (`budget.db`). On first run with a new database, it's seeded with the default category catalog. Default locations:
+Transactions and categories are stored together in a local SQLite database (`budget.db`). On first run with a new database, it's seeded with the default category catalog and a ledger named `Main`. Default locations:
 
 - **Linux:** `$XDG_DATA_HOME/BudgetTracker/budget.db` (usually `~/.local/share/BudgetTracker/budget.db`)
 - **macOS:** `~/Library/Application Support/BudgetTracker/budget.db`
@@ -117,6 +146,8 @@ Changes are written to the database immediately as you add, edit, or delete, so 
 ### Migrating from older versions
 
 Versions before 1.4.0 stored transactions in a `transactions.csv` file. On first launch, the app imports that file into the database automatically and renames the original to `transactions.csv.migrated-backup`. Nothing is deleted.
+
+The database carries a data version, and the app upgrades it in place when you install a newer release. Upgrades run in a single transaction, so a failure leaves the database exactly as it was. If you open a database that a **newer** version of the app has already upgraded (easy to do when the file is synced between machines running different versions), the older app refuses to open it and tells you to update, rather than reading or writing a schema it doesn't understand.
 
 ## CSV format
 

@@ -30,6 +30,13 @@ impl App {
             "Absolute path to your SQLite database (transactions and categories).",
         );
         self.settings_state.add_setting(
+            SettingKey::ManageLedgers,
+            "Ledger",
+            self.active_ledger_name().to_string(),
+            SettingType::Action,
+            "Switch between transaction ledgers, or add, rename, and delete them.",
+        );
+        self.settings_state.add_setting(
             SettingKey::ManageCategories,
             "Manage Categories",
             "Open Category Catalog".to_string(),
@@ -164,6 +171,18 @@ impl App {
         }
 
         self.clear_status_message();
+    }
+
+    pub(crate) fn select_settings_row(&mut self, key: SettingKey) {
+        if let Some(index) = self
+            .settings_state
+            .items
+            .iter()
+            .position(|item| item.key == key)
+        {
+            self.settings_state.selected_index = index;
+            self.settings_state.edit_cursor = self.settings_state.items[index].value.len();
+        }
     }
 
     pub(crate) fn exit_settings_mode(&mut self) {
@@ -302,23 +321,17 @@ impl App {
         // Set before reloading so occurrences are re-derived against the new horizon.
         self.recurring_forecast_months = forecast_months;
 
-        // Point at the new database and reload everything from it.
+        // Point at the new database and reload everything from it. The ledgers are
+        // re-resolved first because the previous active id belongs to the old file.
         self.database_path = new_database_path.clone();
-        if let Err(e) = self.reload_categories_from_store() {
+        self.clear_all_filter_fields();
+        if let Err(e) = self
+            .refresh_ledgers()
+            .and_then(|_| self.reload_working_set())
+        {
             self.set_status_message(
                 format!(
-                    "Error loading categories from '{}': {}. Check database path and permissions.",
-                    self.database_path.display(),
-                    e
-                ),
-                None,
-            );
-            return;
-        }
-        if let Err(e) = self.reload_transactions_from_db() {
-            self.set_status_message(
-                format!(
-                    "Error loading transactions from '{}': {}. Check database path and permissions.",
+                    "Error loading '{}': {}. Check database path and permissions.",
                     self.database_path.display(),
                     e
                 ),
@@ -328,17 +341,6 @@ impl App {
         }
 
         self.exit_settings_mode();
-
-        // Re-init app state (sorting, summaries)
-        self.sort_transactions();
-        self.filtered_indices = (0..self.transactions.len()).collect();
-        if !self.filtered_indices.is_empty() {
-            self.table_state.select(Some(0));
-        } else {
-            self.table_state.select(None);
-        }
-        self.calculate_monthly_summaries();
-        self.calculate_category_summaries();
 
         self.set_status_message(
             format!("Settings saved. Database: {}", self.database_path.display()),
@@ -390,6 +392,7 @@ impl App {
             .map(|item| item.key);
 
         match selected_key {
+            Some(SettingKey::ManageLedgers) => self.open_ledger_manager(),
             Some(SettingKey::ManageCategories) => self.open_category_catalog(AppMode::Settings),
             Some(SettingKey::ImportTransactions) => {
                 self.open_transaction_io(AppMode::ImportTransactions)

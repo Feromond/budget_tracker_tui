@@ -119,6 +119,10 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             "Transactions",
             Style::default().add_modifier(Modifier::BOLD),
         ));
+        spans.push(Span::styled(
+            format!(": {}", app.active_ledger_name()),
+            Style::default().fg(Color::LightGreen),
+        ));
         if app.recurring_forecast_months > 0 {
             spans.push(Span::styled(
                 format!(" (Forecast +{}mo)", app.recurring_forecast_months),

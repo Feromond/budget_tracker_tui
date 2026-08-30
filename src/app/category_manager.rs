@@ -1,7 +1,6 @@
 use super::state::App;
 use crate::app::state::AppMode;
 use crate::db::category_store::CategoryStore;
-use crate::db::transaction_store::TransactionStore;
 use crate::model::{CategoryDraft, CategoryRecord, TransactionType};
 use chrono::Duration;
 
@@ -274,34 +273,12 @@ impl App {
             return;
         };
 
-        let Some(record) = self
-            .category_records
-            .iter()
-            .find(|record| record.id == id)
-            .cloned()
-        else {
-            self.cancel_delete_category();
-            self.set_status_message("The selected category no longer exists.", None);
-            return;
-        };
-
         let store = self.category_store();
         if let Err(err) = store.delete(id) {
             self.set_status_message(format!("Error deleting category: {}", err), None);
             return;
         }
 
-        // Re-point affected transactions in the database (clears the deleted category).
-        if let Err(err) = self.transaction_store().apply_category_clear(&record) {
-            self.set_status_message(
-                format!(
-                    "Category deleted, but updating transactions failed: {}",
-                    err
-                ),
-                None,
-            );
-            return;
-        }
         if let Err(err) = self.reload_transactions_from_db() {
             self.set_status_message(
                 format!(
@@ -366,25 +343,14 @@ impl App {
             }
         };
 
-        if let Some(old_record) = existing_record {
-            // Propagate the rename/retype to existing transactions in the database.
-            if let Err(err) = self
-                .transaction_store()
-                .apply_category_rename(&old_record, &draft)
-            {
-                self.set_status_message(
-                    format!("Category saved, but updating transactions failed: {}", err),
-                    None,
-                );
-                return;
-            }
-            if let Err(err) = self.reload_transactions_from_db() {
-                self.set_status_message(
-                    format!("Category saved, but reloading transactions failed: {}", err),
-                    None,
-                );
-                return;
-            }
+        if editing_category_id.is_some()
+            && let Err(err) = self.reload_transactions_from_db()
+        {
+            self.set_status_message(
+                format!("Category saved, but reloading transactions failed: {}", err),
+                None,
+            );
+            return;
         }
 
         if let Err(err) = self.reload_categories_from_store() {

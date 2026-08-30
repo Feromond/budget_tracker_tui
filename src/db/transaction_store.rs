@@ -1,7 +1,6 @@
 use crate::db::database::SqliteDatabase;
 use crate::model::{
-    CategoryDraft, CategoryRecord, DATE_FORMAT, RecurrenceFrequency, Transaction, TransactionDraft,
-    TransactionType,
+    DATE_FORMAT, RecurrenceFrequency, Transaction, TransactionDraft, TransactionType,
 };
 use chrono::NaiveDate;
 use rusqlite::{Connection, Error as SqlError, Row, params, types::Type};
@@ -18,6 +17,7 @@ pub struct ImportSummary {
 
 /// Persistence for transactions. Only **real** rows are stored (regular transactions and
 /// recurring sources); generated occurrences are derived in-memory and never written here.
+/// Every method is scoped to the single ledger the store was built for.
 pub trait TransactionStore {
     fn list(&self) -> Result<Vec<Transaction>>;
     fn insert(&self, draft: &TransactionDraft) -> Result<i64>;
@@ -26,33 +26,23 @@ pub trait TransactionStore {
     /// Insert every row that is not already present (matched on its natural key). Runs in a
     /// single transaction; duplicates within the batch are skipped too.
     fn import_merge(&self, rows: &[Transaction]) -> Result<ImportSummary>;
-    /// Re-point all rows matching `old` onto the `new` category (used when a category is
-    /// renamed/retyped in the catalog).
-    fn apply_category_rename(&self, old: &CategoryRecord, new: &CategoryDraft) -> Result<()>;
-    /// Clear rows that referenced a deleted category, mirroring the in-app rules: deleting a
-    /// top-level category resets matches to "Uncategorized"; deleting a subcategory only
-    /// clears the subcategory.
-    fn apply_category_clear(&self, record: &CategoryRecord) -> Result<()>;
 }
 
 pub struct SqliteTransactionStore {
     database: SqliteDatabase,
+    ledger_id: i64,
 }
 
 impl SqliteTransactionStore {
-    pub fn new(database: SqliteDatabase) -> Self {
-        Self { database }
+    pub fn new(database: SqliteDatabase, ledger_id: i64) -> Self {
+        Self {
+            database,
+            ledger_id,
+        }
     }
 
-    fn open_connection(&self) -> Result<Connection> {
-        self.database.open_connection("transaction")
-    }
-
-    /// Open a connection with the schema guaranteed up to date.
     fn ready_connection(&self) -> Result<Connection> {
-        let mut conn = self.open_connection()?;
-        self.database.run_migrations(&mut conn)?;
-        Ok(conn)
+        self.database.ready_connection("transaction")
     }
 
     fn row_to_transaction(row: &Row<'_>) -> rusqlite::Result<Transaction> {
@@ -85,10 +75,15 @@ impl SqliteTransactionStore {
         })
     }
 
-    fn insert_with_conn(conn: &Connection, draft: &TransactionDraft) -> Result<i64> {
+    fn insert_with_conn(
+        conn: &Connection,
+        ledger_id: i64,
+        draft: &TransactionDraft,
+    ) -> Result<i64> {
         conn.execute(
             "
             INSERT INTO transactions (
+                ledger_id,
                 date,
                 description,
                 amount,
@@ -98,9 +93,10 @@ impl SqliteTransactionStore {
                 is_recurring,
                 recurrence_frequency,
                 recurrence_end_date
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             ",
             params![
+                ledger_id,
                 draft.date.format(DATE_FORMAT).to_string(),
                 &draft.description,
                 draft.amount.normalize().to_string(),
@@ -121,19 +117,21 @@ impl SqliteTransactionStore {
 
     /// Does a row with the same natural key already exist? Amounts are compared in their
     /// canonical `Decimal` string form so "10" and "10.00" are treated as equal.
-    fn natural_key_exists(conn: &Connection, tx: &Transaction) -> Result<bool> {
+    fn natural_key_exists(conn: &Connection, ledger_id: i64, tx: &Transaction) -> Result<bool> {
         conn.query_row(
             "
             SELECT 1 FROM transactions
-            WHERE date = ?1
-              AND description = ?2
-              AND amount = ?3
-              AND transaction_type = ?4
-              AND category = ?5
-              AND subcategory = ?6
+            WHERE ledger_id = ?1
+              AND date = ?2
+              AND description = ?3
+              AND amount = ?4
+              AND transaction_type = ?5
+              AND category = ?6
+              AND subcategory = ?7
             LIMIT 1
             ",
             params![
+                ledger_id,
                 tx.date.format(DATE_FORMAT).to_string(),
                 &tx.description,
                 tx.amount.normalize().to_string(),
@@ -163,13 +161,14 @@ impl TransactionStore for SqliteTransactionStore {
                 SELECT id, date, description, amount, transaction_type, category, subcategory,
                        is_recurring, recurrence_frequency, recurrence_end_date
                 FROM transactions
+                WHERE ledger_id = ?1
                 ORDER BY date, id
                 ",
             )
             .map_err(|err| Error::other(format!("Failed to prepare transaction query: {}", err)))?;
 
         let rows = stmt
-            .query_map([], Self::row_to_transaction)
+            .query_map([self.ledger_id], Self::row_to_transaction)
             .map_err(|err| Error::other(format!("Failed to load transactions: {}", err)))?;
 
         rows.collect::<rusqlite::Result<Vec<_>>>()
@@ -178,7 +177,7 @@ impl TransactionStore for SqliteTransactionStore {
 
     fn insert(&self, draft: &TransactionDraft) -> Result<i64> {
         let conn = self.ready_connection()?;
-        Self::insert_with_conn(&conn, draft)
+        Self::insert_with_conn(&conn, self.ledger_id, draft)
     }
 
     fn update(&self, id: i64, draft: &TransactionDraft) -> Result<()> {
@@ -197,7 +196,7 @@ impl TransactionStore for SqliteTransactionStore {
                     is_recurring = ?7,
                     recurrence_frequency = ?8,
                     recurrence_end_date = ?9
-                WHERE id = ?10
+                WHERE id = ?10 AND ledger_id = ?11
                 ",
                 params![
                     draft.date.format(DATE_FORMAT).to_string(),
@@ -212,6 +211,7 @@ impl TransactionStore for SqliteTransactionStore {
                         .recurrence_end_date
                         .map(|date| date.format(DATE_FORMAT).to_string()),
                     id,
+                    self.ledger_id,
                 ],
             )
             .map_err(|err| Error::other(format!("Failed to update transaction: {}", err)))?;
@@ -228,7 +228,10 @@ impl TransactionStore for SqliteTransactionStore {
     fn delete(&self, id: i64) -> Result<()> {
         let conn = self.ready_connection()?;
         let deleted = conn
-            .execute("DELETE FROM transactions WHERE id = ?1", [id])
+            .execute(
+                "DELETE FROM transactions WHERE id = ?1 AND ledger_id = ?2",
+                [id, self.ledger_id],
+            )
             .map_err(|err| Error::other(format!("Failed to delete transaction: {}", err)))?;
 
         if deleted == 0 {
@@ -253,10 +256,10 @@ impl TransactionStore for SqliteTransactionStore {
 
         let mut summary = ImportSummary::default();
         for row in ordered {
-            if Self::natural_key_exists(&tx, row)? {
+            if Self::natural_key_exists(&tx, self.ledger_id, row)? {
                 summary.skipped += 1;
             } else {
-                Self::insert_with_conn(&tx, &row.to_draft())?;
+                Self::insert_with_conn(&tx, self.ledger_id, &row.to_draft())?;
                 summary.added += 1;
             }
         }
@@ -264,69 +267,6 @@ impl TransactionStore for SqliteTransactionStore {
         tx.commit()
             .map_err(|err| Error::other(format!("Failed to commit import: {}", err)))?;
         Ok(summary)
-    }
-
-    fn apply_category_rename(&self, old: &CategoryRecord, new: &CategoryDraft) -> Result<()> {
-        let conn = self.ready_connection()?;
-        conn.execute(
-            "
-            UPDATE transactions
-            SET transaction_type = ?1, category = ?2, subcategory = ?3
-            WHERE transaction_type = ?4
-              AND LOWER(category) = LOWER(?5)
-              AND LOWER(subcategory) = LOWER(?6)
-            ",
-            params![
-                new.transaction_type.as_str(),
-                &new.category,
-                &new.subcategory,
-                old.transaction_type.as_str(),
-                &old.category,
-                &old.subcategory,
-            ],
-        )
-        .map_err(|err| {
-            Error::other(format!(
-                "Failed to update transactions for category: {}",
-                err
-            ))
-        })?;
-        Ok(())
-    }
-
-    fn apply_category_clear(&self, record: &CategoryRecord) -> Result<()> {
-        let conn = self.ready_connection()?;
-        // Deleting a top-level category (no subcategory) resets matches to Uncategorized;
-        // deleting a subcategory only clears the subcategory field.
-        let set_clause = if record.subcategory.is_empty() {
-            "category = 'Uncategorized', subcategory = ''"
-        } else {
-            "subcategory = ''"
-        };
-        conn.execute(
-            &format!(
-                "
-                UPDATE transactions
-                SET {}
-                WHERE transaction_type = ?1
-                  AND LOWER(category) = LOWER(?2)
-                  AND LOWER(subcategory) = LOWER(?3)
-                ",
-                set_clause
-            ),
-            params![
-                record.transaction_type.as_str(),
-                &record.category,
-                &record.subcategory,
-            ],
-        )
-        .map_err(|err| {
-            Error::other(format!(
-                "Failed to clear transactions for category: {}",
-                err
-            ))
-        })?;
-        Ok(())
     }
 }
 
@@ -379,6 +319,7 @@ fn parse_transaction_type(index: usize, value: &str) -> rusqlite::Result<Transac
 mod tests {
     use super::*;
     use crate::db::database::SCHEMA_VERSION;
+    use crate::db::ledger_store::{DEFAULT_LEDGER_ID, LedgerStore, SqliteLedgerStore};
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -405,7 +346,18 @@ mod tests {
         }
 
         fn store(&self) -> SqliteTransactionStore {
-            SqliteTransactionStore::new(SqliteDatabase::new(&self.path))
+            self.store_for(DEFAULT_LEDGER_ID)
+        }
+
+        fn store_for(&self, ledger_id: i64) -> SqliteTransactionStore {
+            SqliteTransactionStore::new(SqliteDatabase::new(&self.path), ledger_id)
+        }
+
+        fn create_ledger(&self, name: &str) -> i64 {
+            SqliteLedgerStore::new(SqliteDatabase::new(&self.path))
+                .create(name)
+                .unwrap()
+                .id
         }
     }
 
@@ -444,6 +396,92 @@ mod tests {
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .unwrap();
         assert_eq!(version, SCHEMA_VERSION);
+
+        // Migration v3 seeds the ledger that pre-existing transactions are attributed to.
+        let (id, name): (i64, String) = conn
+            .query_row("SELECT id, name FROM ledgers", [], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })
+            .unwrap();
+        assert_eq!(id, DEFAULT_LEDGER_ID);
+        assert_eq!(name, "Main");
+    }
+
+    #[test]
+    fn upgrading_a_v2_database_keeps_rows_on_the_default_ledger() {
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+
+        // Build a database at the pre-ledger schema, exactly as an existing install has it.
+        let mut conn = database.open_connection("test").unwrap();
+        conn.execute_batch(
+            "
+            CREATE TABLE transactions (
+                id INTEGER PRIMARY KEY,
+                date TEXT NOT NULL,
+                description TEXT NOT NULL,
+                amount TEXT NOT NULL,
+                transaction_type TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'Uncategorized',
+                subcategory TEXT NOT NULL DEFAULT '',
+                is_recurring INTEGER NOT NULL DEFAULT 0,
+                recurrence_frequency TEXT NULL,
+                recurrence_end_date TEXT NULL
+            );
+            INSERT INTO transactions (date, description, amount, transaction_type, category)
+            VALUES ('2026-01-05', 'Coffee', '4.50', 'Expense', 'Food');
+            PRAGMA user_version = 2;
+            ",
+        )
+        .unwrap();
+        database.run_migrations(&mut conn).unwrap();
+        drop(conn);
+
+        let rows = temp.store().list().unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].description, "Coffee");
+    }
+
+    #[test]
+    fn a_database_from_a_newer_build_is_refused() {
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+        let mut conn = database.open_connection("test").unwrap();
+        conn.execute_batch(&format!("PRAGMA user_version = {};", SCHEMA_VERSION + 1))
+            .unwrap();
+
+        let err = database.run_migrations(&mut conn).unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::Unsupported);
+        drop(conn);
+
+        // Every store operation refuses too, so nothing can read or write the file.
+        assert!(temp.store().list().is_err());
+        assert!(
+            temp.store()
+                .insert(&draft("2026-01-05", "Coffee", "4.50", "Food"))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn ledgers_do_not_see_each_others_rows() {
+        let temp = TempDb::new();
+        temp.store()
+            .insert(&draft("2026-01-05", "Coffee", "4.50", "Food"))
+            .unwrap();
+
+        let forecast = temp.create_ledger("Forecast");
+        let forecast_store = temp.store_for(forecast);
+        assert!(forecast_store.list().unwrap().is_empty());
+
+        let id = forecast_store
+            .insert(&draft("2026-02-01", "Rent", "1000", "Housing"))
+            .unwrap();
+        assert_eq!(temp.store().list().unwrap().len(), 1);
+        assert_eq!(forecast_store.list().unwrap().len(), 1);
+
+        assert!(temp.store().delete(id).is_err());
+        assert_eq!(forecast_store.list().unwrap().len(), 1);
     }
 
     #[test]
@@ -496,6 +534,14 @@ mod tests {
         assert_eq!(summary.added, 1);
         assert_eq!(summary.skipped, 1);
         assert_eq!(store.list().unwrap().len(), 2);
+
+        // Dedupe is per-ledger, so the same rows import cleanly into a different ledger.
+        let other = temp.store_for(temp.create_ledger("Forecast"));
+        let dup = draft("2026-01-05", "Coffee", "4.5", "Food").into_transaction();
+        let fresh = draft("2026-02-01", "Books", "20", "Education").into_transaction();
+        let summary = other.import_merge(&[dup, fresh]).unwrap();
+        assert_eq!(summary.added, 2);
+        assert_eq!(summary.skipped, 0);
     }
 
     #[test]

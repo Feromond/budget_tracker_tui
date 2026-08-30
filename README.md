@@ -56,6 +56,7 @@ cargo install budget_tracker_tui
 - Hierarchical categories and subcategories, editable in-app, with optional fuzzy search
 - Monthly and category summaries with interactive charts
 - Monthly target budget plus optional per-category budgets, tracked in a dedicated budget view
+- Multiple ledgers per database, for separate accounts or for forecasting apart from your real data
 - CSV import/export (duplicates skipped on import)
 - Local SQLite storage with decimal arithmetic (no floating-point rounding errors)
 - Fully keyboard-driven, with a built-in help menu
