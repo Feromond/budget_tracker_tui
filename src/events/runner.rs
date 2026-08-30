@@ -107,10 +107,19 @@ fn update(app: &mut App, key_event: KeyEvent) {
         if key_event.kind == KeyEventKind::Press {
             match key_event.code {
                 KeyCode::Enter | KeyCode::Char('o') => {
-                    let _ = crate::app::util::open_url(
+                    let opened = crate::app::util::open_url(
                         "https://github.com/Feromond/budget_tracker_tui/releases",
                     );
                     app.show_update_popup = false;
+                    if opened {
+                        // Close the app so the old and new versions are not run side by side.
+                        app.quit();
+                    } else {
+                        app.set_status_message(
+                            "Could not open browser. Visit github.com/Feromond/budget_tracker_tui/releases",
+                            Some(chrono::Duration::seconds(5)),
+                        );
+                    }
                 }
                 _ => {
                     app.show_update_popup = false;

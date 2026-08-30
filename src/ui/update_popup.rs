@@ -26,7 +26,7 @@ pub fn render_update_popup(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(block, popup_area);
 
     let text = format!(
-        "\n\nA new version ({}) is available!\n\nVisit GitHub releases to download.\n\nPress <Enter> or 'o' to open link.\nPress any other key to close.",
+        "\n\nA new version ({}) is available!\n\nVisit GitHub releases to download.\n\nPress <Enter> or 'o' to open the link and exit.\nPress any other key to close.",
         version
     );
 
