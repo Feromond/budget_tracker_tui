@@ -19,23 +19,33 @@ pub fn run_app<B: Backend>(
 where
     <B as ratatui::backend::Backend>::Error: 'static,
 {
+    // A draw builds a row per filtered transaction, so idle repaints get expensive on big ledgers.
+    let mut needs_redraw = true;
+
     while !app.should_quit {
         // Check for status expiry
         if let Some(expiry) = app.status_expiry
             && std::time::Instant::now() > expiry
         {
             app.clear_status_message();
+            needs_redraw = true;
         }
 
         // Check for update in background channel
         if let Ok(Some(version)) = app.update_rx.try_recv() {
             app.update_available_version = Some(version);
             app.show_update_popup = true;
+            needs_redraw = true;
         }
 
-        terminal.draw(|f| ui(f, app))?;
+        if needs_redraw {
+            terminal.draw(|f| ui(f, app))?;
+            needs_redraw = false;
+        }
 
         if event::poll(Duration::from_millis(250))? {
+            needs_redraw = true;
+
             let event = match event::read()? {
                 Event::Key(key) => Event::Key(normalize_key(key)),
                 other => other,
