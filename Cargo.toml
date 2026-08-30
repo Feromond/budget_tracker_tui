@@ -1,6 +1,6 @@
 [package]
 name = "budget_tracker_tui"
-version = "1.4.2"
+version = "1.5.0"
 edition = "2024"
 authors = ["Jacob Mish <JacobPMish@gmail.com>"]
 description = "A feature rich TUI budget tracker app"
@@ -10,17 +10,17 @@ keywords = ["tui", "budget", "finance", "terminal", "tracker"]
 categories = ["command-line-utilities", "finance"]
 
 [dependencies]
-ratatui = { version = "0.30.0", features = ["crossterm"] }
+ratatui = { version = "0.30.2", features = ["crossterm"] }
 crossterm = "0.29.0"
 csv = "1.4.0"
-serde = { version = "1.0.228", features = ["derive"] }
-chrono = { version = "0.4.44", features = ["serde"] }
+serde = { version = "1.0.229", features = ["derive"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 dirs = "6.0.0"
-serde_json = "1.0.150"
-rust_decimal = { version = "1.42.0", features = ["serde"] }
-ureq = { version = "3.3.0", features = ["json"] }
+serde_json = "1.0.151"
+rust_decimal = { version = "1.42.1", features = ["serde"] }
+ureq = { version = "3.4.0", features = ["json"] }
 semver = "1.0.28"
-rusqlite = { version = "0.40.0", features = ["bundled"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 [[bin]]
 name = "Budget_Tracker"
@@ -33,7 +33,7 @@ winresource = "0.1.31"
 name = "Budget Tracker"
 identifier = "io.github.Feromond.budget_tracker_tui"
 icon = ["/budget_tracker_icon.png"]
-version = "1.4.2"
+version = "1.5.0"
 copyright = "Copyright Ventra Software Inc. 2026. All rights reserved."
 category = "Finance"
 short_description = "A feature rich TUI budget tracker app"
