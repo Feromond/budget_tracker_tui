@@ -97,6 +97,21 @@ impl App {
             );
         }
 
+        // --- Recurring Transactions Section ---
+        self.settings_state.add_header("Recurring Transactions");
+
+        let forecast_val = self.recurring_forecast_months.to_string();
+        self.settings_state.add_setting(
+            SettingKey::RecurringForecastMonths,
+            "Forecast Months Ahead",
+            forecast_val,
+            SettingType::Integer,
+            &format!(
+                "Project recurring occurrences this many months past today (0-{}). 0 stops at today.",
+                crate::recurring::MAX_FORECAST_MONTHS
+            ),
+        );
+
         // --- Input Preferences Section ---
         self.settings_state.add_header("Input Preferences");
 
@@ -164,6 +179,7 @@ impl App {
         let mut new_database_path_str = String::new();
         let mut target_budget_str = String::new();
         let mut hourly_rate_str = String::new();
+        let mut forecast_months_str = String::new();
         let mut show_hours_val = None;
         let mut fuzzy_search_val = None;
         let mut hide_help_bar_val = None;
@@ -176,6 +192,12 @@ impl App {
         }
         if let Some(val) = self.settings_state.get_value(SettingKey::HourlyRate) {
             hourly_rate_str = val.trim().to_string();
+        }
+        if let Some(val) = self
+            .settings_state
+            .get_value(SettingKey::RecurringForecastMonths)
+        {
+            forecast_months_str = val.trim().to_string();
         }
         if let Some(val) = self.settings_state.get_value(SettingKey::ShowHours) {
             show_hours_val = Some(val.to_lowercase().contains("yes"));
@@ -208,6 +230,25 @@ impl App {
                 Ok(val) => Some(val),
                 Err(msg) => {
                     self.set_status_message(format!("Error: Hourly rate - {}", msg), None);
+                    return;
+                }
+            }
+        };
+
+        // Validate Recurring Forecast Horizon
+        let forecast_months = if forecast_months_str.is_empty() {
+            0
+        } else {
+            match forecast_months_str.parse::<u32>() {
+                Ok(val) if val <= crate::recurring::MAX_FORECAST_MONTHS => val,
+                _ => {
+                    self.set_status_message(
+                        format!(
+                            "Error: Forecast months must be a whole number between 0 and {}.",
+                            crate::recurring::MAX_FORECAST_MONTHS
+                        ),
+                        None,
+                    );
                     return;
                 }
             }
@@ -251,11 +292,15 @@ impl App {
             show_hours: show_hours_val,
             fuzzy_search_mode: fuzzy_search_val,
             hide_help_bar: hide_help_bar_val,
+            recurring_forecast_months: Some(forecast_months),
         };
         if let Err(e) = save_settings(&settings) {
             self.set_status_message(format!("Error saving config file: {}", e), None);
             return;
         }
+
+        // Set before reloading so occurrences are re-derived against the new horizon.
+        self.recurring_forecast_months = forecast_months;
 
         // Point at the new database and reload everything from it.
         self.database_path = new_database_path.clone();

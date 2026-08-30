@@ -52,7 +52,7 @@ cargo install budget_tracker_tui
 ## Features
 
 - Add, edit, delete, filter, and sort income and expense transactions
-- Recurring transactions, from daily to yearly, generated automatically up to today
+- Recurring transactions, from daily to yearly, generated automatically up to today or a forecast horizon you set
 - Hierarchical categories and subcategories, editable in-app, with optional fuzzy search
 - Monthly and category summaries with interactive charts
 - Monthly target budget plus optional per-category budgets, tracked in a dedicated budget view

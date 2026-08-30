@@ -137,6 +137,8 @@ pub struct App {
     pub(crate) recurring_settings_fields: [String; 3], // [is_recurring, frequency, end_date]
     pub(crate) current_recurring_field: usize,
     pub(crate) recurring_transaction_index: Option<usize>,
+    // Months past today that recurring occurrences are projected; 0 stops at today.
+    pub(crate) recurring_forecast_months: u32,
     // Import/Export path prompt state (shared by ImportTransactions/ExportTransactions modes)
     pub(crate) io_path_input: String,
     pub(crate) io_path_cursor: usize,
@@ -325,6 +327,10 @@ impl App {
             recurring_settings_fields: Default::default(),
             current_recurring_field: 0,
             recurring_transaction_index: None,
+            recurring_forecast_months: loaded_settings
+                .recurring_forecast_months
+                .unwrap_or(0)
+                .min(crate::recurring::MAX_FORECAST_MONTHS),
             io_path_input: String::new(),
             io_path_cursor: 0,
             previous_mode: None,
@@ -344,7 +350,7 @@ impl App {
             app.table_state.select(Some(0));
         }
 
-        // Generate recurring transactions up to today
+        // Generate recurring transactions up to today (or the configured forecast horizon)
         app.generate_recurring_transactions();
 
         app

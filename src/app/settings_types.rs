@@ -3,6 +3,7 @@ pub enum SettingType {
     SectionHeader,
     Path,
     Number,
+    Integer,
     Toggle,
     Action,
 }
@@ -21,6 +22,7 @@ pub enum SettingKey {
     ShowHours,
     FuzzySearch,
     HideHelpBar,
+    RecurringForecastMonths,
 }
 
 #[derive(Debug, Clone)]

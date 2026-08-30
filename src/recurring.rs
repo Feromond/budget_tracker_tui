@@ -5,6 +5,10 @@
 use crate::model::{RecurrenceFrequency, Transaction};
 use chrono::{Datelike, Duration, NaiveDate};
 
+/// Upper bound on how far ahead recurring occurrences may be projected. Daily series generate
+/// one row per day, so an unbounded horizon would balloon the in-memory transaction list.
+pub const MAX_FORECAST_MONTHS: u32 = 60;
+
 /// Generates recurring transaction instances from a list of recurring transactions
 /// up to a specified date.
 ///

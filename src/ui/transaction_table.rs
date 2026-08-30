@@ -56,6 +56,8 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
         .height(1)
         .bottom_margin(1);
 
+    // Forecast occurrences are dimmed so they read as projections, not settled transactions.
+    let today = chrono::Local::now().date_naive();
     let rows = app.filtered_indices.iter().map(|&original_index| {
         if original_index >= app.transactions.len() {
             return Row::new(vec![Cell::from("Error: Invalid Index").fg(Color::Red)])
@@ -94,7 +96,12 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             Cell::from(Line::from(amount_cell_text).alignment(Alignment::Right))
                 .style(amount_style),
         ];
-        Row::new(cells).height(1).bottom_margin(0)
+        let row = Row::new(cells).height(1).bottom_margin(0);
+        if tx.is_generated_from_recurring && tx.date > today {
+            row.style(Style::default().add_modifier(Modifier::DIM))
+        } else {
+            row
+        }
     });
 
     let is_filtered = app.filtered_indices.len() != app.transactions.len();
@@ -112,6 +119,12 @@ pub fn render_transaction_table(f: &mut Frame, app: &mut App, area: Rect) {
             "Transactions",
             Style::default().add_modifier(Modifier::BOLD),
         ));
+        if app.recurring_forecast_months > 0 {
+            spans.push(Span::styled(
+                format!(" (Forecast +{}mo)", app.recurring_forecast_months),
+                Style::default().fg(Color::Cyan),
+            ));
+        }
         Line::from(spans)
     };
     let table = Table::new(
