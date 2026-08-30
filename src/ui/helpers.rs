@@ -1,14 +1,14 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Color;
-use rust_decimal::Decimal;
-use rust_decimal::prelude::*;
+use rust_decimal::{Decimal, RoundingStrategy};
 
 pub fn format_amount(amount: &Decimal) -> String {
-    let value = amount.to_f64().unwrap_or(0.0);
-    let s = format!("{:.2}", value.abs());
-    let parts: Vec<&str> = s.split('.').collect();
-    let int_part = parts[0];
-    let frac_part = parts[1];
+    // Format straight off the Decimal: going through f64 first would round monetary values
+    // against their binary approximation rather than their stored decimal digits. Half-away-from-
+    // zero is the usual currency convention, where round_dp alone would round half to even.
+    let rounded = amount.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
+    let s = format!("{:.2}", rounded.abs());
+    let (int_part, frac_part) = s.split_once('.').unwrap_or((s.as_str(), "00"));
 
     let mut formatted_int = String::new();
     for (count, c) in int_part.chars().rev().enumerate() {
@@ -19,7 +19,11 @@ pub fn format_amount(amount: &Decimal) -> String {
     }
 
     let formatted_int: String = formatted_int.chars().rev().collect();
-    let sign = if value < 0.0 { "-" } else { "" };
+    let sign = if rounded.is_sign_negative() && !rounded.is_zero() {
+        "-"
+    } else {
+        ""
+    };
 
     format!("{}{}.{}", sign, formatted_int, frac_part)
 }
@@ -28,7 +32,7 @@ pub fn format_hours(amount: &Decimal, hourly_rate: Option<Decimal>) -> String {
     if let Some(rate) = hourly_rate
         && rate > Decimal::ZERO
     {
-        let hours = (amount / rate).to_f64().unwrap_or(0.0);
+        let hours = (amount / rate).round_dp(1);
         return format!("{:.1}h", hours);
     }
     format_amount(amount)

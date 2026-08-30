@@ -320,6 +320,23 @@ impl App {
         });
         let editing_category_id = self.editing_category_id;
 
+        // The schema's UNIQUE constraint compares case-sensitively, but rename and delete
+        // propagate to transactions with LOWER(), so a case-variant pair would let an edit to
+        // one record rewrite the other's transactions. Reject the duplicate here instead.
+        let duplicate = self.category_records.iter().any(|record| {
+            Some(record.id) != editing_category_id
+                && record.transaction_type == draft.transaction_type
+                && record.category.eq_ignore_ascii_case(&draft.category)
+                && record.subcategory.eq_ignore_ascii_case(&draft.subcategory)
+        });
+        if duplicate {
+            self.set_status_message(
+                "Error: that category already exists (names are matched without case).",
+                None,
+            );
+            return;
+        }
+
         if draft.transaction_type == TransactionType::Income
             && draft.target_budget.is_none()
             && let Some(old_record) = existing_record.as_ref()
