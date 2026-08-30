@@ -261,6 +261,16 @@ impl App {
         }
     }
 
+    fn insert_char_at_settings_cursor(&mut self, idx: usize, c: char) {
+        let item = &mut self.settings_state.items[idx];
+        if self.settings_state.edit_cursor >= item.value.len() {
+            item.value.push(c);
+        } else {
+            item.value.insert(self.settings_state.edit_cursor, c);
+        }
+        self.settings_state.edit_cursor += c.len_utf8();
+    }
+
     pub(crate) fn insert_char_settings(&mut self, c: char) {
         let idx = self.settings_state.selected_index;
         if idx >= self.settings_state.items.len() {
@@ -276,13 +286,12 @@ impl App {
             crate::app::settings_types::SettingType::Number => {
                 if crate::validation::validate_amount_char(&self.settings_state.items[idx].value, c)
                 {
-                    let item = &mut self.settings_state.items[idx];
-                    if self.settings_state.edit_cursor >= item.value.len() {
-                        item.value.push(c);
-                    } else {
-                        item.value.insert(self.settings_state.edit_cursor, c);
-                    }
-                    self.settings_state.edit_cursor += c.len_utf8();
+                    self.insert_char_at_settings_cursor(idx, c);
+                }
+            }
+            crate::app::settings_types::SettingType::Integer => {
+                if c.is_ascii_digit() {
+                    self.insert_char_at_settings_cursor(idx, c);
                 }
             }
             crate::app::settings_types::SettingType::Path => {
@@ -322,7 +331,8 @@ impl App {
 
         match setting_type {
             crate::app::settings_types::SettingType::SectionHeader => {}
-            crate::app::settings_types::SettingType::Number => {
+            crate::app::settings_types::SettingType::Number
+            | crate::app::settings_types::SettingType::Integer => {
                 let cursor = self.settings_state.edit_cursor;
                 let item = &mut self.settings_state.items[idx];
                 if cursor > 0 && !item.value.is_empty() {

@@ -17,9 +17,10 @@ impl App {
             .cloned()
             .collect();
 
-        // Generate new recurring transactions up to today
+        // Generate up to today, or further out when a forecast horizon is configured.
         let today = chrono::Local::now().date_naive();
-        let generated = generate_recurring_transactions(&recurring_transactions, today);
+        let horizon = crate::validation::add_months(today, self.recurring_forecast_months as i32);
+        let generated = generate_recurring_transactions(&recurring_transactions, horizon);
 
         // Add generated transactions to the main list
         self.transactions.extend(generated);

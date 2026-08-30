@@ -16,6 +16,7 @@ pub(crate) struct AppSettings {
     pub(crate) show_hours: Option<bool>,
     pub(crate) fuzzy_search_mode: Option<bool>,
     pub(crate) hide_help_bar: Option<bool>,
+    pub(crate) recurring_forecast_months: Option<u32>,
 }
 
 fn get_config_file_path() -> Result<PathBuf, Error> {

@@ -42,6 +42,12 @@ Select a transaction and press `r` to make it recurring. Available frequencies:
 
 Occurrences are generated automatically from the start date up to today, and an optional end date stops the series. Generated occurrences stay linked to their source transaction. Edit or delete the source to affect the series.
 
+### Forecasting ahead
+
+By default generation stops at today. Set *Forecast Months Ahead* in settings to project occurrences further out, up to 60 months. Forecast rows appear dimmed in the transaction table, the table title shows the active horizon, and the summary and budget views pick up the projected months so you can see where the year is heading.
+
+Forecast occurrences are derived in memory like every other generated occurrence: nothing extra is written to the database, an end date still cuts the series off, and setting the horizon back to `0` returns to today-only generation.
+
 ## Summary views
 
 **Monthly summary (`s`)** shows income, expenses, and net per month with an interactive chart. `↑`/`↓` move between months, `←`/`→` (or `[`/`]`) move between years. `m` toggles a multi-month line chart, and `c` toggles cumulative mode, which also draws the target budget line from settings.
@@ -77,6 +83,10 @@ Press `o` to open settings. The menu is grouped into sections:
 **Transaction View**
 
 - *Hourly Rate*: optionally enter your hourly earning rate; a *Show Costs in Hours* toggle then appears that displays amounts as hours worked.
+
+**Recurring Transactions**
+
+- *Forecast Months Ahead*: projects recurring occurrences this many months past today (0-60). `0` stops at today.
 
 **Input Preferences**
 
