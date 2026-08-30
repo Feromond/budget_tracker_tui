@@ -67,8 +67,8 @@ impl App {
                 let input_type = match idx {
                     0 | 1 => InputType::Date,
                     2 => InputType::Text, // Description
-                    6 | 7 => InputType::Amount,
-                    _ => return None, // Category(3), Subcategory(4), Type(5) are selections/toggles
+                    7 | 8 => InputType::Amount,
+                    _ => return None, // Category(3), Subcategory(4), Type(5), Recurring(6) are selections/toggles
                 };
                 Some((
                     &mut self.advanced_filter_fields[idx],

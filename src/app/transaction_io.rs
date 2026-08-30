@@ -2,7 +2,7 @@ use super::state::{App, AppMode};
 use crate::csv_io::{load_transactions, save_transactions};
 use crate::db::transaction_store::TransactionStore;
 use chrono::Duration;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 impl App {
     pub(crate) fn open_transaction_io(&mut self, mode: AppMode) {
@@ -84,6 +84,29 @@ impl App {
         );
     }
 
+    /// Resolve a path for comparison. The destination usually does not exist yet, so fall back to
+    /// canonicalizing the parent so relative paths and symlinked directories still compare equal.
+    fn resolve_io_path(path: &Path) -> PathBuf {
+        if let Ok(canonical) = path.canonicalize() {
+            return canonical;
+        }
+
+        let absolute = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            match std::env::current_dir() {
+                Ok(cwd) => cwd.join(path),
+                Err(_) => path.to_path_buf(),
+            }
+        };
+
+        let resolved = match (absolute.parent(), absolute.file_name()) {
+            (Some(parent), Some(name)) => parent.canonicalize().map(|p| p.join(name)).ok(),
+            _ => None,
+        };
+        resolved.unwrap_or(absolute)
+    }
+
     pub(crate) fn export_transactions(&mut self) {
         let path_str = crate::validation::strip_path_quotes(&self.io_path_input);
         if path_str.trim().is_empty() {
@@ -91,6 +114,15 @@ impl App {
             return;
         }
         let path = PathBuf::from(&path_str);
+
+        // save_transactions truncates whatever it opens, so refuse the live database outright.
+        if Self::resolve_io_path(&path) == Self::resolve_io_path(&self.database_path) {
+            self.set_status_message(
+                "Error: that is the active database file. Choose a different export destination.",
+                None,
+            );
+            return;
+        }
 
         // Export the materialized view (real rows plus generated occurrences) for a complete CSV.
         match save_transactions(&self.transactions, &path) {
