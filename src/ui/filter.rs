@@ -28,6 +28,7 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
         ("Category", "(Enter to select)"),
         ("Subcategory", "(Enter to select)"),
         ("Type", "(◀/▶)"),
+        ("Recurring", "(◀/▶)"),
         ("Amount From", ""),
         ("Amount To", ""),
     ];
@@ -39,7 +40,7 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
         .map(|(i, (text, (title, hint)))| {
             let focused = app.current_advanced_filter_field == i;
             let label = format!("{} {}", title, hint).trim_end().to_string();
-            let content = if i == 5 {
+            let content = if i == 5 || i == 6 {
                 Span::styled(
                     format!(" < {} > ", text),
                     Style::default().fg(Color::White).bold(),
@@ -86,7 +87,7 @@ pub fn render_advanced_filter_form(f: &mut Frame, app: &App, area: Rect) {
             .title("Advanced Filters"),
         area,
     );
-    if ![3, 4, 5].contains(&app.current_advanced_filter_field) {
+    if ![3, 4, 5, 6].contains(&app.current_advanced_filter_field) {
         let field_idx = app.current_advanced_filter_field;
         let text = &app.advanced_filter_fields[field_idx];
         let cursor_pos = app.advanced_filter_cursor.min(text.len());

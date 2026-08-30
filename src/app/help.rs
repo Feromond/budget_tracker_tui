@@ -279,11 +279,17 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 Some("Filter by text in description."),
             ),
             KeyBindingInfo::new(
+                "Recurring",
+                "Filter Recurring",
+                "Fields",
+                Some("Show only recurring transactions, or only one-time ones."),
+            ),
+            KeyBindingInfo::new(
                 "←/→",
                 "Adjust date / Toggle type / Move cursor",
                 "Input",
                 Some(
-                    "On the Start/End Date fields adjusts by a day; on the Type field toggles Expense/Income; on text fields moves the cursor.",
+                    "On the Start/End Date fields adjusts by a day; on the Type and Recurring fields toggles the value; on text fields moves the cursor.",
                 ),
             ),
             KeyBindingInfo::new("Shift+←/→", "Jump month (date fields)", "Input", None),

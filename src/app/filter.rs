@@ -130,6 +130,18 @@ impl App {
         };
         self.advanced_filter_fields[5] = new_val.to_string();
     }
+    pub(crate) fn toggle_advanced_recurring(&mut self) {
+        self.clear_simple_filter_field_only();
+        let fr = self.advanced_filter_fields[6].trim();
+        let new_val = if fr.is_empty() {
+            "Recurring"
+        } else if fr.eq_ignore_ascii_case("Recurring") {
+            "One-Time"
+        } else {
+            ""
+        };
+        self.advanced_filter_fields[6] = new_val.to_string();
+    }
     pub(crate) fn start_advanced_category_selection(&mut self) {
         self.type_to_select.clear();
         self.selecting_field_index = Some(3);
@@ -212,8 +224,9 @@ impl App {
         let cat_q = self.advanced_filter_fields[3].to_lowercase();
         let sub_q = self.advanced_filter_fields[4].to_lowercase();
         let type_q = self.advanced_filter_fields[5].trim();
-        let amt_from = self.advanced_filter_fields[6].parse::<Decimal>().ok();
-        let amt_to = self.advanced_filter_fields[7].parse::<Decimal>().ok();
+        let recurring_q = self.advanced_filter_fields[6].trim();
+        let amt_from = self.advanced_filter_fields[7].parse::<Decimal>().ok();
+        let amt_to = self.advanced_filter_fields[8].parse::<Decimal>().ok();
         self.filtered_indices = self
             .transactions
             .iter()
@@ -246,6 +259,12 @@ impl App {
                 if type_q.eq_ignore_ascii_case("Expense")
                     && tx.transaction_type != TransactionType::Expense
                 {
+                    return false;
+                }
+                if recurring_q.eq_ignore_ascii_case("Recurring") && !tx.is_recurring {
+                    return false;
+                }
+                if recurring_q.eq_ignore_ascii_case("One-Time") && tx.is_recurring {
                     return false;
                 }
                 if let Some(f) = amt_from
