@@ -1,0 +1,59 @@
+name: Publish to crates.io
+
+on:
+  release:
+    types: [published]
+  # Manual fallback if the release-triggered run fails.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: publish-crate-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: cargo publish
+    # Pre-releases are not published to crates.io.
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the released tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check tag matches Cargo.toml version
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          tag_version="${TAG#v}"
+          pkg_version=$(awk -F'"' '/^\[/{s=$0} s=="[package]" && /^version = /{print $2; exit}' Cargo.toml)
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "::error::Tag $TAG does not match [package] version $pkg_version in Cargo.toml."
+            exit 1
+          fi
+          echo "Publishing budget_tracker_tui $pkg_version"
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked
