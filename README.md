@@ -76,7 +76,7 @@ With Rust installed ([rustup.rs](https://rustup.rs)):
 cargo install budget-tracker-tui
 ```
 
-This puts the `budget-tracker` command on your PATH. Before 1.5.1 the crate was `budget_tracker_tui` and the command was `Budget_Tracker`. Cargo does not clean up the old install, so run `cargo uninstall budget_tracker_tui` first if you have it.
+This puts the `budget-tracker` command on your PATH. If you previously installed the old `budget_tracker_tui` crate, run `cargo uninstall budget_tracker_tui` first, since cargo leaves the old `Budget_Tracker` binary behind on its own.
 
 ### Prebuilt binaries (no Rust required)
 
