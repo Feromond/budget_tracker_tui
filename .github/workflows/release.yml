@@ -9,7 +9,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  BIN_NAME: Budget_Tracker
+  BIN_NAME: budget-tracker
 
 concurrency:
   group: release-${{ github.ref }}
@@ -68,7 +68,7 @@ jobs:
         run: cargo publish --dry-run --locked
 
   build:
-    name: Build ${{ matrix.asset_name }}
+    name: Build ${{ matrix.target }}
     needs: verify
     runs-on: ${{ matrix.os }}
     strategy:
@@ -76,17 +76,22 @@ jobs:
       matrix:
         include:
           # 22.04 links against an older glibc, which widens the range of
-          # distributions the binary will run on.
+          # distributions the gnu binaries will run on. The musl builds are
+          # fully static (rusqlite is vendored) and run anywhere regardless.
           - os: ubuntu-22.04
-            asset_name: Budget_Tracker_linux
-            built_name: Budget_Tracker
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-musl
+          # arm64 Linux runners are free on public repos, so no cross-compiling.
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-musl
           # macos-latest runners are Apple Silicon.
           - os: macos-latest
-            asset_name: Budget_Tracker_MacOS
-            built_name: Budget_Tracker
+            target: aarch64-apple-darwin
           - os: windows-latest
-            asset_name: Budget_Tracker.exe
-            built_name: Budget_Tracker.exe
+            target: x86_64-pc-windows-msvc
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -95,25 +100,50 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          target: ${{ matrix.target }}
 
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
-      - name: Build release binary
-        run: cargo build --release --locked
+      # rusqlite builds SQLite from C source, so musl needs its own compiler.
+      - name: Install musl toolchain
+        if: contains(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
-      - name: Stage asset under its release name
+      - name: Build release binaries
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package archive
         shell: bash
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          TARGET: ${{ matrix.target }}
         run: |
-          mkdir -p dist
-          cp "target/release/${{ matrix.built_name }}" "dist/${{ matrix.asset_name }}"
+          set -euo pipefail
+          pkg="$BIN_NAME-$VERSION-$TARGET"
+          out="target/$TARGET/release"
+
+          mkdir -p "dist/$pkg"
+          cp LICENSE README.md "dist/$pkg/"
+
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp "$out/$BIN_NAME.exe" "dist/$pkg/"
+            (cd dist && 7z a -tzip "$pkg.zip" "$pkg" > /dev/null)
+          else
+            cp "$out/$BIN_NAME" "dist/$pkg/"
+            (cd dist && tar czf "$pkg.tar.gz" "$pkg")
+          fi
+
+          rm -rf "dist/$pkg"
           ls -l dist
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.asset_name }}
-          path: dist/${{ matrix.asset_name }}
+          name: ${{ matrix.target }}
+          path: dist/*
           if-no-files-found: error
           retention-days: 7
 
@@ -131,8 +161,14 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: List assets
-        run: ls -l dist
+      # Package managers pin these hashes in their manifests, so every asset
+      # needs one and none of them may change after the release is published.
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -- *) > SHA256SUMS
+          mv SHA256SUMS dist/SHA256SUMS
+          cat dist/SHA256SUMS
 
       - name: Create or update the draft release
         env:
@@ -144,7 +180,7 @@ jobs:
           VERSION: ${{ needs.verify.outputs.version }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; replacing the binaries only."
+            echo "Release $TAG already exists; replacing the assets only."
             gh release upload "$TAG" dist/* --clobber
             exit 0
           fi
@@ -154,15 +190,43 @@ jobs:
             -q .body > generated_notes.md
 
           {
-            echo "# Budget Tracker TUI $VERSION"
-            echo
             cat generated_notes.md
             echo
             cat <<'EOF'
 
-          To update/install easily without downloading anything you can use cargo! (**If you are not using the installer below**)
+          ## Install
+
+          With Rust installed, no download needed (**skip this if you use the Windows installer below**):
+
           ```bash
-          cargo install budget_tracker_tui
+          cargo install budget-tracker-tui
+          ```
+
+          Otherwise grab the archive for your platform below, unpack it, and put `budget-tracker` on your PATH.
+
+          As of 1.5.1 the crate is `budget-tracker-tui` and the command is
+          `budget-tracker`. They were previously `budget_tracker_tui` and
+          `Budget_Tracker`. Cargo does not remove the old install for you, so
+          clear it out first:
+
+          ```bash
+          cargo uninstall budget_tracker_tui
+          cargo install budget-tracker-tui
+          ```
+
+          | Archive | Platform |
+          | --- | --- |
+          | `*-x86_64-unknown-linux-gnu.tar.gz` | Linux x86_64 (glibc 2.35+) |
+          | `*-x86_64-unknown-linux-musl.tar.gz` | Linux x86_64 (static, any distro) |
+          | `*-aarch64-unknown-linux-gnu.tar.gz` | Linux arm64 (glibc 2.35+) |
+          | `*-aarch64-unknown-linux-musl.tar.gz` | Linux arm64 (static, any distro) |
+          | `*-aarch64-apple-darwin.tar.gz` | macOS Apple Silicon |
+          | `*-x86_64-pc-windows-msvc.zip` | Windows x86_64 |
+
+          To verify a download, put `SHA256SUMS` next to the archive and run:
+
+          ```bash
+          sha256sum -c SHA256SUMS --ignore-missing
           ```
 
           ### TLDR:

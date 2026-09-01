@@ -118,7 +118,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
             match key_event.code {
                 KeyCode::Enter | KeyCode::Char('o') => {
                     let opened = crate::app::util::open_url(
-                        "https://github.com/Feromond/budget_tracker_tui/releases",
+                        "https://github.com/Feromond/budget-tracker-tui/releases",
                     );
                     app.show_update_popup = false;
                     if opened {
@@ -126,7 +126,7 @@ fn update(app: &mut App, key_event: KeyEvent) {
                         app.quit();
                     } else {
                         app.set_status_message(
-                            "Could not open browser. Visit github.com/Feromond/budget_tracker_tui/releases",
+                            "Could not open browser. Visit github.com/Feromond/budget-tracker-tui/releases",
                             Some(chrono::Duration::seconds(5)),
                         );
                     }

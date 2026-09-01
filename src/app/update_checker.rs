@@ -15,8 +15,8 @@ pub fn check_for_updates() -> Option<String> {
         .new_agent();
 
     let response = agent
-        .get("https://api.github.com/repos/Feromond/budget_tracker_tui/releases/latest")
-        .header("User-Agent", "budget_tracker_tui_update_checker")
+        .get("https://api.github.com/repos/Feromond/budget-tracker-tui/releases/latest")
+        .header("User-Agent", "budget-tracker-tui_update_checker")
         .call();
 
     if let Ok(resp) = response

@@ -5,15 +5,19 @@
 </p>
 
 <p align="center">
-  <a href="https://crates.io/crates/budget_tracker_tui"><img src="https://img.shields.io/crates/v/budget_tracker_tui" alt="Crates.io version"></a>
-  <a href="https://crates.io/crates/budget_tracker_tui"><img src="https://img.shields.io/crates/d/budget_tracker_tui" alt="Crates.io downloads"></a>
+  <a href="https://crates.io/crates/budget-tracker-tui"><img src="https://img.shields.io/crates/v/budget-tracker-tui" alt="Crates.io version"></a>
+  <a href="https://crates.io/crates/budget-tracker-tui"><img src="https://img.shields.io/crates/d/budget-tracker-tui" alt="Crates.io downloads"></a>
   <a href="https://ratatui.rs/"><img src="https://ratatui.rs/built-with-ratatui/badge.svg" alt="Built With Ratatui"></a>
+</p>
+
+<p align="center">
+  <sub>Previously published as <code>budget_tracker_tui</code>, which reached 221 downloads before the crate was renamed.</sub>
 </p>
 
 A terminal app for tracking your personal budget, built with [Rust](https://www.rust-lang.org) and [Ratatui](https://ratatui.rs).
 
 ```bash
-cargo install budget_tracker_tui
+cargo install budget-tracker-tui
 ```
 
 ## Screenshots
@@ -69,26 +73,32 @@ cargo install budget_tracker_tui
 With Rust installed ([rustup.rs](https://rustup.rs)):
 
 ```bash
-cargo install budget_tracker_tui
+cargo install budget-tracker-tui
 ```
 
-This puts the `Budget_Tracker` command on your PATH. A short alias like `alias bt='Budget_Tracker'` is handy.
+This puts the `budget-tracker` command on your PATH. Before 1.5.1 the crate was `budget_tracker_tui` and the command was `Budget_Tracker`. Cargo does not clean up the old install, so run `cargo uninstall budget_tracker_tui` first if you have it.
 
-### Windows installer (no Rust required)
+### Prebuilt binaries (no Rust required)
 
-Download the latest installer from the [Releases page](https://github.com/Feromond/budget_tracker_tui/releases) and run it. I don't have a Windows developer licence, so it shows as an unknown publisher.
+Grab the archive for your platform from the [Releases page](https://github.com/Feromond/budget-tracker-tui/releases), unpack it, and move `budget-tracker` onto your PATH. Linux has glibc and static musl builds for both x86_64 and arm64; the musl ones run on any distribution. Every release ships a `SHA256SUMS` file if you want to check the download:
+
+```bash
+sha256sum -c SHA256SUMS --ignore-missing
+```
+
+Windows also has an installer on that page. I don't have a Windows developer licence, so it shows as an unknown publisher.
 
 ### From source
 
 ```bash
-git clone https://github.com/Feromond/budget_tracker_tui
-cd budget_tracker_tui
+git clone https://github.com/Feromond/budget-tracker-tui
+cd budget-tracker-tui
 cargo install --path .
 ```
 
 ## Usage
 
-Launch with `Budget_Tracker`. The help bar at the bottom shows the keys for the current view, and `Ctrl+H` opens the full keybindings menu. Settings (`o`) is where you configure the database path, categories, CSV import/export, and target budget.
+Launch with `budget-tracker`. The help bar at the bottom shows the keys for the current view, and `Ctrl+H` opens the full keybindings menu. Settings (`o`) is where you configure the database path, categories, CSV import/export, and target budget.
 
 For a more detailed walkthrough of every view and setting, see the [User Guide](docs/user-guide.md).
 

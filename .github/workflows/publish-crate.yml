@@ -51,7 +51,7 @@ jobs:
             echo "::error::Tag $TAG does not match [package] version $pkg_version in Cargo.toml."
             exit 1
           fi
-          echo "Publishing budget_tracker_tui $pkg_version"
+          echo "Publishing budget-tracker-tui $pkg_version"
 
       - name: Publish to crates.io
         env:

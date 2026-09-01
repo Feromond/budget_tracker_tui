@@ -1,11 +1,11 @@
 [package]
-name = "budget_tracker_tui"
-version = "1.5.0"
+name = "budget-tracker-tui"
+version = "1.5.1"
 edition = "2024"
 authors = ["Jacob Mish <JacobPMish@gmail.com>"]
 description = "A feature rich TUI budget tracker app"
 license = "GPL-3.0-only"
-repository = "https://github.com/Feromond/budget_tracker_tui"
+repository = "https://github.com/Feromond/budget-tracker-tui"
 keywords = ["tui", "budget", "finance", "terminal", "tracker"]
 categories = ["command-line-utilities", "finance"]
 
@@ -23,7 +23,7 @@ semver = "1.0.28"
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 [[bin]]
-name = "Budget_Tracker"
+name = "budget-tracker"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -31,9 +31,9 @@ winresource = "0.1.31"
 
 [package.metadata.bundle]
 name = "Budget Tracker"
-identifier = "io.github.Feromond.budget_tracker_tui"
+identifier = "io.github.Feromond.budget-tracker-tui"
 icon = ["/budget_tracker_icon.png"]
-version = "1.5.0"
+version = "1.5.1"
 copyright = "Copyright Ventra Software Inc. 2026. All rights reserved."
 category = "Finance"
 short_description = "A feature rich TUI budget tracker app"
