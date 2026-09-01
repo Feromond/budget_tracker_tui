@@ -46,4 +46,3 @@ The in-app update check reads the latest published release, so a draft stays inv
 - To abandon a release before publishing, delete the draft and delete the tag with `git push --delete origin <tag>`. Nothing has reached crates.io yet.
 - If `cargo publish` fails, run it again from Actions > Publish to crates.io > Run workflow, passing the tag.
 - A release marked as a pre-release gets a draft and binaries, but is not published to crates.io.
-- One-time, delete after 1.5.1 ships: the crate was renamed from `budget_tracker_tui` to `budget-tracker-tui` on 2026-08-31, and crates.io holds a deleted name for 24 hours. `cargo publish --dry-run` does not check name availability, so confirm the name is claimable before publishing the draft that triggers the real publish.
