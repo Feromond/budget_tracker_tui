@@ -1,5 +1,6 @@
 use crate::app::fields::{CategoryEditField, FieldKey, FieldKind};
 use crate::app::state::{App, AppMode};
+use crate::model::CategorySortColumn;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn handle_category_manager_mode(app: &mut App, key_event: KeyEvent) {
@@ -33,6 +34,21 @@ fn handle_category_catalog(app: &mut App, key_event: KeyEvent) {
             app.start_editing_category()
         }
         (KeyCode::Char('d'), KeyModifiers::NONE) => app.prepare_delete_category(),
+        (KeyCode::Char('1'), _) | (KeyCode::F(1), _) => {
+            app.set_category_sort_column(CategorySortColumn::Type)
+        }
+        (KeyCode::Char('2'), _) | (KeyCode::F(2), _) => {
+            app.set_category_sort_column(CategorySortColumn::Category)
+        }
+        (KeyCode::Char('3'), _) | (KeyCode::F(3), _) => {
+            app.set_category_sort_column(CategorySortColumn::Subcategory)
+        }
+        (KeyCode::Char('4'), _) | (KeyCode::F(4), _) => {
+            app.set_category_sort_column(CategorySortColumn::Tag)
+        }
+        (KeyCode::Char('5'), _) | (KeyCode::F(5), _) => {
+            app.set_category_sort_column(CategorySortColumn::TargetBudget)
+        }
         _ => {}
     }
 }

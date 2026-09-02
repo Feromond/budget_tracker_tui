@@ -1,5 +1,6 @@
 use crate::app::fields::{CategoryEditField, FieldKey, FieldKind};
 use crate::app::state::App;
+use crate::model::{CategorySortColumn, SortOrder};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -34,13 +35,38 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
         return;
     }
 
-    let header = Row::new(["Type", "Category", "Subcategory", "Tag", "Target Budget"])
-        .style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        )
-        .height(1);
+    let sort_columns = [
+        CategorySortColumn::Type,
+        CategorySortColumn::Category,
+        CategorySortColumn::Subcategory,
+        CategorySortColumn::Tag,
+        CategorySortColumn::TargetBudget,
+    ];
+    let header_style = if app.is_category_filter_active() {
+        Style::default().fg(Color::Yellow).bold()
+    } else {
+        Style::default().fg(Color::Cyan).bold()
+    };
+    let header_cells = ["Type", "Category", "Subcategory", "Tag", "Target Budget"]
+        .iter()
+        .zip(sort_columns.iter())
+        .map(|(title, column)| {
+            let symbol = if app.category_sort_by == *column {
+                match app.category_sort_order {
+                    SortOrder::Ascending => " ▲",
+                    SortOrder::Descending => " ▼",
+                }
+            } else {
+                ""
+            };
+            let content = format!("{}{}", title, symbol);
+            if *column == CategorySortColumn::TargetBudget {
+                Cell::from(Line::from(content).alignment(Alignment::Right)).style(header_style)
+            } else {
+                Cell::from(content).style(header_style)
+            }
+        });
+    let header = Row::new(header_cells).height(1);
 
     let records = &app.category_records;
     let rows = app
