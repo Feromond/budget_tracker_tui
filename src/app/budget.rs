@@ -59,36 +59,34 @@ impl App {
         self.budget_table_state.select(Some(selected));
     }
 
+    /// Calendar months, not just the ones holding transactions: budgets get planned ahead.
+    fn budget_months(&self) -> Vec<u32> {
+        (1..=12).collect()
+    }
+
     fn update_selected_budget_month(&mut self, year: i32) {
         let current_date = chrono::Local::now();
-        let current_year = current_date.year();
-        let current_month = current_date.month();
-        let months = self.sorted_months_for_year(year);
-        if year == current_year && months.contains(&current_month) {
-            self.selected_budget_month = Some(current_month);
+        self.selected_budget_month = if year == current_date.year() {
+            Some(current_date.month())
         } else {
-            self.selected_budget_month = months.last().copied();
-        }
+            Some(1)
+        };
     }
 
     pub(crate) fn refresh_budget_years(&mut self) {
+        // Always offer the current year, so a budget can be set before anything is spent.
         self.budget_years = self.summary_years.clone();
-        if self.budget_years.is_empty() {
-            // An empty ledger still needs a month, or there is nowhere to hang a budget.
-            let now = chrono::Local::now();
-            self.budget_years = vec![now.year()];
-            self.budget_year_index = 0;
-            self.selected_budget_month = Some(now.month());
-            self.budget_table_state.select(None);
-            return;
+        let current_year = chrono::Local::now().year();
+        if !self.budget_years.contains(&current_year) {
+            self.budget_years.push(current_year);
+            self.budget_years.sort_unstable();
         }
 
         self.budget_year_index = self.budget_year_index.min(self.budget_years.len() - 1);
-        if let Some(year) = self.budget_years.get(self.budget_year_index).copied() {
-            let months = self.sorted_months_for_year(year);
-            if !matches!(self.selected_budget_month, Some(month) if months.contains(&month)) {
-                self.update_selected_budget_month(year);
-            }
+        if let Some(year) = self.budget_years.get(self.budget_year_index).copied()
+            && self.selected_budget_month.is_none()
+        {
+            self.update_selected_budget_month(year);
         }
         let len = self.current_budget_category_comparisons().len();
         self.clamp_budget_selection(len);
@@ -161,8 +159,8 @@ impl App {
     }
 
     pub(crate) fn next_budget_month(&mut self) {
-        if let Some(year) = self.selected_budget_year() {
-            let months = self.sorted_months_for_year(year);
+        if self.selected_budget_year().is_some() {
+            let months = self.budget_months();
             if let Some(current) = self.selected_budget_month {
                 if let Some(index) = months.iter().position(|&month| month == current) {
                     self.selected_budget_month = Some(months[(index + 1) % months.len()]);
@@ -176,8 +174,8 @@ impl App {
     }
 
     pub(crate) fn previous_budget_month(&mut self) {
-        if let Some(year) = self.selected_budget_year() {
-            let months = self.sorted_months_for_year(year);
+        if self.selected_budget_year().is_some() {
+            let months = self.budget_months();
             if let Some(current) = self.selected_budget_month {
                 if let Some(index) = months.iter().position(|&month| month == current) {
                     let previous = if index == 0 {
@@ -458,7 +456,7 @@ impl App {
         let writes = self
             .budget_schedule
             .plan_edit(category_id, start, amount, scope);
-        if let Err(err) = self.apply_budget_writes(category_id, writes) {
+        if let Err(err) = self.apply_budget_writes(category_id, &writes) {
             self.set_status_message(format!("Error saving budget: {}", err), None);
             return;
         }
@@ -468,6 +466,11 @@ impl App {
         }
 
         self.close_budget_editor(Some(target));
+        if self.mode == AppMode::CategoryCatalog
+            && let BudgetEditTarget::Category(id) = target
+        {
+            self.resort_catalog_keeping(id);
+        }
         let month = format!("{} {}", month_to_short_str(start.month), start.year);
         self.set_status_message(
             budget_edit_message(scope, &label, &month, amount, replaced),
@@ -487,18 +490,10 @@ impl App {
     fn apply_budget_writes(
         &self,
         category_id: Option<i64>,
-        writes: Vec<BudgetWrite>,
+        writes: &[BudgetWrite],
     ) -> Result<(), std::io::Error> {
-        let store = self.budget_store();
-        let ledger = self.active_ledger_id;
-        for write in writes {
-            match write {
-                BudgetWrite::Set(month, amount) => store.set(ledger, category_id, month, amount)?,
-                BudgetWrite::Remove(month) => store.remove(ledger, category_id, month)?,
-                BudgetWrite::RemoveAll => store.remove_all(ledger, category_id)?,
-            }
-        }
-        Ok(())
+        self.budget_store()
+            .apply(self.active_ledger_id, category_id, writes)
     }
 
     fn close_budget_editor(&mut self, target: Option<BudgetEditTarget>) {

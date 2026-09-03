@@ -177,6 +177,18 @@ impl LedgerStore for SqliteLedgerStore {
         )
         .map_err(|err| Error::other(format!("Failed to copy transactions: {}", err)))?;
 
+        // Same transaction, or a failure leaves a ledger the caller was told did not save.
+        tx.execute(
+            "
+            INSERT INTO budget_periods (ledger_id, category_id, start_year, start_month, amount)
+            SELECT ?1, category_id, start_year, start_month, amount
+            FROM budget_periods
+            WHERE ledger_id = ?2
+            ",
+            params![ledger.id, source_id],
+        )
+        .map_err(|err| Error::other(format!("Failed to copy budgets: {}", err)))?;
+
         tx.commit()
             .map_err(|err| Error::other(format!("Failed to commit ledger copy: {}", err)))?;
         Ok(ledger)

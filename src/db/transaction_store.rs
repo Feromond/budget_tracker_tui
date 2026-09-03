@@ -576,7 +576,7 @@ mod tests {
     #[test]
     fn budget_periods_round_trip_for_the_target_and_a_category() {
         use crate::db::budget_store::{BudgetStore, SqliteBudgetStore};
-        use crate::model::BudgetMonth;
+        use crate::model::{BudgetMonth, BudgetWrite};
 
         let temp = TempDb::new();
         let database = SqliteDatabase::new(&temp.path);
@@ -641,7 +641,9 @@ mod tests {
         assert_eq!(schedule.category_budget(7, mar), None);
 
         // Removing that period lets March inherit January again.
-        store.remove(ledger, Some(7), mar).unwrap();
+        store
+            .apply(ledger, Some(7), &[BudgetWrite::Remove(mar)])
+            .unwrap();
         let schedule = BudgetSchedule::new(store.list(ledger).unwrap());
         assert_eq!(
             schedule.category_budget(7, mar),
@@ -649,16 +651,38 @@ mod tests {
         );
 
         // A copied ledger gets its own rows, unaffected by later edits to the source.
-        store.copy_ledger(ledger, 2).unwrap();
-        store.remove(ledger, None, mar).unwrap();
+        let copied = SqliteLedgerStore::new(database.clone())
+            .copy(ledger, "Copy")
+            .unwrap();
+        store
+            .apply(ledger, None, &[BudgetWrite::Remove(mar)])
+            .unwrap();
 
         let source = BudgetSchedule::new(store.list(ledger).unwrap());
         assert_eq!(source.monthly_budget(mar), Some("2000".parse().unwrap()));
         // Removing the target left the category budget alone, so `IS` matched the NULL key.
         assert_eq!(source.category_budget(7, mar), Some("600".parse().unwrap()));
 
-        let copy = BudgetSchedule::new(store.list(2).unwrap());
+        let copy = BudgetSchedule::new(store.list(copied.id).unwrap());
         assert_eq!(copy.monthly_budget(mar), Some("2600".parse().unwrap()));
+
+        // A replace plan is two writes; both have to land or history would be lost.
+        store
+            .apply(
+                ledger,
+                None,
+                &[
+                    BudgetWrite::RemoveAll,
+                    BudgetWrite::Set(BudgetMonth::BEGINNING, Some("1800".parse().unwrap())),
+                ],
+            )
+            .unwrap();
+        let schedule = BudgetSchedule::new(store.list(ledger).unwrap());
+        assert_eq!(schedule.monthly_budget(jan), Some("1800".parse().unwrap()));
+        assert_eq!(
+            schedule.monthly_budget(BudgetMonth::new(2030, 1)),
+            Some("1800".parse().unwrap())
+        );
     }
 
     #[test]

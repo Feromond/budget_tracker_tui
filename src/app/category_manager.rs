@@ -429,6 +429,19 @@ impl App {
         self.category_table_state.select(selection);
     }
 
+    /// A catalog sorted by Budget would otherwise show new values in the old order.
+    pub(crate) fn resort_catalog_keeping(&mut self, id: i64) {
+        self.apply_category_filter();
+        let position = self.filtered_category_indices.iter().position(|&index| {
+            self.category_records
+                .get(index)
+                .is_some_and(|record| record.id == id)
+        });
+        if position.is_some() {
+            self.category_table_state.select(position);
+        }
+    }
+
     fn select_saved_category(&mut self) {
         let selection = self.editing_category_id.and_then(|id| {
             self.filtered_category_indices.iter().position(|&index| {

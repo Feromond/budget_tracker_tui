@@ -1,4 +1,4 @@
-use crate::app::state::{App, BudgetCategoryComparison};
+use crate::app::state::{App, BudgetCategoryComparison, BudgetEditTarget};
 use crate::model::{BudgetEditScope, BudgetMonth};
 use crate::ui::helpers::{format_amount, month_to_color, month_to_short_str};
 use ratatui::prelude::*;
@@ -259,8 +259,12 @@ pub fn render_budget_target_editor(f: &mut Frame, app: &App, area: Rect) {
         ])
         .split(popup_area);
 
+    let title = match app.budget_edit_target {
+        Some(BudgetEditTarget::MonthlyBudget) => " Monthly Budget ",
+        _ => " Category Budget ",
+    };
     let block = Block::default()
-        .title(" Category Budget ")
+        .title(title)
         .title_bottom(" [Enter] Save, [Up/Down] Scope, [Esc] Cancel ")
         .borders(Borders::ALL)
         .border_style(Style::default().fg(PANEL_CHROME_COLOR));
@@ -758,7 +762,11 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
                 Style::default()
                     .fg(SELECTED_MONTH_BAR_COLOR)
                     .add_modifier(Modifier::BOLD)
-            } else if *expense > comparison.budget {
+            } else if current_year.is_some_and(|year| {
+                app.budget_schedule
+                    .category_budget(comparison.id, BudgetMonth::new(year, *month))
+                    .is_some_and(|budget| *expense > budget)
+            }) {
                 Style::default().fg(Color::LightRed)
             } else if expense.is_zero() {
                 Style::default().fg(Color::DarkGray)
