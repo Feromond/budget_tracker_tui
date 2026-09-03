@@ -59,7 +59,7 @@ cargo install budget-tracker-tui
 - Recurring transactions, from daily to yearly, generated automatically up to today or a forecast horizon you set
 - Hierarchical categories and subcategories, editable in-app, with optional fuzzy search
 - Monthly and category summaries with interactive charts
-- Monthly target budget plus optional per-category budgets, tracked in a dedicated budget view
+- Monthly target plus optional per-category budgets, tracked in a dedicated budget view
 - Multiple ledgers per database, for separate accounts or for forecasting apart from your real data
 - CSV import/export (duplicates skipped on import)
 - Local SQLite storage with decimal arithmetic (no floating-point rounding errors)
@@ -98,7 +98,7 @@ cargo install --path .
 
 ## Usage
 
-Launch with `budget-tracker`. The help bar at the bottom shows the keys for the current view, and `Ctrl+H` opens the full keybindings menu. Settings (`o`) is where you configure the database path, categories, CSV import/export, and target budget.
+Launch with `budget-tracker`. The help bar at the bottom shows the keys for the current view, and `Ctrl+H` opens the full keybindings menu. Settings (`o`) is where you configure the database path, categories, CSV import/export, and monthly target.
 
 For a more detailed walkthrough of every view and setting, see the [User Guide](docs/user-guide.md).
 

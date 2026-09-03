@@ -216,6 +216,15 @@ impl App {
         self.budget_table_state.select(Some(previous));
     }
 
+    /// Same figure whichever month is selected, category budgets aren't month scoped.
+    pub(crate) fn total_allocated_budget(&self) -> Decimal {
+        self.category_records
+            .iter()
+            .filter(|record| record.transaction_type == TransactionType::Expense)
+            .filter_map(|record| record.target_budget)
+            .sum()
+    }
+
     pub(crate) fn budget_month_expense(&self, year: i32, month: u32) -> Decimal {
         self.monthly_summaries
             .get(&(year, month))
@@ -264,7 +273,7 @@ impl App {
         comparisons.get(selected).cloned()
     }
 
-    // --- Target budget editing ---
+    // --- Category budget editing ---
 
     pub(crate) fn start_editing_budget_target(&mut self) {
         let Some(comparison) = self.selected_budget_category_comparison() else {

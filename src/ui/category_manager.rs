@@ -47,7 +47,7 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
     } else {
         Style::default().fg(Color::Cyan).bold()
     };
-    let header_cells = ["Type", "Category", "Subcategory", "Tag", "Target Budget"]
+    let header_cells = ["Type", "Category", "Subcategory", "Tag", "Budget"]
         .iter()
         .zip(sort_columns.iter())
         .map(|(title, column)| {

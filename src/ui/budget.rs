@@ -10,6 +10,7 @@ use rust_decimal::prelude::*;
 
 const PANEL_CHROME_COLOR: Color = Color::LightBlue;
 const SELECTED_MONTH_BAR_COLOR: Color = Color::Rgb(255, 165, 0);
+const WARNING_COLOR: Color = Color::Rgb(255, 165, 0); // orange
 
 fn budget_panel_block(title: Line<'static>, borders: Borders) -> Block<'static> {
     Block::default()
@@ -34,7 +35,7 @@ fn usage_color(actual: Decimal, target: Decimal) -> Color {
     if ratio > 1.0 {
         Color::LightRed
     } else if ratio >= 0.85 {
-        Color::Rgb(255, 165, 0) // orange
+        WARNING_COLOR
     } else if ratio >= 0.60 {
         Color::LightYellow
     } else {
@@ -264,7 +265,7 @@ pub fn render_budget_target_editor(f: &mut Frame, app: &App, area: Rect) {
         .split(popup_area);
 
     let block = Block::default()
-        .title(" Target Budget ")
+        .title(" Category Budget ")
         .title_bottom(" [Enter] Save, [Esc] Cancel ")
         .borders(Borders::ALL)
         .border_style(Style::default().fg(PANEL_CHROME_COLOR));
@@ -328,15 +329,59 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
         _ => Decimal::ZERO,
     };
     let remaining_budget = app.target_budget.map(|target| target - actual_expense);
-    let budget_status = match (app.target_budget, remaining_budget) {
-        (Some(_), Some(value)) if value < Decimal::ZERO => ("Over Budget", Color::LightRed),
-        (Some(_), _) => ("On Track", Color::LightGreen),
-        (None, _) => ("No Target Set", Color::LightYellow),
+    let allocated_budget = app.total_allocated_budget();
+    let unallocated_budget = app.target_budget.map(|target| target - allocated_budget);
+    // Overspending outranks over-allocating, so the worse news is the one on show.
+    let budget_status = match (app.target_budget, remaining_budget, unallocated_budget) {
+        (None, _, _) => ("No Target Set", Color::LightYellow),
+        (Some(_), Some(left), _) if left < Decimal::ZERO => ("Over Budget", Color::LightRed),
+        (Some(_), _, Some(spare)) if spare < Decimal::ZERO => ("Over Allocated", WARNING_COLOR),
+        _ => ("On Track", Color::LightGreen),
     };
     let usage_value = match app.target_budget {
         Some(target) => usage_percent(actual_expense, target),
         None => "N/A".to_string(),
     };
+    let mut allocated_spans = vec![
+        Span::styled("Total:  ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format_amount(&allocated_budget),
+            Style::default().fg(Color::LightBlue),
+        ),
+    ];
+    if let Some(target) = app.target_budget {
+        allocated_spans.push(Span::raw(" "));
+        allocated_spans.push(Span::styled(
+            format!("({})", usage_percent(allocated_budget, target)),
+            Style::default().fg(usage_color(allocated_budget, target)),
+        ));
+    }
+    let allocated_line = Line::from(allocated_spans);
+
+    let allocation_divider = Line::from(Span::styled(
+        format!(
+            "{:─<width$}",
+            "─ Category Budgets ",
+            width = top_chunks[0].width as usize
+        ),
+        Style::default().fg(Color::DarkGray),
+    ));
+
+    let unallocated_line = Line::from(vec![
+        Span::styled("Spare:  ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            match unallocated_budget {
+                Some(value) => format_budget_variance(value),
+                None => "N/A".to_string(),
+            },
+            match unallocated_budget {
+                Some(value) if value < Decimal::ZERO => Style::default().fg(Color::LightRed),
+                Some(_) => Style::default().fg(Color::LightGreen),
+                None => Style::default().fg(Color::White),
+            },
+        ),
+    ]);
+
     let status_lines = vec![
         Line::from(vec![
             Span::styled("Status: ", Style::default().add_modifier(Modifier::BOLD)),
@@ -409,6 +454,9 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             Span::styled("Usage:  ", Style::default().add_modifier(Modifier::BOLD)),
             Span::styled(usage_value, Style::default().fg(Color::LightYellow)),
         ]),
+        allocation_divider,
+        allocated_line,
+        unallocated_line,
     ];
 
     let summary = Paragraph::new(status_lines)

@@ -50,11 +50,19 @@ Forecast occurrences are derived in memory like every other generated occurrence
 
 ## Summary views
 
-**Monthly summary (`s`)** shows income, expenses, and net per month with an interactive chart. `↑`/`↓` move between months, `←`/`→` (or `[`/`]`) move between years. `m` toggles a multi-month line chart, and `c` toggles cumulative mode, which also draws the target budget line from settings.
+**Monthly summary (`s`)** shows income, expenses, and net per month with an interactive chart. `↑`/`↓` move between months, `←`/`→` (or `[`/`]`) move between years. `m` toggles a multi-month line chart, and `c` toggles cumulative mode, which also draws the monthly target line from settings.
 
 **Category summary (`c`)** breaks down each month by category. `Enter` expands or collapses a month, `PageUp`/`PageDown` move between months, `←`/`→` between years.
 
-**Budget view (`b`)** compares spending against your monthly target and any per-category budgets. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years. Press `e` on a row to change that category's target budget in place. The popup starts on
+**Budget view (`b`)** compares spending against your monthly target and any per-category budgets. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years.
+
+Under a *Category Budgets* heading, the status panel totals every category budget you have set
+(`Total`) and shows what is left over from the monthly target (`Spare`), so you can see how much of
+your budget is still unassigned without entering any transactions. `Spare` goes red and the status
+reads *Over Allocated* when your category budgets add up to more than the monthly target. Neither
+figure is tied to a month, which is why they hold steady as you move between months.
+
+Press `e` on a row to change that category's budget in place. The popup starts on
 the current amount; `Enter` saves, `Esc` cancels, and an empty amount clears the budget, which also
 drops the category from the table since only budgeted categories are listed. Press `c` to open the
 [category catalog](#the-category-catalog), which is where you set a budget on a category that
@@ -67,15 +75,15 @@ The catalog holds your categories and subcategories. Open it from Settings (*Man
 - `↑`/`↓` move between entries, `PageUp`/`PageDown` jump by page, `Ctrl+↑`/`Ctrl+↓` jump to the first/last entry
 - `f` filters the catalog as you type; `Enter` keeps the filter applied, `Esc` or `Ctrl+R` clears it
 - `a` adds a category, `e` or `Enter` edits the selected one, `d` deletes it
-- `1`-`5` (or `F1`-`F5`) sort by type, category, subcategory, tag, or target budget; pressing the same key again flips the direction, and the sorted column is marked in the header
-- Expense categories can optionally hold a per-category target budget, used by the budget view
+- `1`-`5` (or `F1`-`F5`) sort by type, category, subcategory, tag, or budget; pressing the same key again flips the direction, and the sorted column is marked in the header
+- Expense categories can optionally hold a budget, used by the budget view
 
 ## Ledgers
 
 A ledger is a self-contained set of transactions. One database can hold several of them, so you
 can keep separate books for different accounts or goals, or copy of a scenario to experiment with
 forecasting without touching your real data. Every ledger in a database **shares the same category
-catalog**, including per-category target budgets, so a category you rename or delete updates the
+catalog**, including per-category budgets, so a category you rename or delete updates the
 transactions in all of them.
 
 Open the list from Settings (*Ledger*, which shows the ledger currently open).
@@ -112,7 +120,7 @@ Press `o` to open settings. The menu is grouped into sections:
 
 **Monthly Summary View**
 
-- *Target Budget*: your monthly spending goal, drawn as a line in the monthly summary's cumulative mode and used by the budget view.
+- *Monthly Target*: your monthly spending goal, drawn as a line in the monthly summary's cumulative mode and used by the budget view.
 
 **Transaction View**
 

@@ -337,10 +337,10 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Shift+←/→", "Change Year", "Navigation", None),
             KeyBindingInfo::new(
                 "e",
-                "Edit Target Budget",
+                "Edit Category Budget",
                 "Actions",
                 Some(
-                    "Change the target budget of the selected category right here. Leaving the amount empty removes the budget, which also drops the category from this table.",
+                    "Change the budget of the selected category right here. Leaving the amount empty removes the budget, which also drops the category from this table.",
                 ),
             ),
             KeyBindingInfo::new(
@@ -348,7 +348,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 "Manage Categories",
                 "Actions",
                 Some(
-                    "Open the category catalog to add or edit category target budgets without leaving the budget view. Esc returns here.",
+                    "Open the category catalog to add or edit category budgets without leaving the budget view. Esc returns here.",
                 ),
             ),
             KeyBindingInfo::new("q/Esc", "Back to Transactions", "Actions", None),
@@ -408,10 +408,12 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 ),
             ),
             KeyBindingInfo::new(
-                "Target Budget",
-                "Monthly Budget Goal",
+                "Monthly Target",
+                "Monthly spending goal",
                 "Fields",
-                Some("Set a target monthly budget amount for reference in summaries."),
+                Some(
+                    "Set the monthly spending goal used by the budget view and the summary's cumulative mode.",
+                ),
             ),
             KeyBindingInfo::new(
                 "Hourly Rate",
@@ -499,7 +501,7 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             ),
             KeyBindingInfo::new(
                 "5/F5",
-                "Sort by Target Budget",
+                "Sort by Budget",
                 "Sorting",
                 Some(
                     "Groups the categories that have a budget set at the top; categories without one are listed last in both directions.",
@@ -534,11 +536,11 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Enter", "Toggle type or save", "Actions", None),
             KeyBindingInfo::new("Esc", "Cancel editor", "Actions", None),
             KeyBindingInfo::new(
-                "Target Budget",
+                "Budget",
                 "Expense-only category budget goal",
                 "Fields",
                 Some(
-                    "Optional for expense categories only. Income categories do not use per-category target budgets in the budget view.",
+                    "Optional for expense categories only. Income categories do not use per-category budgets in the budget view.",
                 ),
             ),
             KeyBindingInfo::new(

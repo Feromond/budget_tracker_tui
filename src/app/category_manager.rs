@@ -484,7 +484,7 @@ impl App {
         };
 
         if transaction_type == TransactionType::Income && target_budget.is_some() {
-            return Err("Target budget is only available for expense categories.".to_string());
+            return Err("Budgets are only available for expense categories.".to_string());
         }
 
         Ok(CategoryDraft {
