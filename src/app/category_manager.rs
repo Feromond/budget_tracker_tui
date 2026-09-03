@@ -184,12 +184,17 @@ impl App {
     }
 
     fn sort_category_records(&mut self) {
+        // Taken out of `self` so the schedule can be read while the list is sorted.
+        let mut indices = std::mem::take(&mut self.filtered_category_indices);
+        let month = Self::current_budget_key();
         crate::app::util::sort_category_indices_impl(
-            &mut self.filtered_category_indices,
+            &mut indices,
             &self.category_records,
+            |record| self.budget_schedule.category_budget(record.id, month),
             self.category_sort_by,
             self.category_sort_order,
         );
+        self.filtered_category_indices = indices;
     }
 
     pub(crate) fn start_adding_category(&mut self) {
@@ -200,7 +205,7 @@ impl App {
             String::new(),
             String::new(),
             String::new(),
-            String::new(),
+            "Not set".to_string(),
         ]);
         self.category_edit_cursor =
             self.category_edit_fields[CategoryEditField::TransactionType].len();
@@ -216,20 +221,18 @@ impl App {
         self.mode = AppMode::CategoryEditor;
         self.editing_category_id = Some(record.id);
         let draft = record.to_draft();
-        let target_budget = if draft.transaction_type == TransactionType::Expense {
-            draft
-                .target_budget
-                .map(|value| format!("{value:.2}"))
-                .unwrap_or_default()
-        } else {
-            String::new()
-        };
+        // Shown for reference; the popup is what actually changes it.
+        let budget = self
+            .budget_schedule
+            .category_budget(record.id, Self::current_budget_key())
+            .map(|value| format!("{value:.2}"))
+            .unwrap_or_else(|| "Not set".to_string());
         self.category_edit_fields = FieldSet::new([
             draft.transaction_type.to_string(),
             draft.category,
             draft.subcategory,
             draft.tag.unwrap_or_default(),
-            target_budget,
+            budget,
         ]);
         self.category_edit_cursor =
             self.category_edit_fields[CategoryEditField::TransactionType].len();
@@ -267,7 +270,6 @@ impl App {
         let switching_to_income = !self.category_edit_fields[CategoryEditField::TransactionType]
             .eq_ignore_ascii_case("income");
         self.category_edit_fields[CategoryEditField::TransactionType] = if switching_to_income {
-            self.category_edit_fields[CategoryEditField::TargetBudget].clear();
             TransactionType::Income.to_string()
         } else {
             TransactionType::Expense.to_string()
@@ -341,7 +343,7 @@ impl App {
     }
 
     pub(crate) fn save_category(&mut self) {
-        let mut draft = match self.build_category_draft_from_editor() {
+        let draft = match self.build_category_draft_from_editor() {
             Ok(draft) => draft,
             Err(message) => {
                 self.set_status_message(format!("Error: {}", message), None);
@@ -349,12 +351,6 @@ impl App {
             }
         };
 
-        let existing_record = self.editing_category_id.and_then(|id| {
-            self.category_records
-                .iter()
-                .find(|record| record.id == id)
-                .cloned()
-        });
         let editing_category_id = self.editing_category_id;
 
         // The schema's UNIQUE is case-sensitive but rename and delete propagate with LOWER(), so
@@ -371,14 +367,6 @@ impl App {
                 None,
             );
             return;
-        }
-
-        if draft.transaction_type == TransactionType::Income
-            && draft.target_budget.is_none()
-            && let Some(old_record) = existing_record.as_ref()
-            && old_record.transaction_type == TransactionType::Income
-        {
-            draft.target_budget = old_record.target_budget;
         }
 
         let store = self.category_store();
@@ -420,7 +408,7 @@ impl App {
         self.set_status_message("Category saved successfully.", Some(Duration::seconds(3)));
     }
 
-    fn selected_category_record(&self) -> Option<&CategoryRecord> {
+    pub(crate) fn selected_category_record(&self) -> Option<&CategoryRecord> {
         self.category_table_state
             .selected()
             .and_then(|index| self.filtered_category_indices.get(index))
@@ -469,22 +457,9 @@ impl App {
             .trim()
             .to_string();
         let tag = self.category_edit_fields[CategoryEditField::Tag].trim();
-        let target_budget_str = self.category_edit_fields[CategoryEditField::TargetBudget].trim();
 
         if category.is_empty() {
             return Err("Category cannot be empty.".to_string());
-        }
-
-        let target_budget = if target_budget_str.is_empty() {
-            None
-        } else {
-            Some(crate::validation::validate_amount_string(
-                target_budget_str,
-            )?)
-        };
-
-        if transaction_type == TransactionType::Income && target_budget.is_some() {
-            return Err("Budgets are only available for expense categories.".to_string());
         }
 
         Ok(CategoryDraft {
@@ -496,7 +471,6 @@ impl App {
             } else {
                 Some(tag.to_string())
             },
-            target_budget,
         })
     }
 }

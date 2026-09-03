@@ -116,6 +116,7 @@ pub fn sort_transactions_impl(
 pub fn sort_category_indices_impl(
     indices: &mut [usize],
     records: &[CategoryRecord],
+    budget_of: impl Fn(&CategoryRecord) -> Option<Decimal>,
     sort_by: CategorySortColumn,
     sort_order: SortOrder,
 ) {
@@ -132,7 +133,7 @@ pub fn sort_category_indices_impl(
                 .then_with(|| category_tiebreak(a, b));
             }
             CategorySortColumn::TargetBudget => {
-                return compare_blank_last(a.target_budget, b.target_budget, sort_order, Ord::cmp)
+                return compare_blank_last(budget_of(a), budget_of(b), sort_order, Ord::cmp)
                     .then_with(|| category_tiebreak(a, b));
             }
         };

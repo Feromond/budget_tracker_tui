@@ -2,8 +2,9 @@ use crate::app::fields::{
     AddEditField, AdvancedFilterField, CategoryEditField, FieldSet, RecurringField, SelectingField,
 };
 use crate::app::update_checker;
-use crate::config::{AppSettings, load_settings};
+use crate::config::{AppSettings, load_settings, save_settings};
 use crate::csv_io::{load_seed_categories, load_transactions};
+use crate::db::budget_store::{BudgetStore, SqliteBudgetStore};
 use crate::db::category_store::{CategoryStore, SqliteCategoryStore};
 use crate::db::database::{SCHEMA_VERSION, SqliteDatabase};
 use crate::db::ledger_store::{DEFAULT_LEDGER_ID, LedgerRecord, LedgerStore, SqliteLedgerStore};
@@ -63,12 +64,28 @@ pub enum CategorySummaryItem {
     Subcategory(u32, String, String, MonthlySummary),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BudgetEditTarget {
+    MonthlyBudget,
+    Category(i64),
+}
+
+impl BudgetEditTarget {
+    /// The `category_id` this maps to in `budget_periods`, where NULL is the monthly budget.
+    pub fn category_id(self) -> Option<i64> {
+        match self {
+            BudgetEditTarget::MonthlyBudget => None,
+            BudgetEditTarget::Category(id) => Some(id),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct BudgetCategoryComparison {
     pub id: i64,
     pub category: String,
     pub subcategory: String,
-    pub target_budget: Decimal,
+    pub budget: Decimal,
     pub actual_expense: Decimal,
 }
 
@@ -122,7 +139,11 @@ pub struct App {
     pub(crate) budget_year_index: usize,
     pub(crate) selected_budget_month: Option<u32>,
     pub(crate) budget_table_state: TableState,
-    pub(crate) budget_edit_category_id: Option<i64>,
+    pub(crate) budget_schedule: BudgetSchedule,
+    pub(crate) budget_edit_target: Option<BudgetEditTarget>,
+    pub(crate) budget_edit_month: Option<BudgetMonth>,
+    pub(crate) budget_edit_origin: AppMode,
+    pub(crate) budget_edit_scope_choice: BudgetEditScope,
     pub(crate) budget_edit_input: String,
     pub(crate) budget_edit_cursor: usize,
     // Settings form state
@@ -149,7 +170,6 @@ pub struct App {
     pub(crate) ledger_delete_prompt: String,
     pub(crate) ledger_copy_source_id: Option<i64>,
     // Budget
-    pub(crate) target_budget: Option<Decimal>,
     pub(crate) hourly_rate: Option<Decimal>,
     pub(crate) show_hours: bool,
     pub(crate) fuzzy_search_mode: bool,
@@ -347,7 +367,11 @@ impl App {
             budget_year_index: 0,
             selected_budget_month: None,
             budget_table_state: TableState::default(),
-            budget_edit_category_id: None,
+            budget_schedule: BudgetSchedule::default(),
+            budget_edit_target: None,
+            budget_edit_month: None,
+            budget_edit_origin: AppMode::Budget,
+            budget_edit_scope_choice: BudgetEditScope::FromThisMonth,
             budget_edit_input: String::new(),
             budget_edit_cursor: 0,
             settings_state: crate::app::settings_types::SettingsState::default(),
@@ -369,7 +393,6 @@ impl App {
             ledger_delete_id: None,
             ledger_delete_prompt: String::new(),
             ledger_copy_source_id: None,
-            target_budget: loaded_settings.target_budget,
             hourly_rate: loaded_settings.hourly_rate,
             show_hours: loaded_settings.show_hours.unwrap_or(false),
             fuzzy_search_mode: loaded_settings.fuzzy_search_mode.unwrap_or(false),
@@ -401,6 +424,12 @@ impl App {
             return app;
         }
 
+        if let Err(err) = app
+            .reload_budget_schedule()
+            .and_then(|_| app.migrate_legacy_target_budget())
+        {
+            app.status_message = Some(format!("Budget load error: {}", err));
+        }
         app.calculate_monthly_summaries();
         app.calculate_category_summaries();
         app.refresh_budget_years();
@@ -489,6 +518,57 @@ impl App {
 
     pub(crate) fn category_store(&self) -> SqliteCategoryStore {
         Self::category_store_for_path(&self.database_path)
+    }
+
+    pub(crate) fn budget_store(&self) -> SqliteBudgetStore {
+        SqliteBudgetStore::new(SqliteDatabase::new(&self.database_path))
+    }
+
+    /// One-shot move of the old global target out of config.json into per-ledger history,
+    /// starting before any real month so past months keep the figure they already showed.
+    fn migrate_legacy_target_budget(&mut self) -> Result<(), Error> {
+        let Ok(mut settings) = load_settings() else {
+            return Ok(());
+        };
+        let Some(amount) = settings.target_budget else {
+            return Ok(());
+        };
+
+        let store = self.budget_store();
+        for ledger in &self.ledgers {
+            let already_set = store
+                .list(ledger.id)?
+                .iter()
+                .any(|period| period.category_id.is_none());
+            if !already_set {
+                store.set(ledger.id, None, BudgetMonth::BEGINNING, Some(amount))?;
+            }
+        }
+
+        // Clear it from the config file so it cannot come back and overwrite the history.
+        settings.target_budget = None;
+        let _ = save_settings(&settings);
+        self.reload_budget_schedule()
+    }
+
+    pub(crate) fn reload_budget_schedule(&mut self) -> Result<(), Error> {
+        let periods = self.budget_store().list(self.active_ledger_id)?;
+        self.budget_schedule = BudgetSchedule::new(periods);
+        Ok(())
+    }
+
+    /// The month the budget view is pointed at, which anchors every budget lookup.
+    pub(crate) fn selected_budget_key(&self) -> Option<BudgetMonth> {
+        match (self.selected_budget_year(), self.selected_budget_month) {
+            (Some(year), Some(month)) => Some(BudgetMonth::new(year, month)),
+            _ => None,
+        }
+    }
+
+    /// Today's month, used by the catalog, which has no month to work from.
+    pub(crate) fn current_budget_key() -> BudgetMonth {
+        let now = chrono::Local::now();
+        BudgetMonth::new(now.year(), now.month())
     }
 
     fn transaction_store_for_path(database_path: &Path, ledger_id: i64) -> SqliteTransactionStore {
@@ -675,6 +755,10 @@ impl App {
     pub(crate) fn refresh_categories_from_database(&mut self) -> Result<(), Error> {
         let store = self.category_store();
         let records = store.list()?;
+        // Budgets are keyed on category ids and SQLite hands deleted ids straight back, so
+        // a stale schedule would show a dead category's budget on a newly created one.
+        // Reloading both together is what stops them drifting apart.
+        self.reload_budget_schedule()?;
         self.refresh_category_state(records);
         Ok(())
     }

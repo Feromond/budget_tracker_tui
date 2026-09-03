@@ -1,5 +1,6 @@
 use super::state::{App, AppMode};
 use crate::app::settings_types::SettingKey;
+use crate::db::budget_store::BudgetStore;
 use crate::db::ledger_store::LedgerStore;
 use chrono::Duration;
 
@@ -171,7 +172,11 @@ impl App {
         let store = self.ledger_store();
         let result = match (self.editing_ledger_id, self.ledger_copy_source_id) {
             (Some(id), _) => store.rename(id, &name).map(|_| id),
-            (None, Some(source_id)) => store.copy(source_id, &name).map(|ledger| ledger.id),
+            (None, Some(source_id)) => store.copy(source_id, &name).and_then(|ledger| {
+                // A copied ledger keeps its own budgets, not a view of the original's.
+                self.budget_store().copy_ledger(source_id, ledger.id)?;
+                Ok(ledger.id)
+            }),
             (None, None) => store.create(&name).map(|ledger| ledger.id),
         };
 

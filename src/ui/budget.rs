@@ -1,4 +1,5 @@
 use crate::app::state::{App, BudgetCategoryComparison};
+use crate::model::{BudgetEditScope, BudgetMonth};
 use crate::ui::helpers::{format_amount, month_to_color, month_to_short_str};
 use ratatui::prelude::*;
 use ratatui::text::Line;
@@ -65,8 +66,8 @@ fn average_monthly_expense(monthly: &[(u32, Decimal)]) -> Decimal {
 }
 
 fn comparison_row(comparison: &BudgetCategoryComparison) -> Row<'static> {
-    let remaining = comparison.target_budget - comparison.actual_expense;
-    let spent_style = if comparison.actual_expense > comparison.target_budget {
+    let remaining = comparison.budget - comparison.actual_expense;
+    let spent_style = if comparison.actual_expense > comparison.budget {
         Style::default().fg(Color::LightRed)
     } else {
         Style::default().fg(Color::LightGreen)
@@ -86,10 +87,8 @@ fn comparison_row(comparison: &BudgetCategoryComparison) -> Row<'static> {
     Row::new(vec![
         Cell::from(comparison.category.clone()),
         Cell::from(subcategory),
-        Cell::from(
-            Line::from(format_amount(&comparison.target_budget)).alignment(Alignment::Right),
-        )
-        .style(Style::default().fg(Color::LightBlue)),
+        Cell::from(Line::from(format_amount(&comparison.budget)).alignment(Alignment::Right))
+            .style(Style::default().fg(Color::LightBlue)),
         Cell::from(
             Line::from(format_amount(&comparison.actual_expense)).alignment(Alignment::Right),
         )
@@ -97,16 +96,10 @@ fn comparison_row(comparison: &BudgetCategoryComparison) -> Row<'static> {
         Cell::from(Line::from(format_budget_variance(remaining)).alignment(Alignment::Right))
             .style(remaining_style),
         Cell::from(
-            Line::from(usage_percent(
-                comparison.actual_expense,
-                comparison.target_budget,
-            ))
-            .alignment(Alignment::Right),
+            Line::from(usage_percent(comparison.actual_expense, comparison.budget))
+                .alignment(Alignment::Right),
         )
-        .style(Style::default().fg(usage_color(
-            comparison.actual_expense,
-            comparison.target_budget,
-        ))),
+        .style(Style::default().fg(usage_color(comparison.actual_expense, comparison.budget))),
     ])
 }
 
@@ -202,7 +195,7 @@ fn compact_yearly_pattern_title(
             )];
             spans.push(Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)));
             spans.push(Span::styled(
-                format_amount(&comparison.target_budget),
+                format_amount(&comparison.budget),
                 Style::default()
                     .fg(Color::LightBlue)
                     .add_modifier(Modifier::BOLD),
@@ -227,7 +220,7 @@ fn compact_yearly_pattern_title(
             ),
             Span::styled(" | ", Style::default().fg(PANEL_CHROME_COLOR)),
             Span::styled(
-                format_amount(&comparison.target_budget),
+                format_amount(&comparison.budget),
                 Style::default()
                     .fg(Color::LightBlue)
                     .add_modifier(Modifier::BOLD),
@@ -243,9 +236,10 @@ fn compact_yearly_pattern_title(
 }
 
 pub fn render_budget_target_editor(f: &mut Frame, app: &App, area: Rect) {
+    let scopes = app.budget_edit_scopes();
     // Fixed size: a percentage of a short terminal clips the input box.
     let width = area.width.saturating_sub(4).clamp(24, 52).min(area.width);
-    let height = 7.min(area.height);
+    let height = (7 + scopes.len() as u16).min(area.height);
     let popup_area = Rect {
         x: area.x + area.width.saturating_sub(width) / 2,
         y: area.y + area.height.saturating_sub(height) / 2,
@@ -260,13 +254,14 @@ pub fn render_budget_target_editor(f: &mut Frame, app: &App, area: Rect) {
         .constraints([
             Constraint::Length(1),
             Constraint::Length(3),
+            Constraint::Length(scopes.len() as u16),
             Constraint::Min(0),
         ])
         .split(popup_area);
 
     let block = Block::default()
         .title(" Category Budget ")
-        .title_bottom(" [Enter] Save, [Esc] Cancel ")
+        .title_bottom(" [Enter] Save, [Up/Down] Scope, [Esc] Cancel ")
         .borders(Borders::ALL)
         .border_style(Style::default().fg(PANEL_CHROME_COLOR));
     f.render_widget(block, popup_area);
@@ -288,6 +283,41 @@ pub fn render_budget_target_editor(f: &mut Frame, app: &App, area: Rect) {
             .border_style(Style::default().fg(Color::Yellow)),
     );
     f.render_widget(input, chunks[1]);
+
+    let month_label = app
+        .selected_budget_key()
+        .map(|key| format!("{} {}", month_to_short_str(key.month), key.year))
+        .unwrap_or_default();
+    let selected_scope = app.budget_edit_scope();
+    let scope_lines: Vec<Line> = scopes
+        .iter()
+        .map(|scope| {
+            let text = match scope {
+                BudgetEditScope::FromThisMonth => format!("From {} on", month_label),
+                BudgetEditScope::ThisMonthOnly => format!("{} only", month_label),
+                BudgetEditScope::ReplaceAllMonths => "Replace all months".to_string(),
+                BudgetEditScope::RemoveChange => format!("Remove {} change", month_label),
+            };
+            let chosen = *scope == selected_scope;
+            Line::from(vec![
+                Span::styled(
+                    if chosen { " (o) " } else { " ( ) " },
+                    Style::default().fg(PANEL_CHROME_COLOR),
+                ),
+                Span::styled(
+                    text,
+                    if chosen {
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(Color::DarkGray)
+                    },
+                ),
+            ])
+        })
+        .collect();
+    f.render_widget(Paragraph::new(scope_lines), chunks[2]);
 
     let cursor_byte_idx = app.budget_edit_cursor.min(app.budget_edit_input.len());
     let visual_cursor = app.budget_edit_input[..cursor_byte_idx].chars().count() as u16;
@@ -328,17 +358,26 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
         (Some(year), Some(month)) => app.budget_month_expense(year, month),
         _ => Decimal::ZERO,
     };
-    let remaining_budget = app.target_budget.map(|target| target - actual_expense);
-    let allocated_budget = app.total_allocated_budget();
-    let unallocated_budget = app.target_budget.map(|target| target - allocated_budget);
+    let monthly_budget = match (current_year, selected_month) {
+        (Some(year), Some(month)) => app
+            .budget_schedule
+            .monthly_budget(BudgetMonth::new(year, month)),
+        _ => None,
+    };
+    let remaining_budget = monthly_budget.map(|target| target - actual_expense);
+    let allocated_budget = match (current_year, selected_month) {
+        (Some(year), Some(month)) => app.total_allocated_budget(year, month),
+        _ => Decimal::ZERO,
+    };
+    let unallocated_budget = monthly_budget.map(|target| target - allocated_budget);
     // Overspending outranks over-allocating, so the worse news is the one on show.
-    let budget_status = match (app.target_budget, remaining_budget, unallocated_budget) {
-        (None, _, _) => ("No Target Set", Color::LightYellow),
+    let budget_status = match (monthly_budget, remaining_budget, unallocated_budget) {
+        (None, _, _) => ("No Budget Set", Color::LightYellow),
         (Some(_), Some(left), _) if left < Decimal::ZERO => ("Over Budget", Color::LightRed),
         (Some(_), _, Some(spare)) if spare < Decimal::ZERO => ("Over Allocated", WARNING_COLOR),
         _ => ("On Track", Color::LightGreen),
     };
-    let usage_value = match app.target_budget {
+    let usage_value = match monthly_budget {
         Some(target) => usage_percent(actual_expense, target),
         None => "N/A".to_string(),
     };
@@ -349,7 +388,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             Style::default().fg(Color::LightBlue),
         ),
     ];
-    if let Some(target) = app.target_budget {
+    if let Some(target) = monthly_budget {
         allocated_spans.push(Span::raw(" "));
         allocated_spans.push(Span::styled(
             format!("({})", usage_percent(allocated_budget, target)),
@@ -415,9 +454,9 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             ),
         ]),
         Line::from(vec![
-            Span::styled("Target: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("Budget: ", Style::default().add_modifier(Modifier::BOLD)),
             Span::styled(
-                app.target_budget
+                monthly_budget
                     .map(|value| format_amount(&value))
                     .unwrap_or_else(|| "Not set".to_string()),
                 Style::default().fg(Color::LightBlue),
@@ -427,8 +466,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             Span::styled("Spent:  ", Style::default().add_modifier(Modifier::BOLD)),
             Span::styled(
                 format_amount(&actual_expense),
-                if app.target_budget.is_some()
-                    && remaining_budget.unwrap_or_default() < Decimal::ZERO
+                if monthly_budget.is_some() && remaining_budget.unwrap_or_default() < Decimal::ZERO
                 {
                     Style::default().fg(Color::LightRed)
                 } else {
@@ -474,8 +512,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_widget(summary, top_chunks[0]);
 
     let mut bars: Vec<Bar> = Vec::new();
-    let mut max_expense = app
-        .target_budget
+    let mut max_expense = monthly_budget
         .unwrap_or(Decimal::ZERO)
         .round()
         .to_u64()
@@ -488,11 +525,14 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             }
             let value = expense.round().to_u64().unwrap_or(0);
             max_expense = max_expense.max(value);
+            let month_target = app
+                .budget_schedule
+                .monthly_budget(BudgetMonth::new(year, month));
             let style = if Some(month) == selected_month {
                 let base = Style::default()
                     .fg(SELECTED_MONTH_BAR_COLOR)
                     .add_modifier(Modifier::BOLD);
-                if let Some(target) = app.target_budget {
+                if let Some(target) = month_target {
                     if expense > target {
                         base.bg(Color::Rgb(45, 10, 10))
                     } else {
@@ -501,7 +541,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
                 } else {
                     base
                 }
-            } else if let Some(target) = app.target_budget {
+            } else if let Some(target) = month_target {
                 if expense > target {
                     Style::default().fg(Color::LightRed)
                 } else {
@@ -620,7 +660,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     };
     let average_expense = average_monthly_expense(&monthly_pattern);
     let detail_lines = if let Some(comparison) = &selected_comparison {
-        let remaining = comparison.target_budget - comparison.actual_expense;
+        let remaining = comparison.budget - comparison.actual_expense;
         let subcategory_label = if comparison.subcategory.is_empty() {
             "None".to_string()
         } else {
@@ -643,7 +683,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             Line::from(vec![
                 Span::styled("Budget:   ", Style::default().add_modifier(Modifier::BOLD)),
                 Span::styled(
-                    format_amount(&comparison.target_budget),
+                    format_amount(&comparison.budget),
                     Style::default().fg(Color::LightBlue),
                 ),
             ]),
@@ -651,7 +691,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
                 Span::styled("Spent:    ", Style::default().add_modifier(Modifier::BOLD)),
                 Span::styled(
                     format_amount(&comparison.actual_expense),
-                    if comparison.actual_expense > comparison.target_budget {
+                    if comparison.actual_expense > comparison.budget {
                         Style::default().fg(Color::LightRed)
                     } else {
                         Style::default().fg(Color::LightGreen)
@@ -672,7 +712,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             Line::from(vec![
                 Span::styled("Usage:    ", Style::default().add_modifier(Modifier::BOLD)),
                 Span::styled(
-                    usage_percent(comparison.actual_expense, comparison.target_budget),
+                    usage_percent(comparison.actual_expense, comparison.budget),
                     Style::default().fg(Color::LightYellow),
                 ),
             ]),
@@ -718,7 +758,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
                 Style::default()
                     .fg(SELECTED_MONTH_BAR_COLOR)
                     .add_modifier(Modifier::BOLD)
-            } else if *expense > comparison.target_budget {
+            } else if *expense > comparison.budget {
                 Style::default().fg(Color::LightRed)
             } else if expense.is_zero() {
                 Style::default().fg(Color::DarkGray)
@@ -732,7 +772,7 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
                     .style(style),
             );
         }
-        selected_max = selected_max.max(comparison.target_budget.round().to_u64().unwrap_or(0));
+        selected_max = selected_max.max(comparison.budget.round().to_u64().unwrap_or(0));
         selected_max = selected_max.max(average_expense.round().to_u64().unwrap_or(0));
     } else {
         selected_bars.push(Bar::default().label("N/A").value(0));

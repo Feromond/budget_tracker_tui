@@ -340,7 +340,15 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 "Edit Category Budget",
                 "Actions",
                 Some(
-                    "Change the budget of the selected category right here. Leaving the amount empty removes the budget, which also drops the category from this table.",
+                    "Change the budget of the selected category from the selected month on. Leaving the amount empty clears it from that month, which also drops the category from this table.",
+                ),
+            ),
+            KeyBindingInfo::new(
+                "t",
+                "Edit Monthly Budget",
+                "Actions",
+                Some(
+                    "Set the whole month's spending limit from the selected month on. Earlier months keep the budget they had, so past history is not rewritten.",
                 ),
             ),
             KeyBindingInfo::new(
@@ -359,10 +367,18 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("←/→", "Move cursor", "Navigation", None),
             KeyBindingInfo::new("Bksp/Del", "Delete character", "Input", None),
             KeyBindingInfo::new(
+                "↑/↓",
+                "Choose how far the change reaches",
+                "Actions",
+                Some(
+                    "From this month on carries forward until something else changes it. This month only restores the old amount next month. Replace all months wipes the whole history for this budget and applies one amount everywhere, which is the way to undo a mistake rather than date around it. Remove change appears when a change starts in this month, and deletes it so the month inherits the previous amount again.",
+                ),
+            ),
+            KeyBindingInfo::new(
                 "Enter",
                 "Save budget",
                 "Actions",
-                Some("An empty amount clears the budget for this category."),
+                Some("An empty amount clears the budget from the selected month on."),
             ),
             KeyBindingInfo::new("Esc", "Cancel", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
@@ -405,14 +421,6 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 "Fields",
                 Some(
                     "Press Enter to open a path prompt and export all transactions to a CSV file you can back up or share.",
-                ),
-            ),
-            KeyBindingInfo::new(
-                "Monthly Target",
-                "Monthly spending goal",
-                "Fields",
-                Some(
-                    "Set the monthly spending goal used by the budget view and the summary's cumulative mode.",
                 ),
             ),
             KeyBindingInfo::new(
@@ -490,6 +498,14 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("a", "Add category", "Actions", None),
             KeyBindingInfo::new("e/Enter", "Edit selected category", "Actions", None),
             KeyBindingInfo::new("d", "Delete selected category", "Actions", None),
+            KeyBindingInfo::new(
+                "b",
+                "Edit budget",
+                "Actions",
+                Some(
+                    "Opens the same budget popup the budget view uses, dated from the current month. Expense categories only.",
+                ),
+            ),
             KeyBindingInfo::new("1/F1", "Sort by Type", "Sorting", None),
             KeyBindingInfo::new("2/F2", "Sort by Category", "Sorting", None),
             KeyBindingInfo::new("3/F3", "Sort by Subcategory", "Sorting", None),
@@ -534,15 +550,15 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("Tab/↑/↓", "Navigate fields", "Navigation", None),
             KeyBindingInfo::new("←/→", "Toggle type / move cursor", "Navigation", None),
             KeyBindingInfo::new("Enter", "Toggle type or save", "Actions", None),
-            KeyBindingInfo::new("Esc", "Cancel editor", "Actions", None),
             KeyBindingInfo::new(
                 "Budget",
-                "Expense-only category budget goal",
+                "Save, then open the budget popup",
                 "Fields",
                 Some(
-                    "Optional for expense categories only. Income categories do not use per-category budgets in the budget view.",
+                    "A budget is stored against the category rather than inside it, so pressing Enter here saves the category first and then opens the same popup the budget view uses. Expense categories only.",
                 ),
             ),
+            KeyBindingInfo::new("Esc", "Cancel editor", "Actions", None),
             KeyBindingInfo::new(
                 "Tag",
                 "Optional label",

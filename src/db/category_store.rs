@@ -1,9 +1,7 @@
 use crate::db::database::SqliteDatabase;
 use crate::model::{CategoryDraft, CategoryInfo, CategoryRecord, TransactionType};
 use rusqlite::{Connection, Row, params};
-use rust_decimal::Decimal;
 use std::io::{Error, ErrorKind, Result};
-use std::str::FromStr;
 
 /// The category catalog is shared by every ledger, so updating or deleting a category re-points
 /// the matching transactions across all of them, in one transaction with the catalog write.
@@ -44,9 +42,8 @@ impl SqliteCategoryStore {
                     transaction_type,
                     category,
                     subcategory,
-                    tag,
-                    target_budget
-                ) VALUES (?1, ?2, ?3, NULL, NULL)
+                    tag
+                ) VALUES (?1, ?2, ?3, NULL)
                 ",
             )
             .map_err(|err| {
@@ -72,7 +69,7 @@ impl SqliteCategoryStore {
     fn load_record_by_id(conn: &Connection, id: i64) -> Result<CategoryRecord> {
         conn.query_row(
             "
-            SELECT id, transaction_type, category, subcategory, tag, target_budget
+            SELECT id, transaction_type, category, subcategory, tag
             FROM categories
             WHERE id = ?1
             ",
@@ -90,7 +87,6 @@ impl SqliteCategoryStore {
 
     fn row_to_record(row: &Row<'_>) -> rusqlite::Result<CategoryRecord> {
         let transaction_type_str: String = row.get(1)?;
-        let target_budget_str: Option<String> = row.get(5)?;
 
         let transaction_type =
             TransactionType::try_from(transaction_type_str.as_str()).map_err(|_| {
@@ -107,32 +103,12 @@ impl SqliteCategoryStore {
                 )
             })?;
 
-        let target_budget = match target_budget_str {
-            Some(value) if !value.trim().is_empty() => {
-                Some(Decimal::from_str(value.trim()).map_err(|err| {
-                    rusqlite::Error::FromSqlConversionFailure(
-                        5,
-                        rusqlite::types::Type::Text,
-                        Box::new(Error::new(
-                            ErrorKind::InvalidData,
-                            format!(
-                                "Invalid target budget '{}' in category database: {}",
-                                value, err
-                            ),
-                        )),
-                    )
-                })?)
-            }
-            _ => None,
-        };
-
         Ok(CategoryRecord {
             id: row.get(0)?,
             transaction_type,
             category: row.get(2)?,
             subcategory: row.get(3)?,
             tag: row.get(4)?,
-            target_budget,
         })
     }
 }
@@ -149,7 +125,7 @@ impl CategoryStore for SqliteCategoryStore {
         let mut stmt = conn
             .prepare(
                 "
-                SELECT id, transaction_type, category, subcategory, tag, target_budget
+                SELECT id, transaction_type, category, subcategory, tag
                 FROM categories
                 ORDER BY
                     CASE transaction_type
@@ -180,16 +156,14 @@ impl CategoryStore for SqliteCategoryStore {
                 transaction_type,
                 category,
                 subcategory,
-                tag,
-                target_budget
-            ) VALUES (?1, ?2, ?3, ?4, ?5)
+                tag
+            ) VALUES (?1, ?2, ?3, ?4)
             ",
             params![
                 draft.transaction_type.as_str(),
                 &draft.category,
                 &draft.subcategory,
-                &draft.tag,
-                draft.target_budget.map(|value| value.to_string())
+                &draft.tag
             ],
         )
         .map_err(|err| Error::other(format!("Failed to insert category: {}", err)))?;
@@ -212,16 +186,14 @@ impl CategoryStore for SqliteCategoryStore {
                 transaction_type = ?1,
                 category = ?2,
                 subcategory = ?3,
-                tag = ?4,
-                target_budget = ?5
-            WHERE id = ?6
+                tag = ?4
+            WHERE id = ?5
             ",
             params![
                 draft.transaction_type.as_str(),
                 &draft.category,
                 &draft.subcategory,
                 &draft.tag,
-                draft.target_budget.map(|value| value.to_string()),
                 id
             ],
         )

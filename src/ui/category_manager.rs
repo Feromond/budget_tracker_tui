@@ -68,20 +68,23 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
         });
     let header = Row::new(header_cells).height(1);
 
+    let budget_month = Some(crate::app::state::App::current_budget_key());
     let records = &app.category_records;
     let rows = app
         .filtered_category_indices
         .iter()
         .filter_map(|&index| records.get(index))
         .map(|record| {
-            let target_budget = record.target_budget.map(|value| {
-                Cell::from(Line::from(format!("{value:.2}")).alignment(Alignment::Right)).style(
-                    Style::default()
-                        .fg(Color::LightCyan)
-                        .bg(Color::Rgb(20, 20, 20))
-                        .add_modifier(Modifier::BOLD),
-                )
-            });
+            let budget = budget_month
+                .and_then(|month| app.budget_schedule.category_budget(record.id, month))
+                .map(|value| {
+                    Cell::from(Line::from(format!("{value:.2}")).alignment(Alignment::Right)).style(
+                        Style::default()
+                            .fg(Color::LightCyan)
+                            .bg(Color::Rgb(20, 20, 20))
+                            .add_modifier(Modifier::BOLD),
+                    )
+                });
 
             Row::new(vec![
                 Cell::from(record.transaction_type.to_string()),
@@ -92,8 +95,7 @@ pub fn render_category_catalog(f: &mut Frame, app: &mut App, area: Rect) {
                     record.subcategory.clone()
                 }),
                 Cell::from(record.tag.clone().unwrap_or_default()),
-                target_budget
-                    .unwrap_or_else(|| Cell::from(Line::from("").alignment(Alignment::Right))),
+                budget.unwrap_or_else(|| Cell::from(Line::from("").alignment(Alignment::Right))),
             ])
         });
 
@@ -136,19 +138,15 @@ pub fn render_category_editor(f: &mut Frame, app: &App, area: Rect) {
         .iter()
         .map(|(field, text)| {
             let is_focused = field == focused_field;
-            let hint = if field == CategoryEditField::TargetBudget && income_category {
-                "(Expense categories only)"
-            } else {
-                field.hint()
-            };
-            let title = format!("{} {}", field.label(), hint).trim_end().to_string();
+            let title = format!("{} {}", field.label(), field.hint())
+                .trim_end()
+                .to_string();
             let content = if field.kind() == FieldKind::Toggle {
                 Span::styled(
                     format!(" < {} > ", text),
                     Style::default().fg(Color::White).bold(),
                 )
-            } else if field == CategoryEditField::TargetBudget && income_category && text.is_empty()
-            {
+            } else if field == CategoryEditField::Budget && income_category {
                 Span::styled(
                     "Expense categories only",
                     Style::default().fg(Color::DarkGray),
