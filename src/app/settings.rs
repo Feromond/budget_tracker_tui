@@ -67,10 +67,10 @@ impl App {
             .unwrap_or_default();
         self.settings_state.add_setting(
             SettingKey::TargetBudget,
-            "Target Budget",
+            "Monthly Target",
             budget_val,
             SettingType::Number,
-            "Monthly spending goal. Displayed in Monthly Summary view only when cumulative mode.",
+            "Monthly spending goal. Used by the budget view, and drawn in the monthly summary's cumulative mode.",
         );
 
         // --- Transaction View Section ---
@@ -228,14 +228,14 @@ impl App {
             hide_help_bar_val = Some(val.to_lowercase().contains("yes"));
         }
 
-        // Validate Target Budget
+        // Validate Monthly Target
         let target_budget = if target_budget_str.is_empty() {
             None
         } else {
             match crate::validation::validate_amount_string(&target_budget_str) {
                 Ok(val) => Some(val),
                 Err(msg) => {
-                    self.set_status_message(format!("Error: Target budget - {}", msg), None);
+                    self.set_status_message(format!("Error: Monthly target - {}", msg), None);
                     return;
                 }
             }

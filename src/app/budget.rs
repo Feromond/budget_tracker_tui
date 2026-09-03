@@ -273,7 +273,7 @@ impl App {
         comparisons.get(selected).cloned()
     }
 
-    // --- Target budget editing ---
+    // --- Category budget editing ---
 
     pub(crate) fn start_editing_budget_target(&mut self) {
         let Some(comparison) = self.selected_budget_category_comparison() else {
