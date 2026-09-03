@@ -64,6 +64,15 @@ impl App {
         (1..=12).collect()
     }
 
+    /// Changing year lands on the same month, which every year has.
+    fn keep_or_pick_budget_month(&mut self) {
+        if self.selected_budget_month.is_none()
+            && let Some(year) = self.selected_budget_year()
+        {
+            self.update_selected_budget_month(year);
+        }
+    }
+
     fn update_selected_budget_month(&mut self, year: i32) {
         let current_date = chrono::Local::now();
         self.selected_budget_month = if year == current_date.year() {
@@ -134,9 +143,7 @@ impl App {
         }
 
         self.budget_year_index = (self.budget_year_index + 1) % self.budget_years.len();
-        if let Some(year) = self.selected_budget_year() {
-            self.update_selected_budget_month(year);
-        }
+        self.keep_or_pick_budget_month();
         let len = self.current_budget_category_comparisons().len();
         self.clamp_budget_selection(len);
     }
@@ -151,9 +158,7 @@ impl App {
         } else {
             self.budget_year_index -= 1;
         }
-        if let Some(year) = self.selected_budget_year() {
-            self.update_selected_budget_month(year);
-        }
+        self.keep_or_pick_budget_month();
         let len = self.current_budget_category_comparisons().len();
         self.clamp_budget_selection(len);
     }

@@ -199,6 +199,14 @@ impl CategoryStore for SqliteCategoryStore {
         )
         .map_err(|err| Error::other(format!("Failed to update category: {}", err)))?;
 
+        // Expense-only budgets, and the type is shared by every ledger, so drop them all.
+        if draft.transaction_type == TransactionType::Income {
+            tx.execute("DELETE FROM budget_periods WHERE category_id = ?1", [id])
+                .map_err(|err| {
+                    Error::other(format!("Failed to clear category budgets: {}", err))
+                })?;
+        }
+
         tx.execute(
             "
             UPDATE transactions

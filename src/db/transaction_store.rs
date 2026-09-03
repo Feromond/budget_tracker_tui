@@ -792,6 +792,65 @@ mod tests {
     }
 
     #[test]
+    fn turning_a_category_into_income_drops_its_budgets() {
+        use crate::db::budget_store::{BudgetStore, SqliteBudgetStore};
+        use crate::db::category_store::SqliteCategoryStore;
+        use crate::model::{BudgetMonth, CategoryDraft, TransactionType};
+
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+        let conn = database.ready_connection("test").unwrap();
+        conn.execute_batch(
+            "INSERT INTO ledgers (id, name, position, created_at)
+             VALUES (2, 'Scenario', 1, datetime('now'));",
+        )
+        .unwrap();
+        drop(conn);
+
+        let categories = SqliteCategoryStore::new(database.clone());
+        let budgets = SqliteBudgetStore::new(database.clone());
+        let mut draft = CategoryDraft {
+            transaction_type: TransactionType::Expense,
+            category: "Food".to_string(),
+            subcategory: String::new(),
+            tag: None,
+        };
+        let record = categories.insert(&draft).unwrap();
+
+        // Budgets are per ledger, but the category type is not, so both must go.
+        for ledger in [DEFAULT_LEDGER_ID, 2] {
+            budgets
+                .set(
+                    ledger,
+                    Some(record.id),
+                    BudgetMonth::new(2026, 1),
+                    Some("600".parse().unwrap()),
+                )
+                .unwrap();
+        }
+
+        draft.transaction_type = TransactionType::Income;
+        categories.update(record.id, &draft).unwrap();
+
+        for ledger in [DEFAULT_LEDGER_ID, 2] {
+            let schedule = BudgetSchedule::new(budgets.list(ledger).unwrap());
+            assert_eq!(
+                schedule.category_budget(record.id, BudgetMonth::new(2026, 6)),
+                None
+            );
+        }
+
+        // Switching back must not bring back the old amounts.
+        draft.transaction_type = TransactionType::Expense;
+        categories.update(record.id, &draft).unwrap();
+        let schedule = BudgetSchedule::new(budgets.list(DEFAULT_LEDGER_ID).unwrap());
+        assert_eq!(
+            schedule.category_budget(record.id, BudgetMonth::new(2026, 6)),
+            None
+        );
+    }
+
+    #[test]
     fn a_database_from_a_newer_build_is_refused() {
         let temp = TempDb::new();
         let database = SqliteDatabase::new(&temp.path);

@@ -288,8 +288,9 @@ pub fn render_budget_target_editor(f: &mut Frame, app: &App, area: Rect) {
     );
     f.render_widget(input, chunks[1]);
 
+    // The month the write is anchored to, which is not always the budget view's selection.
     let month_label = app
-        .selected_budget_key()
+        .budget_edit_month
         .map(|key| format!("{} {}", month_to_short_str(key.month), key.year))
         .unwrap_or_default();
     let selected_scope = app.budget_edit_scope();
