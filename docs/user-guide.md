@@ -63,6 +63,7 @@ The catalog holds your categories and subcategories. Open it from Settings (*Man
 - `↑`/`↓` move between entries, `PageUp`/`PageDown` jump by page, `Ctrl+↑`/`Ctrl+↓` jump to the first/last entry
 - `f` filters the catalog as you type; `Enter` keeps the filter applied, `Esc` or `Ctrl+R` clears it
 - `a` adds a category, `e` or `Enter` edits the selected one, `d` deletes it
+- `1`-`5` (or `F1`-`F5`) sort by type, category, subcategory, tag, or target budget; pressing the same key again flips the direction, and the sorted column is marked in the header
 - Expense categories can optionally hold a per-category target budget, used by the budget view
 
 ## Ledgers

@@ -111,6 +111,81 @@ pub fn sort_transactions_impl(
     });
 }
 
+/// Sorts catalog row indices. Blank tags and budgets always sink to the bottom so
+/// the rows that have a value stay grouped.
+pub fn sort_category_indices_impl(
+    indices: &mut [usize],
+    records: &[CategoryRecord],
+    sort_by: CategorySortColumn,
+    sort_order: SortOrder,
+) {
+    indices.sort_by(|&a, &b| {
+        let (a, b) = (&records[a], &records[b]);
+        let ordering = match sort_by {
+            CategorySortColumn::Type => a.transaction_type.cmp(&b.transaction_type),
+            CategorySortColumn::Category => compare_ignore_case(&a.category, &b.category),
+            CategorySortColumn::Subcategory => compare_ignore_case(&a.subcategory, &b.subcategory),
+            CategorySortColumn::Tag => {
+                return compare_blank_last(tag_of(a), tag_of(b), sort_order, |x, y| {
+                    compare_ignore_case(x, y)
+                })
+                .then_with(|| category_tiebreak(a, b));
+            }
+            CategorySortColumn::TargetBudget => {
+                return compare_blank_last(a.target_budget, b.target_budget, sort_order, Ord::cmp)
+                    .then_with(|| category_tiebreak(a, b));
+            }
+        };
+        let ordering = if sort_order == SortOrder::Descending {
+            ordering.reverse()
+        } else {
+            ordering
+        };
+        ordering.then_with(|| category_tiebreak(a, b))
+    });
+}
+
+fn tag_of(record: &CategoryRecord) -> Option<&str> {
+    record
+        .tag
+        .as_deref()
+        .map(str::trim)
+        .filter(|tag| !tag.is_empty())
+}
+
+fn compare_ignore_case(a: &str, b: &str) -> Ordering {
+    a.to_lowercase().cmp(&b.to_lowercase())
+}
+
+/// `None` sorts last in both directions.
+fn compare_blank_last<T>(
+    a: Option<T>,
+    b: Option<T>,
+    sort_order: SortOrder,
+    compare: impl Fn(&T, &T) -> Ordering,
+) -> Ordering {
+    match (&a, &b) {
+        (Some(a), Some(b)) => {
+            let ordering = compare(a, b);
+            if sort_order == SortOrder::Descending {
+                ordering.reverse()
+            } else {
+                ordering
+            }
+        }
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => Ordering::Equal,
+    }
+}
+
+/// Keeps tied rows from shuffling between renders.
+fn category_tiebreak(a: &CategoryRecord, b: &CategoryRecord) -> Ordering {
+    compare_ignore_case(&a.category, &b.category)
+        .then_with(|| compare_ignore_case(&a.subcategory, &b.subcategory))
+        .then_with(|| a.id.cmp(&b.id))
+}
+
 /// Opens a URL in the default browser using system commands.
 /// Returns true if successful, false otherwise.
 pub fn open_url(url: &str) -> bool {

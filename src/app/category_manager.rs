@@ -2,7 +2,7 @@ use super::state::App;
 use crate::app::fields::{CategoryEditField, FieldSet};
 use crate::app::state::AppMode;
 use crate::db::category_store::CategoryStore;
-use crate::model::{CategoryDraft, CategoryRecord, TransactionType};
+use crate::model::{CategoryDraft, CategoryRecord, CategorySortColumn, SortOrder, TransactionType};
 use chrono::Duration;
 
 impl App {
@@ -149,7 +149,47 @@ impl App {
             })
             .map(|(index, _)| index)
             .collect();
+        self.sort_category_records();
         self.clamp_category_catalog_selection();
+    }
+
+    // --- Catalog Sorting ---
+    // Similar to the transaction table: same key again flips the direction.
+    pub(crate) fn set_category_sort_column(&mut self, column: CategorySortColumn) {
+        if self.category_sort_by == column {
+            self.category_sort_order = match self.category_sort_order {
+                SortOrder::Ascending => SortOrder::Descending,
+                SortOrder::Descending => SortOrder::Ascending,
+            };
+        } else {
+            self.category_sort_by = column;
+            self.category_sort_order = SortOrder::Ascending;
+        }
+
+        // Keep the same row selected after the re-sort.
+        let selected_id = self.selected_category_record().map(|record| record.id);
+        self.sort_category_records();
+        let new_selection = selected_id.and_then(|id| {
+            self.filtered_category_indices.iter().position(|&index| {
+                self.category_records
+                    .get(index)
+                    .is_some_and(|record| record.id == id)
+            })
+        });
+        if new_selection.is_some() {
+            self.category_table_state.select(new_selection);
+        } else {
+            self.clamp_category_catalog_selection();
+        }
+    }
+
+    fn sort_category_records(&mut self) {
+        crate::app::util::sort_category_indices_impl(
+            &mut self.filtered_category_indices,
+            &self.category_records,
+            self.category_sort_by,
+            self.category_sort_order,
+        );
     }
 
     pub(crate) fn start_adding_category(&mut self) {

@@ -251,6 +251,8 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::raw(": Edit | "),
             Span::styled("d", Style::default().fg(Color::LightRed)),
             Span::raw(": Delete | "),
+            Span::styled("1-5", Style::default().fg(Color::LightBlue)),
+            Span::raw(": Sort | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightCyan)),
             Span::raw(": Back"),
         ],

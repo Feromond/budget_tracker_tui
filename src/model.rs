@@ -262,6 +262,15 @@ pub enum SortOrder {
     Descending,
 }
 
+#[derive(PartialEq, Clone, Copy)]
+pub enum CategorySortColumn {
+    Type,
+    Category,
+    Subcategory,
+    Tag,
+    TargetBudget,
+}
+
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MonthlySummary {
     pub income: Decimal,

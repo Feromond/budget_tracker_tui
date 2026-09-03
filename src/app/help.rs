@@ -467,6 +467,23 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("a", "Add category", "Actions", None),
             KeyBindingInfo::new("e/Enter", "Edit selected category", "Actions", None),
             KeyBindingInfo::new("d", "Delete selected category", "Actions", None),
+            KeyBindingInfo::new("1/F1", "Sort by Type", "Sorting", None),
+            KeyBindingInfo::new("2/F2", "Sort by Category", "Sorting", None),
+            KeyBindingInfo::new("3/F3", "Sort by Subcategory", "Sorting", None),
+            KeyBindingInfo::new(
+                "4/F4",
+                "Sort by Tag",
+                "Sorting",
+                Some("Categories without a tag are listed last in both directions."),
+            ),
+            KeyBindingInfo::new(
+                "5/F5",
+                "Sort by Target Budget",
+                "Sorting",
+                Some(
+                    "Groups the categories that have a budget set at the top; categories without one are listed last in both directions.",
+                ),
+            ),
             KeyBindingInfo::new(
                 "q/Esc",
                 "Back to Previous View / Clear Filter",
