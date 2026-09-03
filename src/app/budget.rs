@@ -1,6 +1,7 @@
 use super::state::{App, AppMode, BudgetCategoryComparison};
+use crate::db::category_store::CategoryStore;
 use crate::model::{CategoryRecord, TransactionType};
-use chrono::Datelike;
+use chrono::{Datelike, Duration};
 use rust_decimal::Decimal;
 
 fn normalize_budget_key(category: &str, subcategory: &str) -> (String, String) {
@@ -15,6 +16,14 @@ fn normalize_budget_key(category: &str, subcategory: &str) -> (String, String) {
     (normalized_category, subcategory.to_string())
 }
 
+fn record_label(record: &CategoryRecord) -> String {
+    if record.subcategory.trim().is_empty() {
+        record.category.clone()
+    } else {
+        format!("{} / {}", record.category, record.subcategory)
+    }
+}
+
 fn comparison_from_record(
     record: &CategoryRecord,
     actual_expense: Decimal,
@@ -27,6 +36,7 @@ fn comparison_from_record(
     let (category, subcategory) = normalize_budget_key(&record.category, &record.subcategory);
 
     Some(BudgetCategoryComparison {
+        id: record.id,
         category,
         subcategory,
         target_budget,
@@ -252,6 +262,101 @@ impl App {
         let comparisons = self.current_budget_category_comparisons();
         let selected = self.budget_table_state.selected().unwrap_or(0);
         comparisons.get(selected).cloned()
+    }
+
+    // --- Target budget editing ---
+
+    pub(crate) fn start_editing_budget_target(&mut self) {
+        let Some(comparison) = self.selected_budget_category_comparison() else {
+            let message = if self.selected_budget_month.is_none() {
+                "No month selected."
+            } else {
+                "No category budgets yet. Press c to set one in the catalog."
+            };
+            self.set_status_message(message, None);
+            return;
+        };
+
+        self.mode = AppMode::BudgetCategoryEditor;
+        self.budget_edit_category_id = Some(comparison.id);
+        self.budget_edit_input = format!("{:.2}", comparison.target_budget);
+        self.budget_edit_cursor = self.budget_edit_input.len();
+        self.clear_status_message();
+    }
+
+    pub(crate) fn cancel_budget_target_edit(&mut self) {
+        self.mode = AppMode::Budget;
+        self.budget_edit_category_id = None;
+        self.budget_edit_input.clear();
+        self.budget_edit_cursor = 0;
+        self.set_status_message("Budget edit cancelled.", Some(Duration::seconds(3)));
+    }
+
+    pub(crate) fn budget_edit_label(&self) -> Option<String> {
+        self.budget_edit_record().map(record_label)
+    }
+
+    fn budget_edit_record(&self) -> Option<&CategoryRecord> {
+        let id = self.budget_edit_category_id?;
+        self.category_records.iter().find(|record| record.id == id)
+    }
+
+    pub(crate) fn save_budget_target(&mut self) {
+        let Some(record) = self.budget_edit_record().cloned() else {
+            self.cancel_budget_target_edit();
+            return;
+        };
+
+        let input = self.budget_edit_input.trim();
+        // Clearing it also drops the row from this table.
+        let target_budget = if input.is_empty() {
+            None
+        } else {
+            match crate::validation::validate_amount_string(input) {
+                Ok(amount) => Some(amount),
+                Err(message) => {
+                    self.set_status_message(format!("Error: {}", message), None);
+                    return;
+                }
+            }
+        };
+
+        let mut draft = record.to_draft();
+        draft.target_budget = target_budget;
+
+        if let Err(err) = self.category_store().update(record.id, &draft) {
+            self.set_status_message(format!("Error saving budget: {}", err), None);
+            return;
+        }
+
+        if let Err(err) = self.reload_categories_from_store() {
+            self.set_status_message(format!("Budget saved, but refresh failed: {}", err), None);
+            return;
+        }
+
+        self.mode = AppMode::Budget;
+        self.budget_edit_category_id = None;
+        self.budget_edit_input.clear();
+        self.budget_edit_cursor = 0;
+        self.select_budget_category(record.id);
+
+        let label = record_label(&record);
+        let message = match target_budget {
+            Some(amount) => format!("Budget for {} set to {:.2}.", label, amount),
+            None => format!("Budget for {} cleared.", label),
+        };
+        self.set_status_message(message, Some(Duration::seconds(3)));
+    }
+
+    fn select_budget_category(&mut self, id: i64) {
+        let comparisons = self.current_budget_category_comparisons();
+        match comparisons
+            .iter()
+            .position(|comparison| comparison.id == id)
+        {
+            Some(index) => self.budget_table_state.select(Some(index)),
+            None => self.clamp_budget_selection(comparisons.len()),
+        }
     }
 
     pub(crate) fn budget_category_monthly_expenses(

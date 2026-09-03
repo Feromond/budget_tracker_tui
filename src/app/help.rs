@@ -336,6 +336,14 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
             KeyBindingInfo::new("←/→", "Change Month", "Navigation", None),
             KeyBindingInfo::new("Shift+←/→", "Change Year", "Navigation", None),
             KeyBindingInfo::new(
+                "e",
+                "Edit Target Budget",
+                "Actions",
+                Some(
+                    "Change the target budget of the selected category right here. Leaving the amount empty removes the budget, which also drops the category from this table.",
+                ),
+            ),
+            KeyBindingInfo::new(
                 "c",
                 "Manage Categories",
                 "Actions",
@@ -344,6 +352,19 @@ pub fn get_help_for_mode(mode: AppMode) -> Vec<KeyBindingInfo> {
                 ),
             ),
             KeyBindingInfo::new("q/Esc", "Back to Transactions", "Actions", None),
+            KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
+        ],
+        AppMode::BudgetCategoryEditor => vec![
+            KeyBindingInfo::new("0-9/.", "Type the amount", "Input", None),
+            KeyBindingInfo::new("←/→", "Move cursor", "Navigation", None),
+            KeyBindingInfo::new("Bksp/Del", "Delete character", "Input", None),
+            KeyBindingInfo::new(
+                "Enter",
+                "Save budget",
+                "Actions",
+                Some("An empty amount clears the budget for this category."),
+            ),
+            KeyBindingInfo::new("Esc", "Cancel", "Actions", None),
             KeyBindingInfo::new("Ctrl+H", "Show Keybindings Help", "System", None),
         ],
         AppMode::Settings => vec![

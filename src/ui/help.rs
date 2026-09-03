@@ -212,10 +212,20 @@ pub fn render_help_bar(f: &mut Frame, app: &App, area: Rect) {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" Year | "),
+            Span::styled("e", Style::default().fg(Color::LightYellow)),
+            Span::raw(" Edit Budget | "),
             Span::styled("c", Style::default().fg(Color::LightGreen)),
             Span::raw(" Edit Categories | "),
             Span::styled("q/Esc", Style::default().fg(Color::LightRed)),
             Span::raw(" Back"),
+        ],
+        AppMode::BudgetCategoryEditor => vec![
+            Span::raw("Type amount | "),
+            Span::raw("←→ Cursor | "),
+            Span::styled("Enter", Style::default().fg(Color::LightGreen)),
+            Span::raw(" Save | "),
+            Span::styled("Esc", Style::default().fg(Color::LightRed)),
+            Span::raw(" Cancel"),
         ],
         AppMode::Settings => vec![
             Span::styled(

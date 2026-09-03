@@ -120,6 +120,10 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         AppMode::Budget => {
             budget::render_budget_view(f, app, main_area);
         }
+        AppMode::BudgetCategoryEditor => {
+            budget::render_budget_view(f, app, main_area);
+            budget::render_budget_target_editor(f, app, main_area);
+        }
         AppMode::CategoryCatalog | AppMode::CategoryCatalogFilter => {
             category_manager::render_category_catalog(f, app, main_area);
         }
@@ -178,7 +182,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             .category_summary_years
             .get(app.category_summary_year_index)
             .copied(),
-        AppMode::Budget => app.selected_budget_year(),
+        AppMode::Budget | AppMode::BudgetCategoryEditor => app.selected_budget_year(),
         _ => None, // No year filter for other modes - show all transactions as before
     };
 

@@ -54,7 +54,11 @@ Forecast occurrences are derived in memory like every other generated occurrence
 
 **Category summary (`c`)** breaks down each month by category. `Enter` expands or collapses a month, `PageUp`/`PageDown` move between months, `←`/`→` between years.
 
-**Budget view (`b`)** compares spending against your monthly target and any per-category budgets. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years. Press `c` to open the [category catalog](#the-category-catalog) and adjust per-category budgets without leaving the view.
+**Budget view (`b`)** compares spending against your monthly target and any per-category budgets. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years. Press `e` on a row to change that category's target budget in place. The popup starts on
+the current amount; `Enter` saves, `Esc` cancels, and an empty amount clears the budget, which also
+drops the category from the table since only budgeted categories are listed. Press `c` to open the
+[category catalog](#the-category-catalog), which is where you set a budget on a category that
+doesn't have one yet.
 
 ## The category catalog
 
