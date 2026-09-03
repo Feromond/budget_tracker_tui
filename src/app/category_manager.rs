@@ -342,12 +342,13 @@ impl App {
         self.set_status_message("Category deleted successfully.", Some(Duration::seconds(3)));
     }
 
-    pub(crate) fn save_category(&mut self) {
+    /// Returns the saved id, since an active filter can leave a different row selected.
+    pub(crate) fn save_category(&mut self) -> Option<i64> {
         let draft = match self.build_category_draft_from_editor() {
             Ok(draft) => draft,
             Err(message) => {
                 self.set_status_message(format!("Error: {}", message), None);
-                return;
+                return None;
             }
         };
 
@@ -366,7 +367,7 @@ impl App {
                 "Error: that category already exists (names are matched without case).",
                 None,
             );
-            return;
+            return None;
         }
 
         let store = self.category_store();
@@ -380,7 +381,7 @@ impl App {
             Ok(saved_id) => saved_id,
             Err(err) => {
                 self.set_status_message(format!("Error saving category: {}", err), None);
-                return;
+                return None;
             }
         };
 
@@ -391,12 +392,12 @@ impl App {
                 format!("Category saved, but reloading transactions failed: {}", err),
                 None,
             );
-            return;
+            return None;
         }
 
         if let Err(err) = self.reload_categories_from_store() {
             self.set_status_message(format!("Category saved, but refresh failed: {}", err), None);
-            return;
+            return None;
         }
 
         self.mode = AppMode::CategoryCatalog;
@@ -406,6 +407,7 @@ impl App {
         self.select_saved_category();
         self.editing_category_id = None;
         self.set_status_message("Category saved successfully.", Some(Duration::seconds(3)));
+        Some(saved_id)
     }
 
     pub(crate) fn selected_category_record(&self) -> Option<&CategoryRecord> {

@@ -683,6 +683,8 @@ mod tests {
             schedule.monthly_budget(BudgetMonth::new(2030, 1)),
             Some("1800".parse().unwrap())
         );
+
+        assert_eq!(schedule.years(), vec![2026]);
     }
 
     #[test]

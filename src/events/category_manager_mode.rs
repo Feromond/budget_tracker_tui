@@ -94,7 +94,9 @@ fn handle_category_editor(app: &mut App, key_event: KeyEvent) {
                 // The budget is a separate record keyed on the category id, so the category
                 // has to exist before the popup has anything to write against.
                 CategoryEditField::Budget => app.save_category_then_edit_budget(),
-                _ => app.save_category(),
+                _ => {
+                    app.save_category();
+                }
             }
         }
         (KeyCode::Left, KeyModifiers::NONE) => {

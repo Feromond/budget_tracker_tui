@@ -83,13 +83,11 @@ impl App {
     }
 
     pub(crate) fn refresh_budget_years(&mut self) {
-        // Always offer the current year, so a budget can be set before anything is spent.
         self.budget_years = self.summary_years.clone();
-        let current_year = chrono::Local::now().year();
-        if !self.budget_years.contains(&current_year) {
-            self.budget_years.push(current_year);
-            self.budget_years.sort_unstable();
-        }
+        self.budget_years.extend(self.budget_schedule.years());
+        self.budget_years.push(chrono::Local::now().year());
+        self.budget_years.sort_unstable();
+        self.budget_years.dedup();
 
         self.budget_year_index = self.budget_year_index.min(self.budget_years.len() - 1);
         if let Some(year) = self.budget_years.get(self.budget_year_index).copied()
@@ -336,18 +334,21 @@ impl App {
 
     /// A category being added needs an id before a budget can point at it.
     pub(crate) fn save_category_then_edit_budget(&mut self) {
-        self.save_category();
-        // save_category lands back on the catalog with the saved row selected; anything
-        // else means it failed and already reported why.
-        if self.mode == AppMode::CategoryCatalog {
-            self.start_editing_catalog_budget();
+        if let Some(id) = self.save_category() {
+            self.start_editing_category_budget(id);
         }
     }
 
-    /// Opens the same popup from the catalog, anchored on today since the catalog has no
-    /// month of its own.
     pub(crate) fn start_editing_catalog_budget(&mut self) {
-        let Some(record) = self.selected_category_record().cloned() else {
+        let Some(id) = self.selected_category_record().map(|record| record.id) else {
+            self.set_status_message("Select a category first.", None);
+            return;
+        };
+        self.start_editing_category_budget(id);
+    }
+
+    fn start_editing_category_budget(&mut self, id: i64) {
+        let Some(record) = self.category_records.iter().find(|record| record.id == id) else {
             self.set_status_message("Select a category first.", None);
             return;
         };
@@ -357,9 +358,9 @@ impl App {
         }
 
         let month = Self::current_budget_key();
-        let current = self.budget_schedule.category_budget(record.id, month);
+        let current = self.budget_schedule.category_budget(id, month);
         self.open_budget_editor(
-            BudgetEditTarget::Category(record.id),
+            BudgetEditTarget::Category(id),
             current,
             month,
             AppMode::CategoryCatalog,

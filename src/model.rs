@@ -374,6 +374,18 @@ impl BudgetSchedule {
         }
     }
 
+    pub fn years(&self) -> Vec<i32> {
+        let mut years: Vec<i32> = self
+            .periods
+            .iter()
+            .map(|period| period.start.year)
+            .filter(|year| *year > BudgetMonth::BEGINNING.year)
+            .collect();
+        years.sort_unstable();
+        years.dedup();
+        years
+    }
+
     /// Lets a destructive edit report how much it replaced.
     pub fn period_count(&self, category_id: Option<i64>) -> usize {
         self.periods
