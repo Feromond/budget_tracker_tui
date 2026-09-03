@@ -41,6 +41,11 @@ impl App {
                     field.kind(),
                 ))
             }
+            AppMode::BudgetCategoryEditor => Some((
+                &mut self.budget_edit_input,
+                &mut self.budget_edit_cursor,
+                FieldKind::Amount,
+            )),
             AppMode::LedgerEditor => Some((
                 &mut self.ledger_name_input,
                 &mut self.ledger_name_cursor,

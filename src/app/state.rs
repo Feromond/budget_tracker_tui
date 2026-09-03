@@ -39,6 +39,7 @@ pub enum AppMode {
     SelectingSubcategory,
     CategorySummary,
     Budget,
+    BudgetCategoryEditor,
     Settings,
     RecurringSettings,
     SelectingRecurrenceFrequency,
@@ -64,6 +65,7 @@ pub enum CategorySummaryItem {
 
 #[derive(Debug, Clone)]
 pub struct BudgetCategoryComparison {
+    pub id: i64,
     pub category: String,
     pub subcategory: String,
     pub target_budget: Decimal,
@@ -120,6 +122,9 @@ pub struct App {
     pub(crate) budget_year_index: usize,
     pub(crate) selected_budget_month: Option<u32>,
     pub(crate) budget_table_state: TableState,
+    pub(crate) budget_edit_category_id: Option<i64>,
+    pub(crate) budget_edit_input: String,
+    pub(crate) budget_edit_cursor: usize,
     // Settings form state
     pub(crate) settings_state: crate::app::settings_types::SettingsState,
     // Category catalog state
@@ -342,6 +347,9 @@ impl App {
             budget_year_index: 0,
             selected_budget_month: None,
             budget_table_state: TableState::default(),
+            budget_edit_category_id: None,
+            budget_edit_input: String::new(),
+            budget_edit_cursor: 0,
             settings_state: crate::app::settings_types::SettingsState::default(),
             category_table_state: TableState::default(),
             filtered_category_indices: initial_filtered_category_indices,

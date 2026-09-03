@@ -3,7 +3,7 @@ use crate::ui::helpers::{format_amount, month_to_color, month_to_short_str};
 use ratatui::prelude::*;
 use ratatui::text::Line;
 use ratatui::widgets::{
-    Bar, BarChart, BarGroup, Block, Borders, Cell, Paragraph, Row, Table, Wrap,
+    Bar, BarChart, BarGroup, Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap,
 };
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
@@ -239,6 +239,61 @@ fn compact_yearly_pattern_title(
                 .add_modifier(Modifier::BOLD),
         )]),
     }
+}
+
+pub fn render_budget_target_editor(f: &mut Frame, app: &App, area: Rect) {
+    // Fixed size: a percentage of a short terminal clips the input box.
+    let width = area.width.saturating_sub(4).clamp(24, 52).min(area.width);
+    let height = 7.min(area.height);
+    let popup_area = Rect {
+        x: area.x + area.width.saturating_sub(width) / 2,
+        y: area.y + area.height.saturating_sub(height) / 2,
+        width,
+        height,
+    };
+    f.render_widget(Clear, popup_area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(1)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Min(0),
+        ])
+        .split(popup_area);
+
+    let block = Block::default()
+        .title(" Target Budget ")
+        .title_bottom(" [Enter] Save, [Esc] Cancel ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(PANEL_CHROME_COLOR));
+    f.render_widget(block, popup_area);
+
+    let label = app.budget_edit_label().unwrap_or_default();
+    let heading = Paragraph::new(Line::from(Span::styled(
+        label,
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD),
+    )))
+    .alignment(Alignment::Center);
+    f.render_widget(heading, chunks[0]);
+
+    let input = Paragraph::new(app.budget_edit_input.as_str()).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Amount (empty clears)")
+            .border_style(Style::default().fg(Color::Yellow)),
+    );
+    f.render_widget(input, chunks[1]);
+
+    let cursor_byte_idx = app.budget_edit_cursor.min(app.budget_edit_input.len());
+    let visual_cursor = app.budget_edit_input[..cursor_byte_idx].chars().count() as u16;
+    f.set_cursor_position(Position::new(
+        chunks[1].x + visual_cursor + 1,
+        chunks[1].y + 1,
+    ));
 }
 
 pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {

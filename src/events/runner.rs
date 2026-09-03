@@ -168,7 +168,9 @@ fn update(app: &mut App, key_event: KeyEvent) {
         AppMode::Summary | AppMode::CategorySummary => {
             summary_mode::handle_summary_mode(app, key_event)
         }
-        AppMode::Budget => budget_mode::handle_budget_mode(app, key_event),
+        AppMode::Budget | AppMode::BudgetCategoryEditor => {
+            budget_mode::handle_budget_mode(app, key_event)
+        }
         AppMode::SelectingCategory
         | AppMode::SelectingSubcategory
         | AppMode::SelectingFilterCategory
