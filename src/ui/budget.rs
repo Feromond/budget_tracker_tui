@@ -337,6 +337,40 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
         Some(target) => usage_percent(actual_expense, target),
         None => "N/A".to_string(),
     };
+    let allocated_budget = app.total_allocated_budget();
+    let unallocated_budget = app.target_budget.map(|target| target - allocated_budget);
+
+    let mut allocated_spans = vec![
+        Span::styled("Alloc:  ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format_amount(&allocated_budget),
+            Style::default().fg(Color::LightBlue),
+        ),
+    ];
+    if let Some(target) = app.target_budget {
+        allocated_spans.push(Span::raw(" "));
+        allocated_spans.push(Span::styled(
+            format!("({})", usage_percent(allocated_budget, target)),
+            Style::default().fg(usage_color(allocated_budget, target)),
+        ));
+    }
+    let allocated_line = Line::from(allocated_spans);
+
+    let unallocated_line = Line::from(vec![
+        Span::styled("Spare:  ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            match unallocated_budget {
+                Some(value) => format_budget_variance(value),
+                None => "N/A".to_string(),
+            },
+            match unallocated_budget {
+                Some(value) if value < Decimal::ZERO => Style::default().fg(Color::LightRed),
+                Some(_) => Style::default().fg(Color::LightGreen),
+                None => Style::default().fg(Color::White),
+            },
+        ),
+    ]);
+
     let status_lines = vec![
         Line::from(vec![
             Span::styled("Status: ", Style::default().add_modifier(Modifier::BOLD)),
@@ -409,6 +443,8 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
             Span::styled("Usage:  ", Style::default().add_modifier(Modifier::BOLD)),
             Span::styled(usage_value, Style::default().fg(Color::LightYellow)),
         ]),
+        allocated_line,
+        unallocated_line,
     ];
 
     let summary = Paragraph::new(status_lines)
