@@ -198,7 +198,7 @@ form_fields! {
         Category => FieldKind::Text, "Category";
         Subcategory => FieldKind::Text, "Subcategory", "(Optional)";
         Tag => FieldKind::Text, "Tag", "(Optional)";
-        TargetBudget => FieldKind::Amount, "Budget", "(Optional, positive number)";
+        Budget => FieldKind::Selection, "Budget", "(Enter to set, expense only)";
     }
 }
 

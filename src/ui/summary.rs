@@ -1,4 +1,5 @@
 use crate::app::state::App;
+use crate::model::BudgetMonth;
 use crate::ui::helpers::{format_amount, format_hours, month_to_short_str};
 use crate::validation::days_in_month;
 use chrono::Datelike;
@@ -325,8 +326,10 @@ pub fn render_summary_view(f: &mut Frame, app: &mut App, area: Rect) {
     let mut cumulative_budget_line: Option<Vec<(f64, f64)>> = None;
     if app.summary_cumulative_mode
         && !app.summary_multi_month_mode
-        && let (Some(year), Some(month), Some(budget)) =
-            (current_year, app.selected_summary_month, app.target_budget)
+        && let (Some(year), Some(month)) = (current_year, app.selected_summary_month)
+        && let Some(budget) = app
+            .budget_schedule
+            .monthly_budget(BudgetMonth::new(year, month))
     {
         let num_days = days_in_month(year, month) as usize;
         if num_days > 0 {

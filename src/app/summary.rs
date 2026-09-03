@@ -16,6 +16,14 @@ impl App {
         months
     }
 
+    /// Stay on the same month across a year change, unless that year has no data for it.
+    fn keep_or_pick_summary_month(&mut self, year: i32) {
+        let months = self.sorted_months_for_year(year);
+        if !matches!(self.selected_summary_month, Some(month) if months.contains(&month)) {
+            self.update_selected_summary_month(year);
+        }
+    }
+
     fn update_selected_summary_month(&mut self, year: i32) {
         let current_date = chrono::Local::now();
         let current_year = current_date.year();
@@ -80,7 +88,7 @@ impl App {
                 .get(self.selected_summary_year_index)
                 .copied()
             {
-                self.update_selected_summary_month(year);
+                self.keep_or_pick_summary_month(year);
             } else {
                 self.selected_summary_month = None;
             }
@@ -100,7 +108,7 @@ impl App {
                 .get(self.selected_summary_year_index)
                 .copied()
             {
-                self.update_selected_summary_month(year);
+                self.keep_or_pick_summary_month(year);
             } else {
                 self.selected_summary_month = None;
             }
@@ -202,27 +210,47 @@ impl App {
         };
         self.category_summary_table_state.select(Some(i));
     }
+    /// Both item kinds carry their month, so the row can be found again after a year change.
+    fn selected_category_summary_month(&self) -> Option<u32> {
+        let index = self.category_summary_table_state.selected()?;
+        match self.cached_visible_category_items.get(index)? {
+            CategorySummaryItem::Month(month, _) => Some(*month),
+            CategorySummaryItem::Subcategory(month, _, _, _) => Some(*month),
+        }
+    }
+
+    fn rebuild_category_summary_items(&mut self, month: Option<u32>) {
+        self.cached_visible_category_items = self.get_visible_category_summary_items();
+        if self.cached_visible_category_items.is_empty() {
+            self.category_summary_table_state.select(None);
+            return;
+        }
+        let position = month.and_then(|month| {
+            self.cached_visible_category_items
+                .iter()
+                .position(|item| matches!(item, CategorySummaryItem::Month(m, _) if *m == month))
+        });
+        self.category_summary_table_state
+            .select(Some(position.unwrap_or(0)));
+    }
+
     pub(crate) fn next_category_summary_year(&mut self) {
         if !self.category_summary_years.is_empty() {
+            let month = self.selected_category_summary_month();
             self.category_summary_year_index =
                 (self.category_summary_year_index + 1) % self.category_summary_years.len();
-            self.cached_visible_category_items = self.get_visible_category_summary_items();
-            let len = self.cached_visible_category_items.len();
-            self.category_summary_table_state
-                .select(if len > 0 { Some(0) } else { None });
+            self.rebuild_category_summary_items(month);
         }
     }
     pub(crate) fn previous_category_summary_year(&mut self) {
         if !self.category_summary_years.is_empty() {
+            let month = self.selected_category_summary_month();
             if self.category_summary_year_index > 0 {
                 self.category_summary_year_index -= 1;
             } else {
                 self.category_summary_year_index = self.category_summary_years.len() - 1;
             }
-            self.cached_visible_category_items = self.get_visible_category_summary_items();
-            let len = self.cached_visible_category_items.len();
-            self.category_summary_table_state
-                .select(if len > 0 { Some(0) } else { None });
+            self.rebuild_category_summary_items(month);
         }
     }
     pub(crate) fn get_visible_category_summary_items(&self) -> Vec<CategorySummaryItem> {

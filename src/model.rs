@@ -262,6 +262,159 @@ pub enum SortOrder {
     Descending,
 }
 
+/// `amount: None` clears the budget from that month on, which is not the same as having
+/// no period. `category_id: None` is the ledger's monthly budget, not a category budget.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BudgetPeriod {
+    pub id: i64,
+    pub category_id: Option<i64>,
+    pub start: BudgetMonth,
+    pub amount: Option<Decimal>,
+}
+
+/// Field order matters: it is what makes the earliest start sort first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct BudgetMonth {
+    pub year: i32,
+    pub month: u32,
+}
+
+impl BudgetMonth {
+    /// Sorts before every real month, so a period seeded here covers all history.
+    pub const BEGINNING: Self = Self { year: 0, month: 1 };
+
+    pub fn new(year: i32, month: u32) -> Self {
+        Self { year, month }
+    }
+
+    pub fn next(self) -> Self {
+        if self.month >= 12 {
+            Self::new(self.year + 1, 1)
+        } else {
+            Self::new(self.year, self.month + 1)
+        }
+    }
+}
+
+/// How far a budget edit reaches. `RemoveChange` is only offered when a period starts
+/// exactly at the edited month, since that is the only thing there is to undo.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BudgetEditScope {
+    FromThisMonth,
+    ThisMonthOnly,
+    ReplaceAllMonths,
+    RemoveChange,
+}
+
+/// A store operation an edit resolves to. Keeping the decision separate from the writing
+/// is what lets the scope rules be tested without a database.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BudgetWrite {
+    Set(BudgetMonth, Option<Decimal>),
+    Remove(BudgetMonth),
+    RemoveAll,
+}
+
+/// Owns the rule for reading a value out of the periods, so the UI never walks them.
+#[derive(Debug, Default, Clone)]
+pub struct BudgetSchedule {
+    periods: Vec<BudgetPeriod>,
+}
+
+impl BudgetSchedule {
+    pub fn new(mut periods: Vec<BudgetPeriod>) -> Self {
+        periods.sort_by_key(|period| period.start);
+        Self { periods }
+    }
+
+    /// The latest period starting on or before `month`. `None` means no budget, whether
+    /// none was ever set or one cleared it.
+    pub fn amount_for(&self, category_id: Option<i64>, month: BudgetMonth) -> Option<Decimal> {
+        self.periods
+            .iter()
+            .rfind(|period| period.category_id == category_id && period.start <= month)
+            .and_then(|period| period.amount)
+    }
+
+    pub fn monthly_budget(&self, month: BudgetMonth) -> Option<Decimal> {
+        self.amount_for(None, month)
+    }
+
+    pub fn category_budget(&self, category_id: i64, month: BudgetMonth) -> Option<Decimal> {
+        self.amount_for(Some(category_id), month)
+    }
+
+    /// Resolve an edit into the writes that carry it out. Pure, so the ordering rule that
+    /// makes `ThisMonthOnly` work is checked by tests rather than by inspection.
+    pub fn plan_edit(
+        &self,
+        category_id: Option<i64>,
+        start: BudgetMonth,
+        amount: Option<Decimal>,
+        scope: BudgetEditScope,
+    ) -> Vec<BudgetWrite> {
+        match scope {
+            BudgetEditScope::FromThisMonth => vec![BudgetWrite::Set(start, amount)],
+            BudgetEditScope::ThisMonthOnly => {
+                // Read what the next month inherits now; after the first write it would
+                // just report the value being set.
+                let inherited = self.amount_for(category_id, start.next());
+                vec![
+                    BudgetWrite::Set(start, amount),
+                    BudgetWrite::Set(start.next(), inherited),
+                ]
+            }
+            BudgetEditScope::ReplaceAllMonths => {
+                vec![
+                    BudgetWrite::RemoveAll,
+                    BudgetWrite::Set(BudgetMonth::BEGINNING, amount),
+                ]
+            }
+            BudgetEditScope::RemoveChange => vec![BudgetWrite::Remove(start)],
+        }
+    }
+
+    pub fn years(&self) -> Vec<i32> {
+        let mut years: Vec<i32> = self
+            .periods
+            .iter()
+            .map(|period| period.start.year)
+            .filter(|year| *year > BudgetMonth::BEGINNING.year)
+            .collect();
+        years.sort_unstable();
+        years.dedup();
+        years
+    }
+
+    /// Lets a destructive edit report how much it replaced.
+    pub fn period_count(&self, category_id: Option<i64>) -> usize {
+        self.periods
+            .iter()
+            .filter(|period| period.category_id == category_id)
+            .count()
+    }
+
+    /// Only a period starting exactly here can be removed.
+    pub fn starts_at(&self, category_id: Option<i64>, month: BudgetMonth) -> bool {
+        self.periods
+            .iter()
+            .any(|period| period.category_id == category_id && period.start == month)
+    }
+
+    pub fn budgeted_categories(&self, month: BudgetMonth) -> Vec<(i64, Decimal)> {
+        let mut ids: Vec<i64> = self
+            .periods
+            .iter()
+            .filter_map(|period| period.category_id)
+            .collect();
+        ids.sort_unstable();
+        ids.dedup();
+        ids.into_iter()
+            .filter_map(|id| self.category_budget(id, month).map(|amount| (id, amount)))
+            .collect()
+    }
+}
+
 #[derive(PartialEq, Clone, Copy)]
 pub enum CategorySortColumn {
     Type,
@@ -290,7 +443,6 @@ pub struct CategoryDraft {
     pub category: String,
     pub subcategory: String,
     pub tag: Option<String>,
-    pub target_budget: Option<Decimal>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -300,7 +452,6 @@ pub struct CategoryRecord {
     pub category: String,
     pub subcategory: String,
     pub tag: Option<String>,
-    pub target_budget: Option<Decimal>,
 }
 
 impl CategoryRecord {
@@ -318,7 +469,6 @@ impl CategoryRecord {
             category: self.category.clone(),
             subcategory: self.subcategory.clone(),
             tag: self.tag.clone(),
-            target_budget: self.target_budget,
         }
     }
 }

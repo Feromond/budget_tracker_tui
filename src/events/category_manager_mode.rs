@@ -34,6 +34,7 @@ fn handle_category_catalog(app: &mut App, key_event: KeyEvent) {
             app.start_editing_category()
         }
         (KeyCode::Char('d'), KeyModifiers::NONE) => app.prepare_delete_category(),
+        (KeyCode::Char('b'), KeyModifiers::NONE) => app.start_editing_catalog_budget(),
         (KeyCode::Char('1'), _) | (KeyCode::F(1), _) => {
             app.set_category_sort_column(CategorySortColumn::Type)
         }
@@ -88,10 +89,14 @@ fn handle_category_editor(app: &mut App, key_event: KeyEvent) {
             app.previous_category_field()
         }
         (KeyCode::Enter, KeyModifiers::NONE) => {
-            if app.category_edit_fields.focused() == CategoryEditField::TransactionType {
-                app.toggle_category_transaction_type();
-            } else {
-                app.save_category();
+            match app.category_edit_fields.focused() {
+                CategoryEditField::TransactionType => app.toggle_category_transaction_type(),
+                // The budget is a separate record keyed on the category id, so the category
+                // has to exist before the popup has anything to write against.
+                CategoryEditField::Budget => app.save_category_then_edit_budget(),
+                _ => {
+                    app.save_category();
+                }
             }
         }
         (KeyCode::Left, KeyModifiers::NONE) => {

@@ -42,6 +42,7 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
         render_mode,
         AppMode::CategorySummary
             | AppMode::Budget
+            | AppMode::BudgetCategoryEditor
             | AppMode::Settings
             | AppMode::CategoryCatalog
             | AppMode::CategoryCatalogFilter
@@ -121,7 +122,11 @@ pub(crate) fn ui(f: &mut Frame, app: &mut App) {
             budget::render_budget_view(f, app, main_area);
         }
         AppMode::BudgetCategoryEditor => {
-            budget::render_budget_view(f, app, main_area);
+            if app.budget_edit_origin == AppMode::CategoryCatalog {
+                category_manager::render_category_catalog(f, app, main_area);
+            } else {
+                budget::render_budget_view(f, app, main_area);
+            }
             budget::render_budget_target_editor(f, app, main_area);
         }
         AppMode::CategoryCatalog | AppMode::CategoryCatalogFilter => {

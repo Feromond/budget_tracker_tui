@@ -318,8 +318,10 @@ fn parse_transaction_type(index: usize, value: &str) -> rusqlite::Result<Transac
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::category_store::CategoryStore;
     use crate::db::database::SCHEMA_VERSION;
     use crate::db::ledger_store::{DEFAULT_LEDGER_ID, LedgerStore, SqliteLedgerStore};
+    use crate::model::BudgetSchedule;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -440,6 +442,414 @@ mod tests {
         let rows = temp.store().list().unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].description, "Coffee");
+    }
+
+    #[test]
+    fn upgrading_to_v4_moves_category_budgets_into_periods() {
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+        let mut conn = database.open_connection("test").unwrap();
+
+        // A v3 database: categories carrying budgets, shared by two ledgers.
+        conn.execute_batch(
+            "
+            CREATE TABLE categories (
+                id INTEGER PRIMARY KEY,
+                transaction_type TEXT NOT NULL,
+                category TEXT NOT NULL,
+                subcategory TEXT NOT NULL DEFAULT '',
+                tag TEXT NULL,
+                target_budget TEXT NULL,
+                UNIQUE(transaction_type, category, subcategory)
+            );
+            INSERT INTO categories (id, transaction_type, category, subcategory, target_budget)
+            VALUES (1, 'Expense', 'Food', 'Groceries', '600.00'),
+                   (2, 'Expense', 'Fun', 'Dining', NULL);
+            CREATE TABLE ledgers (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL COLLATE NOCASE,
+                position INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                UNIQUE(name)
+            );
+            INSERT INTO ledgers (id, name, position, created_at)
+            VALUES (1, 'Main', 0, datetime('now')), (2, 'Scenario', 1, datetime('now'));
+            PRAGMA user_version = 3;
+            ",
+        )
+        .unwrap();
+        database.run_migrations(&mut conn).unwrap();
+
+        // The budgeted category lands on both ledgers, starting before any real month so
+        // history keeps the amount it already showed. The unbudgeted one brings nothing.
+        let mut stmt = conn
+            .prepare(
+                "SELECT ledger_id, category_id, start_year, start_month, amount
+                 FROM budget_periods ORDER BY ledger_id",
+            )
+            .unwrap();
+        let periods: Vec<(i64, i64, i64, i64, String)> = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            })
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        drop(stmt);
+        assert_eq!(
+            periods,
+            vec![
+                (1, 1, 0, 1, "600.00".to_string()),
+                (2, 1, 0, 1, "600.00".to_string()),
+            ]
+        );
+
+        // The old column is gone, so no stale budget can be read back from it.
+        let mut stmt = conn.prepare("PRAGMA table_info(categories)").unwrap();
+        let columns: Vec<String> = stmt
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        drop(stmt);
+        assert!(!columns.contains(&"target_budget".to_string()));
+
+        // Running the migration again must not duplicate the periods.
+        database.run_migrations(&mut conn).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM budget_periods", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn deleting_a_ledger_or_category_clears_its_budget_periods() {
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+        let conn = database.ready_connection("test").unwrap();
+        conn.execute_batch(
+            "
+            INSERT INTO ledgers (id, name, position, created_at)
+            VALUES (2, 'Scenario', 1, datetime('now'));
+            INSERT INTO categories (id, transaction_type, category, subcategory)
+            VALUES (7, 'Expense', 'Food', 'Groceries');
+            INSERT INTO budget_periods (ledger_id, category_id, start_year, start_month, amount)
+            VALUES (1, NULL, 2026, 3, '2000.00'),
+                   (2, NULL, 2026, 3, '3000.00'),
+                   (1, 7, 0, 1, '600.00');
+            ",
+        )
+        .unwrap();
+        drop(conn);
+
+        let remaining = |database: &SqliteDatabase| -> Vec<(i64, Option<i64>)> {
+            let conn = database.ready_connection("test").unwrap();
+            let mut stmt = conn
+                .prepare("SELECT ledger_id, category_id FROM budget_periods ORDER BY id")
+                .unwrap();
+            let rows = stmt
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+                .unwrap()
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .unwrap();
+            drop(stmt);
+            rows
+        };
+
+        // Dropping a ledger takes its budgets with it, leaving the other ledger alone.
+        SqliteLedgerStore::new(database.clone()).delete(2).unwrap();
+        assert_eq!(remaining(&database), vec![(1, None), (1, Some(7))]);
+
+        // Dropping a category clears its budget without touching the monthly budget.
+        crate::db::category_store::SqliteCategoryStore::new(database.clone())
+            .delete(7)
+            .unwrap();
+        assert_eq!(remaining(&database), vec![(1, None)]);
+    }
+
+    #[test]
+    fn budget_periods_round_trip_for_the_target_and_a_category() {
+        use crate::db::budget_store::{BudgetStore, SqliteBudgetStore};
+        use crate::model::{BudgetMonth, BudgetWrite};
+
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+        let conn = database.ready_connection("test").unwrap();
+        conn.execute_batch(
+            "
+            INSERT INTO categories (id, transaction_type, category, subcategory)
+            VALUES (7, 'Expense', 'Food', 'Groceries');
+            INSERT INTO ledgers (id, name, position, created_at)
+            VALUES (2, 'Scenario', 1, datetime('now'));
+            ",
+        )
+        .unwrap();
+        drop(conn);
+
+        let store = SqliteBudgetStore::new(database.clone());
+        let jan = BudgetMonth::new(2026, 1);
+        let mar = BudgetMonth::new(2026, 3);
+        let ledger = DEFAULT_LEDGER_ID;
+
+        // The monthly budget is keyed on a NULL category, which only matches with `IS`.
+        store
+            .set(ledger, None, jan, Some("2000".parse().unwrap()))
+            .unwrap();
+        store
+            .set(ledger, None, mar, Some("2500".parse().unwrap()))
+            .unwrap();
+        store
+            .set(ledger, Some(7), jan, Some("600".parse().unwrap()))
+            .unwrap();
+
+        let schedule = BudgetSchedule::new(store.list(ledger).unwrap());
+        assert_eq!(schedule.monthly_budget(jan), Some("2000".parse().unwrap()));
+        assert_eq!(
+            schedule.monthly_budget(BudgetMonth::new(2026, 2)),
+            Some("2000".parse().unwrap())
+        );
+        assert_eq!(schedule.monthly_budget(mar), Some("2500".parse().unwrap()));
+        assert_eq!(
+            schedule.monthly_budget(BudgetMonth::new(2026, 4)),
+            Some("2500".parse().unwrap())
+        );
+        assert_eq!(
+            schedule.category_budget(7, mar),
+            Some("600".parse().unwrap())
+        );
+
+        // Replacing a start month must not leave the old row behind.
+        store
+            .set(ledger, None, mar, Some("2600".parse().unwrap()))
+            .unwrap();
+        let schedule = BudgetSchedule::new(store.list(ledger).unwrap());
+        assert_eq!(schedule.monthly_budget(mar), Some("2600".parse().unwrap()));
+
+        // Clearing from a month is not the same as having no period there.
+        store.set(ledger, Some(7), mar, None).unwrap();
+        let schedule = BudgetSchedule::new(store.list(ledger).unwrap());
+        assert_eq!(
+            schedule.category_budget(7, jan),
+            Some("600".parse().unwrap())
+        );
+        assert_eq!(schedule.category_budget(7, mar), None);
+
+        // Removing that period lets March inherit January again.
+        store
+            .apply(ledger, Some(7), &[BudgetWrite::Remove(mar)])
+            .unwrap();
+        let schedule = BudgetSchedule::new(store.list(ledger).unwrap());
+        assert_eq!(
+            schedule.category_budget(7, mar),
+            Some("600".parse().unwrap())
+        );
+
+        // A copied ledger gets its own rows, unaffected by later edits to the source.
+        let copied = SqliteLedgerStore::new(database.clone())
+            .copy(ledger, "Copy")
+            .unwrap();
+        store
+            .apply(ledger, None, &[BudgetWrite::Remove(mar)])
+            .unwrap();
+
+        let source = BudgetSchedule::new(store.list(ledger).unwrap());
+        assert_eq!(source.monthly_budget(mar), Some("2000".parse().unwrap()));
+        // Removing the target left the category budget alone, so `IS` matched the NULL key.
+        assert_eq!(source.category_budget(7, mar), Some("600".parse().unwrap()));
+
+        let copy = BudgetSchedule::new(store.list(copied.id).unwrap());
+        assert_eq!(copy.monthly_budget(mar), Some("2600".parse().unwrap()));
+
+        // A replace plan is two writes; both have to land or history would be lost.
+        store
+            .apply(
+                ledger,
+                None,
+                &[
+                    BudgetWrite::RemoveAll,
+                    BudgetWrite::Set(BudgetMonth::BEGINNING, Some("1800".parse().unwrap())),
+                ],
+            )
+            .unwrap();
+        let schedule = BudgetSchedule::new(store.list(ledger).unwrap());
+        assert_eq!(schedule.monthly_budget(jan), Some("1800".parse().unwrap()));
+        assert_eq!(
+            schedule.monthly_budget(BudgetMonth::new(2030, 1)),
+            Some("1800".parse().unwrap())
+        );
+
+        assert_eq!(schedule.years(), vec![2026]);
+    }
+
+    #[test]
+    fn edit_scopes_resolve_to_the_right_writes() {
+        use crate::model::{BudgetEditScope, BudgetMonth, BudgetPeriod, BudgetWrite};
+
+        let amount = |v: &str| Some(v.parse::<rust_decimal::Decimal>().unwrap());
+        let period = |id, start, value: Option<&str>| BudgetPeriod {
+            id,
+            category_id: None,
+            start,
+            amount: value.map(|v| v.parse().unwrap()),
+        };
+        let jan = BudgetMonth::new(2026, 1);
+        let mar = BudgetMonth::new(2026, 3);
+        let dec = BudgetMonth::new(2026, 12);
+        let schedule = BudgetSchedule::new(vec![
+            period(1, jan, Some("2000")),
+            period(2, mar, Some("2500")),
+        ]);
+
+        assert_eq!(
+            schedule.plan_edit(None, mar, amount("3000"), BudgetEditScope::FromThisMonth),
+            vec![BudgetWrite::Set(mar, amount("3000"))]
+        );
+
+        // Only April must be restored to what it inherits today (2500), not to the new value.
+        assert_eq!(
+            schedule.plan_edit(None, mar, amount("3000"), BudgetEditScope::ThisMonthOnly),
+            vec![
+                BudgetWrite::Set(mar, amount("3000")),
+                BudgetWrite::Set(BudgetMonth::new(2026, 4), amount("2500")),
+            ]
+        );
+
+        // December rolls into January of the next year rather than month 13.
+        assert_eq!(
+            schedule.plan_edit(None, dec, amount("100"), BudgetEditScope::ThisMonthOnly),
+            vec![
+                BudgetWrite::Set(dec, amount("100")),
+                BudgetWrite::Set(BudgetMonth::new(2027, 1), amount("2500")),
+            ]
+        );
+
+        // Replacing wipes history first, so a later period cannot survive and override.
+        assert_eq!(
+            schedule.plan_edit(None, mar, amount("1800"), BudgetEditScope::ReplaceAllMonths),
+            vec![
+                BudgetWrite::RemoveAll,
+                BudgetWrite::Set(BudgetMonth::BEGINNING, amount("1800")),
+            ]
+        );
+
+        assert_eq!(
+            schedule.plan_edit(None, mar, None, BudgetEditScope::RemoveChange),
+            vec![BudgetWrite::Remove(mar)]
+        );
+
+        // A scope with no periods of its own is unaffected by the target's.
+        assert_eq!(
+            schedule.plan_edit(Some(7), mar, amount("600"), BudgetEditScope::ThisMonthOnly),
+            vec![
+                BudgetWrite::Set(mar, amount("600")),
+                BudgetWrite::Set(BudgetMonth::new(2026, 4), None),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_recreated_category_does_not_inherit_a_deleted_budget() {
+        use crate::db::budget_store::{BudgetStore, SqliteBudgetStore};
+        use crate::db::category_store::SqliteCategoryStore;
+        use crate::model::{BudgetMonth, CategoryDraft, TransactionType};
+
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+        let categories = SqliteCategoryStore::new(database.clone());
+        let budgets = SqliteBudgetStore::new(database.clone());
+        let draft = |name: &str| CategoryDraft {
+            transaction_type: TransactionType::Expense,
+            category: name.to_string(),
+            subcategory: String::new(),
+            tag: None,
+        };
+
+        let created = categories.insert(&draft("Food")).unwrap();
+        budgets
+            .set(
+                DEFAULT_LEDGER_ID,
+                Some(created.id),
+                BudgetMonth::new(2026, 1),
+                Some("600".parse().unwrap()),
+            )
+            .unwrap();
+
+        categories.delete(created.id).unwrap();
+        assert!(budgets.list(DEFAULT_LEDGER_ID).unwrap().is_empty());
+
+        // `categories.id` has no AUTOINCREMENT, so SQLite hands the id straight back.
+        let recreated = categories.insert(&draft("Fun")).unwrap();
+        assert_eq!(recreated.id, created.id);
+        let schedule = BudgetSchedule::new(budgets.list(DEFAULT_LEDGER_ID).unwrap());
+        assert_eq!(
+            schedule.category_budget(recreated.id, BudgetMonth::new(2026, 6)),
+            None
+        );
+    }
+
+    #[test]
+    fn turning_a_category_into_income_drops_its_budgets() {
+        use crate::db::budget_store::{BudgetStore, SqliteBudgetStore};
+        use crate::db::category_store::SqliteCategoryStore;
+        use crate::model::{BudgetMonth, CategoryDraft, TransactionType};
+
+        let temp = TempDb::new();
+        let database = SqliteDatabase::new(&temp.path);
+        let conn = database.ready_connection("test").unwrap();
+        conn.execute_batch(
+            "INSERT INTO ledgers (id, name, position, created_at)
+             VALUES (2, 'Scenario', 1, datetime('now'));",
+        )
+        .unwrap();
+        drop(conn);
+
+        let categories = SqliteCategoryStore::new(database.clone());
+        let budgets = SqliteBudgetStore::new(database.clone());
+        let mut draft = CategoryDraft {
+            transaction_type: TransactionType::Expense,
+            category: "Food".to_string(),
+            subcategory: String::new(),
+            tag: None,
+        };
+        let record = categories.insert(&draft).unwrap();
+
+        // Budgets are per ledger, but the category type is not, so both must go.
+        for ledger in [DEFAULT_LEDGER_ID, 2] {
+            budgets
+                .set(
+                    ledger,
+                    Some(record.id),
+                    BudgetMonth::new(2026, 1),
+                    Some("600".parse().unwrap()),
+                )
+                .unwrap();
+        }
+
+        draft.transaction_type = TransactionType::Income;
+        categories.update(record.id, &draft).unwrap();
+
+        for ledger in [DEFAULT_LEDGER_ID, 2] {
+            let schedule = BudgetSchedule::new(budgets.list(ledger).unwrap());
+            assert_eq!(
+                schedule.category_budget(record.id, BudgetMonth::new(2026, 6)),
+                None
+            );
+        }
+
+        // Switching back must not bring back the old amounts.
+        draft.transaction_type = TransactionType::Expense;
+        categories.update(record.id, &draft).unwrap();
+        let schedule = BudgetSchedule::new(budgets.list(DEFAULT_LEDGER_ID).unwrap());
+        assert_eq!(
+            schedule.category_budget(record.id, BudgetMonth::new(2026, 6)),
+            None
+        );
     }
 
     #[test]

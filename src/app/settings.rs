@@ -58,21 +58,6 @@ impl App {
             "Press Enter to choose a destination and export all transactions to CSV.",
         );
 
-        // --- Monthly Summary View Section ---
-        self.settings_state.add_header("Monthly Summary View");
-
-        let budget_val = loaded_settings
-            .target_budget
-            .map(|v| v.to_string())
-            .unwrap_or_default();
-        self.settings_state.add_setting(
-            SettingKey::TargetBudget,
-            "Monthly Target",
-            budget_val,
-            SettingType::Number,
-            "Monthly spending goal. Used by the budget view, and drawn in the monthly summary's cumulative mode.",
-        );
-
         // --- Transaction View Section ---
         self.settings_state.add_header("Transaction View");
 
@@ -196,7 +181,6 @@ impl App {
     pub(crate) fn save_settings(&mut self) {
         // Retrieve values from state
         let mut new_database_path_str = String::new();
-        let mut target_budget_str = String::new();
         let mut hourly_rate_str = String::new();
         let mut forecast_months_str = String::new();
         let mut show_hours_val = None;
@@ -205,9 +189,6 @@ impl App {
 
         if let Some(val) = self.settings_state.get_value(SettingKey::DatabasePath) {
             new_database_path_str = crate::validation::strip_path_quotes(val);
-        }
-        if let Some(val) = self.settings_state.get_value(SettingKey::TargetBudget) {
-            target_budget_str = val.trim().to_string();
         }
         if let Some(val) = self.settings_state.get_value(SettingKey::HourlyRate) {
             hourly_rate_str = val.trim().to_string();
@@ -227,19 +208,6 @@ impl App {
         if let Some(val) = self.settings_state.get_value(SettingKey::HideHelpBar) {
             hide_help_bar_val = Some(val.to_lowercase().contains("yes"));
         }
-
-        // Validate Monthly Target
-        let target_budget = if target_budget_str.is_empty() {
-            None
-        } else {
-            match crate::validation::validate_amount_string(&target_budget_str) {
-                Ok(val) => Some(val),
-                Err(msg) => {
-                    self.set_status_message(format!("Error: Monthly target - {}", msg), None);
-                    return;
-                }
-            }
-        };
 
         // Validate Hourly Rate
         let hourly_rate = if hourly_rate_str.is_empty() {
@@ -306,7 +274,7 @@ impl App {
         let settings = AppSettings {
             data_file_path: Some(self.data_file_path.to_string_lossy().to_string()),
             database_path: Some(new_database_path_str.clone()),
-            target_budget,
+            target_budget: None,
             hourly_rate,
             show_hours: show_hours_val,
             fuzzy_search_mode: fuzzy_search_val,
@@ -346,7 +314,6 @@ impl App {
             format!("Settings saved. Database: {}", self.database_path.display()),
             Some(Duration::seconds(3)),
         );
-        self.target_budget = target_budget;
         self.hourly_rate = hourly_rate;
         self.show_hours = show_hours_val.unwrap_or(false);
         self.fuzzy_search_mode = fuzzy_search_val.unwrap_or(false);

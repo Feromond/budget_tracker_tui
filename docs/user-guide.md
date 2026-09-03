@@ -50,20 +50,43 @@ Forecast occurrences are derived in memory like every other generated occurrence
 
 ## Summary views
 
-**Monthly summary (`s`)** shows income, expenses, and net per month with an interactive chart. `↑`/`↓` move between months, `←`/`→` (or `[`/`]`) move between years. `m` toggles a multi-month line chart, and `c` toggles cumulative mode, which also draws the monthly target line from settings.
+**Monthly summary (`s`)** shows income, expenses, and net per month with an interactive chart. `↑`/`↓` move between months, `←`/`→` (or `[`/`]`) move between years. `m` toggles a multi-month line chart, and `c` toggles cumulative mode, which also draws the monthly budget line for each month.
 
 **Category summary (`c`)** breaks down each month by category. `Enter` expands or collapses a month, `PageUp`/`PageDown` move between months, `←`/`→` between years.
 
-**Budget view (`b`)** compares spending against your monthly target and any per-category budgets. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years.
+**Budget view (`b`)** compares spending against your monthly budget and any per-category budgets, and is where both are set. `↑`/`↓` move between categories, `←`/`→` between months, `Shift+←`/`Shift+→` between years. It opens on the current month even before you have entered anything, so you can set a budget on a brand new ledger.
 
 Under a *Category Budgets* heading, the status panel totals every category budget you have set
-(`Total`) and shows what is left over from the monthly target (`Spare`), so you can see how much of
+(`Total`) and shows what is left over from the monthly budget (`Spare`), so you can see how much of
 your budget is still unassigned without entering any transactions. `Spare` goes red and the status
-reads *Over Allocated* when your category budgets add up to more than the monthly target. Neither
-figure is tied to a month, which is why they hold steady as you move between months.
+reads *Over Allocated* when your category budgets add up to more than the monthly budget.
 
-Press `e` on a row to change that category's budget in place. The popup starts on
-the current amount; `Enter` saves, `Esc` cancels, and an empty amount clears the budget, which also
+### Budgets change over time
+
+Every budget is recorded with the month it starts applying, so changing one never rewrites what
+earlier months were budgeted at. Set your target to 2,000 in January and raise it to 2,500 in
+March, and January and February still report against 2,000 while March onward uses 2,500.
+
+Every place that edits a budget uses the same popup, so the choice of how far a change reaches is
+always in front of you. The budget view is tied to the month you are looking at; the category
+catalog has no month of its own, so it anchors on the current one. Reach for *Replace all months*
+when you want an amount to apply to your whole history.
+
+Press `t` to set the monthly budget, and `e` to set the selected category's budget. Both start on
+the amount currently in force, and `↑`/`↓` choose how far the change reaches:
+
+- *From <month> on* carries the new amount forward until something else changes it
+- *<month> only* changes that one month and restores the old amount from the next one
+- *Replace all months* discards the whole history for that budget and applies one amount to every
+  month
+- *Remove <month> change* appears when a change starts in the selected month, and deletes it so the
+  month inherits the previous amount again
+
+*Replace all months* is the one to reach for when you got an amount wrong rather than when your
+plan changed. Going back to your earliest month and using *from <month> on* would not do the same
+thing, because any later change you made still overrides it from the month it starts.
+
+`Enter` saves, `Esc` cancels, and an empty amount clears the budget from that month on, which also
 drops the category from the table since only budgeted categories are listed. Press `c` to open the
 [category catalog](#the-category-catalog), which is where you set a budget on a category that
 doesn't have one yet.
@@ -75,16 +98,22 @@ The catalog holds your categories and subcategories. Open it from Settings (*Man
 - `↑`/`↓` move between entries, `PageUp`/`PageDown` jump by page, `Ctrl+↑`/`Ctrl+↓` jump to the first/last entry
 - `f` filters the catalog as you type; `Enter` keeps the filter applied, `Esc` or `Ctrl+R` clears it
 - `a` adds a category, `e` or `Enter` edits the selected one, `d` deletes it
+- `b` sets the selected category's budget, using the same popup as the budget view. The same popup
+  is reachable from the *Budget* row inside the editor, which saves the category first so a brand
+  new one has something to attach a budget to
 - `1`-`5` (or `F1`-`F5`) sort by type, category, subcategory, tag, or budget; pressing the same key again flips the direction, and the sorted column is marked in the header
-- Expense categories can optionally hold a budget, used by the budget view
+- Expense categories can optionally hold a budget, used by the budget view. Because the catalog has
+  no month of its own, `b` dates the change from the current month, and the popup says so
 
 ## Ledgers
 
 A ledger is a self-contained set of transactions. One database can hold several of them, so you
 can keep separate books for different accounts or goals, or copy of a scenario to experiment with
 forecasting without touching your real data. Every ledger in a database **shares the same category
-catalog**, including per-category budgets, so a category you rename or delete updates the
-transactions in all of them.
+catalog**, so a category you rename or delete updates the transactions in all of them. Budget
+amounts are **per ledger**, though: each ledger keeps its own monthly budget and its own category
+budgets, and copying a ledger copies its budgets with it, so a scenario ledger can plan against a
+different budget without disturbing your real one.
 
 Open the list from Settings (*Ledger*, which shows the ledger currently open).
 
@@ -117,10 +146,6 @@ Press `o` to open settings. The menu is grouped into sections:
 - *Manage Categories*: opens the [category catalog](#the-category-catalog).
 - *Import Transactions (CSV)*: merges a CSV file into the open ledger; new rows are added, exact duplicates are skipped.
 - *Export Transactions (CSV)*: writes the open ledger's transactions to a CSV file for backup or use elsewhere.
-
-**Monthly Summary View**
-
-- *Monthly Target*: your monthly spending goal, drawn as a line in the monthly summary's cumulative mode and used by the budget view.
 
 **Transaction View**
 

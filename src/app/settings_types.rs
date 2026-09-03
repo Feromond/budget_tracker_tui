@@ -18,7 +18,6 @@ pub enum SettingKey {
     ManageCategories,
     ImportTransactions,
     ExportTransactions,
-    TargetBudget,
     HourlyRate,
     ShowHours,
     FuzzySearch,
