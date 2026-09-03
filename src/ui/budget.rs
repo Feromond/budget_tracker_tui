@@ -11,6 +11,7 @@ use rust_decimal::prelude::*;
 
 const PANEL_CHROME_COLOR: Color = Color::LightBlue;
 const SELECTED_MONTH_BAR_COLOR: Color = Color::Rgb(255, 165, 0);
+const BUDGET_GUIDE_SYMBOL: &str = "━";
 const WARNING_COLOR: Color = Color::Rgb(255, 165, 0); // orange
 
 fn budget_panel_block(title: Line<'static>, borders: Borders) -> Block<'static> {
@@ -759,15 +760,18 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
         for (month, expense) in &monthly_pattern {
             let value = expense.round().to_u64().unwrap_or(0);
             selected_max = selected_max.max(value);
+            let month_budget = current_year.and_then(|year| {
+                app.budget_schedule
+                    .category_budget(comparison.id, BudgetMonth::new(year, *month))
+            });
+            if let Some(budget) = month_budget {
+                selected_max = selected_max.max(budget.round().to_u64().unwrap_or(0));
+            }
             let style = if Some(*month) == selected_month {
                 Style::default()
                     .fg(SELECTED_MONTH_BAR_COLOR)
                     .add_modifier(Modifier::BOLD)
-            } else if current_year.is_some_and(|year| {
-                app.budget_schedule
-                    .category_budget(comparison.id, BudgetMonth::new(year, *month))
-                    .is_some_and(|budget| *expense > budget)
-            }) {
+            } else if month_budget.is_some_and(|budget| *expense > budget) {
                 Style::default().fg(Color::LightRed)
             } else if expense.is_zero() {
                 Style::default().fg(Color::DarkGray)
@@ -790,16 +794,75 @@ pub fn render_budget_view(f: &mut Frame, app: &mut App, area: Rect) {
     let width_per_bar_and_gap = (usable_width / (selected_bars.len() as u16).max(1)).max(1);
     let bar_gap = if width_per_bar_and_gap > 1 { 1 } else { 0 };
     let bar_width = width_per_bar_and_gap.saturating_sub(bar_gap).max(1);
+    let detail_block = budget_panel_block(detail_chart_title, Borders::TOP | Borders::LEFT);
+    let bars_area = detail_block.inner(detail_chunks[1]);
+    let chart_max = selected_max.max(10);
     let detail_chart = BarChart::default()
-        .block(budget_panel_block(
-            detail_chart_title,
-            Borders::TOP | Borders::LEFT,
-        ))
+        .block(detail_block)
         .data(BarGroup::default().bars(&selected_bars))
         .bar_width(bar_width)
         .bar_gap(bar_gap)
         .group_gap(0)
         .label_style(Style::default().fg(Color::White))
-        .max(selected_max.max(10));
+        .max(chart_max);
     f.render_widget(detail_chart, detail_chunks[1]);
+
+    if let (Some(comparison), Some(year)) = (selected_comparison.as_ref(), current_year) {
+        let budgets: Vec<Option<Decimal>> = monthly_pattern
+            .iter()
+            .map(|(month, _)| {
+                app.budget_schedule
+                    .category_budget(comparison.id, BudgetMonth::new(year, *month))
+            })
+            .collect();
+        render_budget_guide(f, bars_area, &budgets, chart_max, bar_width, bar_gap);
+    }
+}
+
+/// Bars fill in eighths of a cell, so the guide sits where a bar of that amount would stop.
+fn render_budget_guide(
+    f: &mut Frame,
+    area: Rect,
+    budgets: &[Option<Decimal>],
+    max: u64,
+    bar_width: u16,
+    bar_gap: u16,
+) {
+    // BarChart gives the bottom row to labels.
+    let rows = area.height.saturating_sub(1);
+    let step = bar_width + bar_gap;
+    if rows == 0 || area.width == 0 || max == 0 || step == 0 {
+        return;
+    }
+
+    let drawn = budgets.len().min(((area.width + bar_gap) / step) as usize);
+    let buf = f.buffer_mut();
+    for (index, budget) in budgets.iter().take(drawn).enumerate() {
+        let Some(budget) = budget else { continue };
+        let ticks = budget
+            .round()
+            .to_u64()
+            .unwrap_or(0)
+            .saturating_mul(u64::from(rows))
+            .saturating_mul(8)
+            / max;
+        let cell = (ticks / 8) as u16;
+        if cell >= rows {
+            continue;
+        }
+
+        let x = area.left() + index as u16 * step;
+        // The gap is spanned too, so a steady budget reads as one continuous line.
+        let span = if index + 1 == drawn { bar_width } else { step };
+        let y = area.top() + rows - 1 - cell;
+        for offset in 0..span.min(area.right().saturating_sub(x)) {
+            buf[(x + offset, y)]
+                .set_symbol(BUDGET_GUIDE_SYMBOL)
+                .set_style(
+                    Style::default()
+                        .fg(Color::LightBlue)
+                        .add_modifier(Modifier::BOLD),
+                );
+        }
+    }
 }
